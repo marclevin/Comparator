@@ -479,19 +479,6 @@ class SwapVector(ChangeVector):
 			return (self.oldPath, self.newPath)
 
 
-class ReplaceVector(ChangeVector):
-	def __cmp__(self, other):
-		if not isinstance(other, ChangeVector):
-			return -1
-		if not isinstance(other, ReplaceVector):
-			return 1
-		return ChangeVector.__cmp__(self, other)
-
-	def __repr__(self):
-		oldStr = printFunction(self.oldSubtree, 0) if isinstance(self.oldSubtree, ast.AST) else repr(self.oldSubtree)
-		newStr = printFunction(self.newSubtree, 0) if isinstance(self.newSubtree, ast.AST) else repr(self.newSubtree)
-		return "Replace: " + oldStr + " - " + newStr + " : " + str(self.path)
-
 class MoveVector(ChangeVector):
 	# This class represents a change where one line is moved somewhere else in the list
 

@@ -1,3 +1,192 @@
-05 Jun 2024 11:51:54	display	Missing type: <class 'ast.Constant'>
-05 Jun 2024 11:51:54	display	Missing type: <class 'ast.Constant'>
-05 Jun 2024 11:51:54	display	Missing type: <class 'ast.Constant'>
+
+18 Jun 2024 14:04:12	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:12	generate_message	getLineNumber	Path incorrect: [1, ('args', 'Call'), ('iter', 'For'), 1, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:12	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:12	generate_message	getLineNumber	Broken path: [('iter', 'For'), 1, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:12	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:12	generate_message	getLineNumber	Path incorrect: [1, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:12	generate_message	getLineNumber	Path incorrect: [0, ('body', 'Module')]
+18 Jun 2024 14:04:12	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:12	generate_message	getColumnNumber	Broken path: [1, ('args', 'Call'), ('iter', 'For'), 1, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:12	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:12	generate_message	getColumnNumber	Broken path: [('iter', 'For'), 1, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:12	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:12	generate_message	getColumnNumber	Broken path: [1, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:12	generate_message	getColumnNumber	Broken path: [0, ('body', 'Module')]
+18 Jun 2024 14:04:12	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:18	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:18	generate_message	getLineNumber	Path incorrect: [1, ('args', 'Call'), ('iter', 'For'), 1, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:18	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:18	generate_message	getLineNumber	Broken path: [('iter', 'For'), 1, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:18	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:18	generate_message	getLineNumber	Path incorrect: [1, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:18	generate_message	getLineNumber	Path incorrect: [0, ('body', 'Module')]
+18 Jun 2024 14:04:18	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:18	generate_message	getColumnNumber	Broken path: [1, ('args', 'Call'), ('iter', 'For'), 1, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:18	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:18	generate_message	getColumnNumber	Broken path: [('iter', 'For'), 1, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:18	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:18	generate_message	getColumnNumber	Broken path: [1, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:18	generate_message	getColumnNumber	Broken path: [0, ('body', 'Module')]
+18 Jun 2024 14:04:18	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:19	display	formatContext	Missing field: value,Constant
+18 Jun 2024 14:04:19	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:19	generate_message	getLineNumber	Broken path: [('value', 'Constant'), 0, ('comparators', 'Compare'), 1, ('values', 'Boolean Operation'), 0, ('args', 'Call'), ('value', 'Return'), 0, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:19	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:19	generate_message	getLineNumber	Path incorrect: [0, ('comparators', 'Compare'), 1, ('values', 'Boolean Operation'), 0, ('args', 'Call'), ('value', 'Return'), 0, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:19	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:19	generate_message	getLineNumber	Path incorrect: [1, ('values', 'Boolean Operation'), 0, ('args', 'Call'), ('value', 'Return'), 0, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:19	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:19	generate_message	getLineNumber	Path incorrect: [0, ('args', 'Call'), ('value', 'Return'), 0, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:19	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:19	generate_message	getLineNumber	Broken path: [('value', 'Return'), 0, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:19	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:19	generate_message	getLineNumber	Path incorrect: [0, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:19	generate_message	getLineNumber	Path incorrect: [0, ('body', 'Module')]
+18 Jun 2024 14:04:19	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:19	generate_message	getColumnNumber	Broken path: [('value', 'Constant'), 0, ('comparators', 'Compare'), 1, ('values', 'Boolean Operation'), 0, ('args', 'Call'), ('value', 'Return'), 0, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:19	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:19	generate_message	getColumnNumber	Broken path: [0, ('comparators', 'Compare'), 1, ('values', 'Boolean Operation'), 0, ('args', 'Call'), ('value', 'Return'), 0, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:19	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:19	generate_message	getColumnNumber	Broken path: [1, ('values', 'Boolean Operation'), 0, ('args', 'Call'), ('value', 'Return'), 0, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:19	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:19	generate_message	getColumnNumber	Broken path: [0, ('args', 'Call'), ('value', 'Return'), 0, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:19	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:19	generate_message	getColumnNumber	Broken path: [('value', 'Return'), 0, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:19	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:19	generate_message	getColumnNumber	Broken path: [0, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:19	generate_message	getColumnNumber	Broken path: [0, ('body', 'Module')]
+18 Jun 2024 14:04:19	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:21	display	formatContext	Missing field: value,Constant
+18 Jun 2024 14:04:21	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:21	generate_message	getLineNumber	Broken path: [('value', 'Constant'), 0, ('comparators', 'Compare'), 1, ('values', 'Boolean Operation'), 0, ('args', 'Call'), ('value', 'Return'), 0, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:21	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:21	generate_message	getLineNumber	Path incorrect: [0, ('comparators', 'Compare'), 1, ('values', 'Boolean Operation'), 0, ('args', 'Call'), ('value', 'Return'), 0, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:21	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:21	generate_message	getLineNumber	Path incorrect: [1, ('values', 'Boolean Operation'), 0, ('args', 'Call'), ('value', 'Return'), 0, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:21	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:21	generate_message	getLineNumber	Path incorrect: [0, ('args', 'Call'), ('value', 'Return'), 0, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:21	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:21	generate_message	getLineNumber	Broken path: [('value', 'Return'), 0, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:21	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:21	generate_message	getLineNumber	Path incorrect: [0, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:21	generate_message	getLineNumber	Path incorrect: [0, ('body', 'Module')]
+18 Jun 2024 14:04:21	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:21	generate_message	getColumnNumber	Broken path: [('value', 'Constant'), 0, ('comparators', 'Compare'), 1, ('values', 'Boolean Operation'), 0, ('args', 'Call'), ('value', 'Return'), 0, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:21	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:21	generate_message	getColumnNumber	Broken path: [0, ('comparators', 'Compare'), 1, ('values', 'Boolean Operation'), 0, ('args', 'Call'), ('value', 'Return'), 0, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:21	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:21	generate_message	getColumnNumber	Broken path: [1, ('values', 'Boolean Operation'), 0, ('args', 'Call'), ('value', 'Return'), 0, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:21	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:21	generate_message	getColumnNumber	Broken path: [0, ('args', 'Call'), ('value', 'Return'), 0, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:21	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:21	generate_message	getColumnNumber	Broken path: [('value', 'Return'), 0, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:21	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:21	generate_message	getColumnNumber	Broken path: [0, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:21	generate_message	getColumnNumber	Broken path: [0, ('body', 'Module')]
+18 Jun 2024 14:04:21	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:25	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:25	generate_message	getLineNumber	Path incorrect: [1, ('args', 'Call'), ('iter', 'For'), 1, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:25	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:25	generate_message	getLineNumber	Broken path: [('iter', 'For'), 1, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:25	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:25	generate_message	getLineNumber	Path incorrect: [1, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:25	generate_message	getLineNumber	Path incorrect: [0, ('body', 'Module')]
+18 Jun 2024 14:04:25	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:25	generate_message	getColumnNumber	Broken path: [1, ('args', 'Call'), ('iter', 'For'), 1, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:25	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:25	generate_message	getColumnNumber	Broken path: [('iter', 'For'), 1, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:25	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:25	generate_message	getColumnNumber	Broken path: [1, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:25	generate_message	getColumnNumber	Broken path: [0, ('body', 'Module')]
+18 Jun 2024 14:04:25	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:48	display	formatContext	Missing field: value,Constant
+18 Jun 2024 14:04:48	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:48	generate_message	getLineNumber	Broken path: [('value', 'Constant'), 0, ('comparators', 'Compare'), 1, ('values', 'Boolean Operation'), 0, ('args', 'Call'), ('value', 'Return'), 0, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:48	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:48	generate_message	getLineNumber	Path incorrect: [0, ('comparators', 'Compare'), 1, ('values', 'Boolean Operation'), 0, ('args', 'Call'), ('value', 'Return'), 0, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:48	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:48	generate_message	getLineNumber	Path incorrect: [1, ('values', 'Boolean Operation'), 0, ('args', 'Call'), ('value', 'Return'), 0, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:48	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:48	generate_message	getLineNumber	Path incorrect: [0, ('args', 'Call'), ('value', 'Return'), 0, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:48	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:48	generate_message	getLineNumber	Broken path: [('value', 'Return'), 0, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:48	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:48	generate_message	getLineNumber	Path incorrect: [0, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:48	generate_message	getLineNumber	Path incorrect: [0, ('body', 'Module')]
+18 Jun 2024 14:04:48	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:48	generate_message	getColumnNumber	Broken path: [('value', 'Constant'), 0, ('comparators', 'Compare'), 1, ('values', 'Boolean Operation'), 0, ('args', 'Call'), ('value', 'Return'), 0, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:48	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:48	generate_message	getColumnNumber	Broken path: [0, ('comparators', 'Compare'), 1, ('values', 'Boolean Operation'), 0, ('args', 'Call'), ('value', 'Return'), 0, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:48	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:48	generate_message	getColumnNumber	Broken path: [1, ('values', 'Boolean Operation'), 0, ('args', 'Call'), ('value', 'Return'), 0, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:48	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:48	generate_message	getColumnNumber	Broken path: [0, ('args', 'Call'), ('value', 'Return'), 0, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:48	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:48	generate_message	getColumnNumber	Broken path: [('value', 'Return'), 0, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:48	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:48	generate_message	getColumnNumber	Broken path: [0, ('body', 'Function Definition'), 0, ('body', 'Module')]
+18 Jun 2024 14:04:48	generate_message	getColumnNumber	Broken path: [0, ('body', 'Module')]
+18 Jun 2024 14:04:48	Change Vector	traverseTree		Missing attr: body
+
+18 Jun 2024 14:04:49	Change Vector	traverseTree		Missing attr: body
+

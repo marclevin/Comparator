@@ -238,54 +238,72 @@ def diffLists(x, y, ignoreVariables=False):
         i = mapSet[j]
         # Not a delete or an add
         if j != -1 and i != -1:
-            tempVectors = diffAsts(x[i], y[j], ignoreVariables=ignoreVariables)
+            tempVectors = diff_asts(x[i], y[j])
             for change in tempVectors:
                 change.path.append(i)
             changeVectors += tempVectors
     return changeVectors
 
 
-def diffAsts(x, y, ignoreVariables=False):
-    """Find all change vectors between x and y"""
-    xAST = isinstance(x, ast.AST)
-    yAST = isinstance(y, ast.AST)
-    if xAST and yAST:
-        if type(x) != type(y):  # different node types
-            if occursIn(x, y):
-                return [SubVector([], x, y)]
-            elif occursIn(y, x):
-                return [SuperVector([], x, y)]
-            else:
-                return [ChangeVector([], x, y)]
-        elif ignoreVariables and type(x) == type(y) == ast.Name:
-            if not builtInName(x.id) and not builtInName(y.id):
-                return []  # ignore the actual IDs
-
-        result = []
-        for field in x._fields:
-            currentDiffs = diffAsts(
-                getattr(x, field), getattr(y, field), ignoreVariables=ignoreVariables
-            )
-            if currentDiffs != []:  # add the next step in the path
-                for change in currentDiffs:
-                    change.path.append((field, astNames[type(x)]))
-                result += currentDiffs
-        return result
-    elif (not xAST) and (not yAST):
-        if type(x) == list and type(y) == list:
-            return diffLists(x, y, ignoreVariables=ignoreVariables)
-        elif x != y or type(x) != type(
-            y
-        ):  # need the type check to distinguish ints from floats
-            return [ReplaceVector([], x, y)]  # they're primitive, so just switch them
-        else:  # equal values
-            return []
-    else:  # Two mismatched types
+def diff_asts(x, y, ignore_variables=False):
+    """Find all change vectors between ASTs x and y."""
+    if isinstance(x, ast.AST) and isinstance(y, ast.AST):
+        return _diff_ast_nodes(x, y, ignore_variables)
+    elif not isinstance(x, ast.AST) and not isinstance(y, ast.AST):
+        return _diff_non_ast(x, y, ignore_variables)
+    else:
+        # Mismatched types: one is an AST node and the other is not.
         return [ChangeVector([], x, y)]
+
+def _diff_ast_nodes(x, y, ignore_variables):
+    """Diff two AST nodes."""
+    if type(x) != type(y):
+        return _handle_different_node_types(x, y)
+    elif ignore_variables and isinstance(x, ast.Name) and isinstance(y, ast.Name):
+        return _ignore_variables(x, y)
+
+    return _diff_same_type_nodes(x, y, ignore_variables)
+
+def _handle_different_node_types(x, y):
+    """Handle diffing of two AST nodes of different types."""
+    if occursIn(x, y):
+        return [SubVector([], x, y)]
+    elif occursIn(y, x):
+        return [SuperVector([], x, y)]
+    else:
+        return [ChangeVector([], x, y)]
+
+def _ignore_variables(x, y):
+    """Ignore variable names if not built-in."""
+    if not builtInName(x.id) and not builtInName(y.id):
+        return []  # Ignore the actual IDs.
+    return [ChangeVector([], x, y)]
+
+def _diff_same_type_nodes(x, y, ignore_variables):
+    """Diff two AST nodes of the same type."""
+    result = []
+    for field in x._fields:
+        x_field_val = getattr(x, field)
+        y_field_val = getattr(y, field)
+        current_diffs = diff_asts(x_field_val, y_field_val, ignore_variables)
+        
+        for change in current_diffs:
+            change.path.append((field, astNames[type(x)]))
+        result.extend(current_diffs)
+    return result
+
+def _diff_non_ast(x, y, ignore_variables):
+    """Diff two non-AST objects."""
+    if isinstance(x, list) and isinstance(y, list):
+        return diffLists(x, y, ignore_variables)
+    elif x != y or type(x) != type(y):
+        return [ChangeVector([], x, y)]  # Primitive types or different types.
+    else:
+        return []  # Equal values.
 
 
 def getChanges(s, t, ignoreVariables=False):
-    changes = diffAsts(s, t, ignoreVariables=ignoreVariables)
+    changes = diff_asts(s, t, ignoreVariables=ignoreVariables)
     for change in changes:
         change.start = s  # WARNING: should maybe have a deepcopy here? It will alias s
     return changes
