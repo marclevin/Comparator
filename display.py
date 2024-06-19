@@ -341,25 +341,30 @@ def printFunction(a, indent=0):
 		for line in a.body:
 			s += printFunction(line, indent + 1)
 	elif t == ast.arguments:
-		# Defaults are only applied AFTER non-defaults
-		defaultStart = len(a.args) - len(a.defaults)
-		for i in range(len(a.args)):
-			s += printFunction(a.args[i], indent)
-			if i >= defaultStart:
-				s += "=" + printFunction(a.defaults[i - defaultStart], indent)
-			s += ", "
-		if a.vararg != None:
-			s += "*" + printFunction(a.vararg, indent) + ", "
-		if a.kwarg != None:
-			s += "**" + printFunction(a.kwarg, indent) + ", "
-		if a.vararg == None and a.kwarg == None and len(a.kwonlyargs) > 0:
-			s += "*, "
-		if len(a.kwonlyargs) > 0:
-			for i in range(len(a.kwonlyargs)):
-				s += printFunction(a.kwonlyargs[i], indent)
-				s += "=" + printFunction(a.kw_defaults, indent) + ", "
-		if (len(a.args) > 0 or a.vararg != None or a.kwarg != None or len(a.kwonlyargs) > 0):
-			s = s[:-2]
+     
+		if hasattr(a, "posonlyargs") and a.posonlyargs is not None and len(a.posonlyargs) > 0:
+			for i in range(len(a.posonlyargs)):
+				s += printFunction(a.posonlyargs[i], indent) + ", "
+		else:
+			if not (a.args == None or a.vararg == None or a.kwarg == None or a.kw_defaults == None or a.kwonlyargs == None):
+				defaultStart = len(a.kwarg) - len(a.kw_defaults)
+				for i in range(len(a.args)):
+					s += printFunction(a.args[i], indent)
+					if i >= defaultStart:
+						s += "=" + printFunction(a.kw_defaults[i - defaultStart], indent)
+					s += ", "
+				if a.vararg != None:
+					s += "*" + printFunction(a.vararg, indent) + ", "
+				if a.kwarg != None:
+					s += "**" + printFunction(a.kwarg, indent) + ", "
+				if a.vararg == None and a.kwarg == None and len(a.kwonlyargs) > 0:
+					s += "*, "
+				if len(a.kwonlyargs) > 0:
+					for i in range(len(a.kwonlyargs)):
+						s += printFunction(a.kwonlyargs[i], indent)
+						s += "=" + printFunction(a.kw_defaults, indent) + ", "
+				if (len(a.args) > 0 or a.vararg != None or a.kwarg != None or len(a.kwonlyargs) > 0):
+					s = s[:-2]
 	elif t == ast.arg:
 		s += a.arg
 		if a.annotation != None:

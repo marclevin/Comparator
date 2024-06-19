@@ -1,6 +1,9 @@
+import ast
+from typing import List
+from ChangeVector import ChangeVector
 from astTools import deepcopy
-
 # The State class holds all the relevent information for a solution state
+
 class State:
 	id = None
 	name = None
@@ -64,24 +67,35 @@ class CanonicalState(State):
 	next_id = None
 	edit = None # the changes on the edge to the next state
 
-	def deepcopy(this):
-		s = CanonicalState()
-		s.id = this.id
-		s.name = this.name
-		s.score = this.score
-		s.fun = this.fun
-		s.tree = deepcopy(this.tree)
 
-		s.count = this.count
-		s.goal = this.goal
-		s.goal_id = this.goal_id
-		s.goalDist = this.goalDist
-		s.next = this.next
-		s.next_id = this.next_id
-		s.edit = this.edit
-
-		if hasattr(this, "hint"):
-			s.hint = this.hint
-		if hasattr(this, "treeWeight"):
-			s.treeWeight = this.treeWeight
-		return s
+class CodeState(State):
+    original_ast : ast = None
+    goal : State = None # the eventual goal state for this student
+    distance_to_goal : int = -1
+    edit : List[ChangeVector] = None # the changes on the edge to the next state
+    # Constructor
+    def __init__(self, tree):
+        self.tree = tree
+        
+	
+ 
+class IntermediateState(State):
+    distance_to_goal = -1
+    distance_to_original = -1
+    change_vectors : list = None
+    
+    def __init__(self, change_vectors = None, tree = None):
+        self.change_vectors = change_vectors
+        self.tree = tree
+        
+  
+    
+    
+class GoalState(State):
+    goal_ast: ast = None
+    def __init__(self, goal_ast) -> None:
+        self.goal_ast = goal_ast
+		
+    
+    
+	

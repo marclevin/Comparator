@@ -1,14 +1,16 @@
 # Entry point 
-from comparator import *
+import json
+from path_construction.comparator import *
 import ast
 from generate_message import *
 import os
+from ast2json import ast2json
+
+from path_construction.state_creator import applyChangeVectors, getNextState, optimizeGoal, updateChangeVectors
+
 
 def main():
-    # with open("./test_ast/isWeekend.py", "r") as f:
-    #     ast1 = ast.parse(f.read())
-    # with open("./test_ast/isWeekendBroken.py", "r") as f:
-    #     ast2 = ast.parse(f.read())
+
     print("Welcome to AST-Hints Comparator")
     print("Problems are in /test_ast/ folder, a pair of a correct solution \"Foo.py\" and a broken solution \"FooBroken.py\" must exist to populate the list below")
     # Scan the dir test_ast for pairs of files, foo.py and fooBroken.py and list the correct solution filename
@@ -34,10 +36,16 @@ def main():
             ast1 = ast.parse(f.read())
         with open("./test_ast/"+list(files[int(problem)])[1], "r") as f:
             ast2 = ast.parse(f.read())
-            
-        edits = diff_asts(ast1, ast2)
+        diffs = diff_asts(ast1, ast2)
+        cs = CodeState(ast1)
+        # For each vector, set start to the original tree
+        for vector in diffs:
+            vector.start = ast1
+        inter = applyChangeVectors(cs, diffs)
+        print(printFunction(cs.tree))
         print("\n")
-        print(formatHints(edits,"next_step",ast2))
+        print(printFunction(inter.tree))
+        
     
 
 if __name__ == "__main__":

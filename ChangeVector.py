@@ -46,6 +46,13 @@ class ChangeVector:
 		# the 'pos' element holds a list where positions map to original positions.
 		# so if we have the list [ 0, 3, 4 ], then the first line is in the original place,
 		# but the second and third lines were deleted, so 3 and 4 have moved in their palces.
+  
+		# Check for None to avoid AttributeError
+		if treeSpot is None:
+			# Log error or handle the case where treeSpot is None
+			print("Error: treeSpot is None in createMapDict")
+			return None, mapDict
+
 		mapDict["len"] = len(treeSpot)
 		mapDict["pos"] = list(range(len(treeSpot)))
 		for i in mapDict["pos"]:
@@ -76,6 +83,7 @@ class ChangeVector:
 
 	def update(self, newStart, mapDict): 
 		# WARNING: mapDict will be modified!
+		print(newStart, "newStart")
 		self.start = newStart
 		treeSpot, mapDict = self.updateTree(newStart, mapDict)
 

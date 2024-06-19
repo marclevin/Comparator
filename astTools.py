@@ -899,7 +899,7 @@ def compareASTs(a, b, checkEquality=False):
 					ast.Yield, ast.Lambda, ast.IfExp, ast.Call, ast.Subscript,
 					ast.Attribute, ast.Dict, ast.List, ast.Tuple,
 					ast.Set, ast.Name, ast.Str, ast.Bytes, ast.Num, 
-					ast.NameConstant, ast.Starred,
+					ast.NameConstant, ast.Starred, ast.Constant,
 
 					ast.Ellipsis, ast.Index, ast.Slice, ast.ExtSlice,
 
@@ -916,7 +916,6 @@ def compareASTs(a, b, checkEquality=False):
 			log("astTools\tcompareASTs\tmissing type:" + str(type(a)) + "," + str(type(b)), "bug")
 			return 0
 		return types.index(type(a)) - types.index(type(b))
-
 	# Then, more complex expressions- but don't bother with this if we're just checking equality
 	if not checkEquality:
 		ad = depthOfAST(a)
@@ -924,6 +923,17 @@ def compareASTs(a, b, checkEquality=False):
 		if ad != bd:
 			return bd - ad
 
+	# Add this case after handling ast.NameConstant
+	if type(a) == ast.Constant:
+		# Compare the values of the Constant nodes
+		if hasattr(a, 'value') and hasattr(b, 'value'):
+			# Handle comparison for simple types directly
+			if type(a.value) != type(b.value):
+				return -1 if type(a.value).__name__ < type(b.value).__name__ else 1
+			else:
+				return cmp(a.value, b.value)
+		else:
+			return 0  # Consider them equal if they lack values, though this should not happen
 	# NameConstants are special
 	if type(a) == ast.NameConstant:
 		if a.value == None or b.value == None:
@@ -1000,7 +1010,7 @@ def compareASTs(a, b, checkEquality=False):
 
 				ast.comprehension : ["target", "iter", "ifs"],
 				ast.ExceptHandler : ["type", "name", "body"],
-				ast.arguments : ["args", "vararg", "kwonlyargs", "kw_defaults", "kwarg", "defaults"],
+				ast.arguments : ["posonlyargs", "args", "vararg", "kwonlyargs", "kw_defaults", "kwarg", "defaults"],
 				ast.arg : ["arg", "annotation"],
 				ast.keyword : ["arg", "value"],
 				ast.alias : ["name", "asname"],
@@ -1175,7 +1185,7 @@ def deepcopy(a):
 	elif type(a) == ast.arguments:
 		cp = ast.arguments(deepcopyList(a.args), deepcopy(a.vararg), 
 			deepcopyList(a.kwonlyargs), deepcopyList(a.kw_defaults), 
-			deepcopy(a.kwarg), deepcopyList(a.defaults))
+			deepcopy(a.kwarg), deepcopyList(a.kw_defaults))
 	elif type(a) == ast.arg:
 		cp = ast.arg(a.arg, deepcopy(a.annotation))
 	elif type(a) == ast.keyword:
@@ -1184,6 +1194,8 @@ def deepcopy(a):
 		cp = ast.alias(a.name, a.asname)
 	elif type(a) == ast.withitem:
 		cp = ast.withitem(deepcopy(a.context_expr), deepcopy(a.optional_vars))
+	elif type(a) == ast.Constant:
+		cp = ast.Constant(a.value, a.kind)
 	else:
 		log("astTools\tdeepcopy\tNot implemented: " + str(type(a)), "bug")
 		cp = copy.deepcopy(a)

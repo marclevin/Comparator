@@ -302,33 +302,241 @@ def _diff_non_ast(x, y, ignore_variables):
         return []  # Equal values.
 
 
-def getChanges(s, t, ignoreVariables=False):
-    changes = diff_asts(s, t, ignoreVariables=ignoreVariables)
-    for change in changes:
-        change.start = s  # WARNING: should maybe have a deepcopy here? It will alias s
-    return changes
 
+def getWeight(a, countTokens=True):
+	"""Get the size of the given tree"""
+	if a == None:
+		return 0
+	elif type(a) == list:
+		return sum(map(lambda x : getWeight(x, countTokens), a))
+	elif not isinstance(a, ast.AST):
+		return 1
+	else: # Otherwise, it's an AST node
+		if hasattr(a, "treeWeight"):
+			return a.treeWeight
+		weight = 0
+		if type(a) in [ast.Module, ast.Interactive, ast.Suite]:
+			weight = getWeight(a.body, countTokens=countTokens)
+		elif type(a) == ast.Expression:
+			weight = getWeight(a.body, countTokens=countTokens)
+		elif type(a) == ast.FunctionDef:
+			# add 1 for function name
+			weight = 1 + getWeight(a.args, countTokens=countTokens) + \
+					getWeight(a.body, countTokens=countTokens) + \
+					getWeight(a.decorator_list, countTokens=countTokens) + \
+					getWeight(a.returns, countTokens=countTokens)
+		elif type(a) == ast.ClassDef:
+			# add 1 for class name
+			weight = 1 + sumWeight(a.bases, countTokens=countTokens) + \
+					sumWeight(a.keywords, countTokens=countTokens) + \
+					getWeight(a.body, countTokens=countTokens) + \
+					getWeight(a.decorator_list, countTokens=countTokens)
+		elif type(a) in [ast.Return, ast.Yield, ast.Attribute, ast.Starred]:
+			# add 1 for action name
+			weight = 1 + getWeight(a.value, countTokens=countTokens)
+		elif type(a) == ast.Delete: # add 1 for del
+			weight = 1 + getWeight(a.targets, countTokens=countTokens)
+		elif type(a) == ast.Assign: # add 1 for =
+			weight = 1 + getWeight(a.targets, countTokens=countTokens) + \
+					getWeight(a.value, countTokens=countTokens)
+		elif type(a) == ast.AugAssign:
+			weight = getWeight(a.target, countTokens=countTokens) + \
+					getWeight(a.op, countTokens=countTokens) + \
+					getWeight(a.value, countTokens=countTokens)
+		elif type(a) == ast.For: # add 1 for 'for' and 1 for 'in'
+			weight = 2 + getWeight(a.target, countTokens=countTokens) + \
+					getWeight(a.iter, countTokens=countTokens) + \
+					getWeight(a.body, countTokens=countTokens) + \
+					getWeight(a.orelse, countTokens=countTokens)
+		elif type(a) in [ast.While, ast.If]:
+			# add 1 for while/if
+			weight = 1 + getWeight(a.test, countTokens=countTokens) + \
+					getWeight(a.body, countTokens=countTokens)
+			if len(a.orelse) > 0: # add 1 for else
+				weight += 1 + getWeight(a.orelse, countTokens=countTokens)
+		elif type(a) == ast.With: # add 1 for with
+			weight = 1 + getWeight(a.items, countTokens=countTokens) + \
+					getWeight(a.body, countTokens=countTokens)
+		elif type(a) == ast.Raise: # add 1 for raise
+			weight = 1 + getWeight(a.exc, countTokens=countTokens) + \
+					getWeight(a.cause, countTokens=countTokens)
+		elif type(a) == ast.Try: # add 1 for try
+			weight = 1 + getWeight(a.body, countTokens=countTokens) + \
+					getWeight(a.handlers, countTokens=countTokens)
+			if len(a.orelse) > 0: # add 1 for else
+				weight += 1 + getWeight(a.orelse, countTokens=countTokens)
+			if len(a.finalbody) > 0: # add 1 for finally
+				weight += 1 + getWeight(a.finalbody, countTokens=countTokens)
+		elif type(a) == ast.Assert: # add 1 for assert
+			weight = 1 + getWeight(a.test, countTokens=countTokens) + \
+					getWeight(a.msg, countTokens=countTokens)
+		elif type(a) in [ast.Import, ast.Global]: # add 1 for function name
+			weight = 1 + getWeight(a.names, countTokens=countTokens)
+		elif type(a) == ast.ImportFrom: # add 3 for from module import
+			weight = 3 + getWeight(a.names, countTokens=countTokens)
+		elif type(a) in [ast.Expr, ast.Index]:
+			weight = getWeight(a.value, countTokens=countTokens)
+			if weight == 0:
+				weight = 1
+		elif type(a) == ast.BoolOp: # add 1 for each op
+			weight = (len(a.values) - 1) + \
+					getWeight(a.values, countTokens=countTokens)
+		elif type(a) == ast.BinOp: # add 1 for op
+			weight = 1 + getWeight(a.left, countTokens=countTokens) + \
+					getWeight(a.right, countTokens=countTokens)
+		elif type(a) == ast.UnaryOp: # add 1 for operator
+			weight = 1 + getWeight(a.operand, countTokens=countTokens)
+		elif type(a) == ast.Lambda: # add 1 for lambda
+			weight = 1 + getWeight(a.args, countTokens=countTokens) + \
+					getWeight(a.body, countTokens=countTokens)
+		elif type(a) == ast.IfExp: # add 2 for if and else
+			weight = 2 + getWeight(a.test, countTokens=countTokens) + \
+					getWeight(a.body, countTokens=countTokens) + \
+					getWeight(a.orelse, countTokens=countTokens)
+		elif type(a) == ast.Dict: # return 1 if empty dictionary
+			weight = 1 + getWeight(a.keys, countTokens=countTokens) + \
+					getWeight(a.values, countTokens=countTokens)
+		elif type(a) in [ast.Set, ast.List, ast.Tuple]:
+			weight = 1 + getWeight(a.elts, countTokens=countTokens)
+		elif type(a) in [ast.ListComp, ast.SetComp, ast.GeneratorExp]:
+			weight = 1 + getWeight(a.elt, countTokens=countTokens) + \
+					getWeight(a.generators, countTokens=countTokens)
+		elif type(a) == ast.DictComp:
+			weight = 1 + getWeight(a.key, countTokens=countTokens) + \
+					getWeight(a.value, countTokens=countTokens) + \
+					getWeight(a.generators, countTokens=countTokens)
+		elif type(a) == ast.Compare:
+			weight = len(a.ops) + getWeight(a.left, countTokens=countTokens) + \
+					getWeight(a.comparators, countTokens=countTokens)
+		elif type(a) == ast.Call:
+			functionWeight = getWeight(a.func, countTokens=countTokens)
+			functionWeight = functionWeight if functionWeight > 0 else 1
+			argsWeight = getWeight(a.args, countTokens=countTokens) + \
+					getWeight(a.keywords, countTokens=countTokens)
+			argsWeight = argsWeight if argsWeight > 0 else 1
+			weight = functionWeight + argsWeight
+		elif type(a) == ast.Subscript:
+			valueWeight = getWeight(a.value, countTokens=countTokens)
+			valueWeight = valueWeight if valueWeight > 0 else 1
+			sliceWeight = getWeight(a.slice, countTokens=countTokens)
+			sliceWeight = sliceWeight if sliceWeight > 0 else 1
+			weight = valueWeight + sliceWeight
+
+		elif type(a) == ast.Slice:
+			weight = getWeight(a.lower, countTokens=countTokens) + \
+					getWeight(a.upper, countTokens=countTokens) + \
+					getWeight(a.step, countTokens=countTokens)
+			if weight == 0:
+				weight = 1
+		elif type(a) == ast.ExtSlice:
+			weight = getWeight(a.dims, countTokens=countTokens)
+
+		elif type(a) == ast.comprehension: # add 2 for for and in
+			# and each of the if tokens
+			weight = 2 + len(a.ifs) + \
+					getWeight(a.target, countTokens=countTokens) + \
+					getWeight(a.iter, countTokens=countTokens) + \
+					getWeight(a.ifs, countTokens=countTokens)
+		elif type(a) == ast.ExceptHandler: # add 1 for except
+			weight = 1 + getWeight(a.type, countTokens=countTokens)
+			# add 1 for as (if needed)
+			weight += (1 if a.name != None else 0) + \
+					getWeight(a.name, countTokens=countTokens)
+			weight += getWeight(a.body, countTokens=countTokens)
+		elif type(a) == ast.arguments:
+			weight = getWeight(a.args, countTokens=countTokens) + \
+					getWeight(a.vararg, countTokens=countTokens) + \
+					getWeight(a.kwonlyargs, countTokens=countTokens) + \
+					getWeight(a.kw_defaults, countTokens=countTokens) + \
+					getWeight(a.kwarg, countTokens=countTokens)
+					
+		elif type(a) == ast.arg:
+			weight = 1 + getWeight(a.annotation, countTokens=countTokens)
+		elif type(a) == ast.keyword: # add 1 for identifier
+			weight = 1 + getWeight(a.value, countTokens=countTokens)
+		elif type(a) == ast.alias: # 1 for name, 1 for as, 1 for asname
+			weight = 1 + (2 if a.asname != None else 0)
+		elif type(a) == ast.withitem:
+			weight = getWeight(a.context_expr, countTokens=countTokens) + \
+					 getWeight(a.optional_vars, countTokens=countTokens)
+		elif type(a) == ast.Str:
+			if countTokens:
+				weight = 1
+			elif len(a.s) >= 2 and a.s[0] == "~" and a.s[-1] == "~":
+				weight = 0
+			else:
+				weight = 1
+		elif type(a) in [ast.Pass, ast.Break, ast.Continue, 
+						 ast.Constant, ast.Name,
+						 ]:
+			weight = 1
+		elif type(a) in [ast.And, ast.Or, 
+						 ast.Add, ast.Sub, ast.Mult, ast.Div, ast.Mod, ast.Pow,
+						 ast.LShift, ast.RShift, ast.BitOr, ast.BitXor,
+						 ast.BitAnd, ast.FloorDiv,
+						 ast.Invert, ast.Not, ast.UAdd, ast.USub,
+						 ast.Eq, ast.NotEq, ast.Lt, ast.LtE, ast.Gt, ast.GtE,
+						 ast.Is, ast.IsNot, ast.In, ast.NotIn,
+						 ast.Load, ast.Store, ast.Del, ast.AugLoad,
+						 ast.AugStore, ast.Param ]:
+			weight = 1
+		else:
+			log("diffAsts\tgetWeight\tMissing type in diffAsts: " + str(type(a)), "bug")
+			return 1
+		setattr(a, "treeWeight", weight)
+		return weight
+
+
+
+def getChanges(s, t, ignoreVariables=False):
+	changes = diff_asts(s, t)
+	for change in changes:
+		change.start = s # WARNING: should maybe have a deepcopy here? It will alias s
+	return changes
+
+def getChangesWeight(changes, countTokens=True):
+	weight = 0
+	for change in changes:
+		if isinstance(change, AddVector):
+			weight += getWeight(change.newSubtree, countTokens=countTokens)
+		elif isinstance(change, DeleteVector):
+			weight += getWeight(change.oldSubtree, countTokens=countTokens)
+		elif isinstance(change, SwapVector):
+			weight += 2 # only changing the positions
+		elif isinstance(change, MoveVector):
+			weight += 1 # only moving one item
+		elif isinstance(change, SubVector):
+			weight += abs(getWeight(change.newSubtree, countTokens=countTokens) - \
+						  getWeight(change.oldSubtree, countTokens=countTokens))
+		elif isinstance(change, SuperVector):
+			weight += abs(getWeight(change.oldSubtree, countTokens=countTokens) - \
+						  getWeight(change.newSubtree, countTokens=countTokens))
+		else:
+			weight += max(getWeight(change.oldSubtree, countTokens=countTokens), 
+						  getWeight(change.newSubtree, countTokens=countTokens))
+	return weight
 
 def distance(s, t, givenChanges=None, forceReweight=False, ignoreVariables=False):
-    # """A method for comparing solution states, which returns a number between
-    # 	0 (identical solutions) and 1 (completely different)"""
-    # # First weigh the trees, to propogate metadata
-    # if s == None or t == None:
-    # 	return 1 # can't compare to a None state
-    # if forceReweight:
-    # 	baseWeight = max(getWeight(s.tree), getWeight(t.tree))
-    # else:
-    # 	if not hasattr(s, "treeWeight"):
-    # 		s.treeWeight = getWeight(s.tree)
-    # 	if not hasattr(t, "treeWeight"):
-    # 		t.treeWeight = getWeight(t.tree)
-    # 	baseWeight = max(s.treeWeight, t.treeWeight)
+	"""A method for comparing solution states, which returns a number between
+		0 (identical solutions) and 1 (completely different)
+  returns a tuple of (distance, changes)
+  """
+	# First weigh the trees, to propogate metadata
+	if s == None or t == None:
+		return 1 # can't compare to a None state
+	if forceReweight:
+		baseWeight = max(getWeight(s.tree), getWeight(t.tree))
+	else:
+		if not hasattr(s, "treeWeight"):
+			s.treeWeight = getWeight(s.tree)
+		if not hasattr(t, "treeWeight"):
+			t.treeWeight = getWeight(t.tree)
+		baseWeight = max(s.treeWeight, t.treeWeight)
 
-    # if givenChanges != None:
-    # 	changes = givenChanges
-    # else:
-    # 	changes = getChanges(s.tree, t.tree, ignoreVariables=ignoreVariables)
+	if givenChanges != None:
+		changes = givenChanges
+	else:
+		changes = getChanges(s.tree, t.tree, ignoreVariables=ignoreVariables)
 
-    # changeWeight = getChangesWeight(changes)
-    # return (1.0 * changeWeight / baseWeight, changes)
-    return 1.0, []
+	changeWeight = getChangesWeight(changes)
+	return (1.0 * changeWeight / baseWeight, changes)
