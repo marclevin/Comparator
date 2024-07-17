@@ -1,9 +1,7 @@
-import ast, copy, math
-from display import *
-from astTools import *
-from tools import log
-from ChangeVector import *
-from State import *
+from comparison.structures.ChangeVector import *
+from comparison.structures.State import State
+from comparison.utils.astTools import *
+from comparison.utils.display import *
 
 
 def getBottomLine(tree):
@@ -573,9 +571,9 @@ def getColumnNumber(tree, path, value):
                             return getColumnNumber(tree, path[1:], None) + len("[:")
                         return location.step.col_offset - len(":")
                     return (
-                        location.lower.col_offset
-                        + codeLength(location.lower)
-                        + len(":")
+                            location.lower.col_offset
+                            + codeLength(location.lower)
+                            + len(":")
                     )
                 return location.upper.col_offset
             elif childType == "step":
@@ -584,14 +582,14 @@ def getColumnNumber(tree, path, value):
                         if location.lower == None:
                             return getColumnNumber(tree, path[1:], None) + len("[::")
                         return (
-                            location.lower.col_offset
-                            + codeLength(location.lower)
-                            + len("::")
+                                location.lower.col_offset
+                                + codeLength(location.lower)
+                                + len("::")
                         )
                     return (
-                        location.upper.col_offset
-                        + codeLength(location.upper)
-                        + len(":")
+                            location.upper.col_offset
+                            + codeLength(location.upper)
+                            + len(":")
                     )
                 return location.step.col_offset
         elif type(location) == ast.arguments:
@@ -599,18 +597,18 @@ def getColumnNumber(tree, path, value):
                 if len(location.args) == 0:
                     return getColumnNumber(tree, path[1:], None)
                 return (
-                    location.args[-1].col_offset
-                    + codeLength(location.args[-1])
-                    + len(", ")
+                        location.args[-1].col_offset
+                        + codeLength(location.args[-1])
+                        + len(", ")
                 )
             elif childType == "kwarg":
                 if len(location.args) == 0:
                     col = getColumnNumber(tree, path[1:], None)
                 else:
                     col = (
-                        location.args[-1].col_offset
-                        + codeLength(location.args[-1])
-                        + len(", ")
+                            location.args[-1].col_offset
+                            + codeLength(location.args[-1])
+                            + len(", ")
                     )
                 if location.vararg != None:
                     col += len(location.vararg) + len(", ")
@@ -623,7 +621,7 @@ def getColumnNumber(tree, path, value):
                 return getColumnNumber(tree, path[1:], None)
             elif childType == "asname":
                 return (
-                    getColumnNumber(tree, path[1:], None) + len(tree.name) + len(" as ")
+                        getColumnNumber(tree, path[1:], None) + len(tree.name) + len(" as ")
                 )
 
         # Second, check child-types that are optional and
@@ -639,31 +637,31 @@ def getColumnNumber(tree, path, value):
                     if location.type == None:
                         return location.col_offset + len("except ")
                     return (
-                        location.type.col_offset + codeLength(location.type) + len("(")
+                            location.type.col_offset + codeLength(location.type) + len("(")
                     )
             elif childType == "kwargs":
                 if location.starargs == None:
                     if len(location.keywords) == 0:
                         if len(location.args) == 0:
                             return (
-                                location.func.col_offset
-                                + codeLength(location.func)
-                                + len("(")
+                                    location.func.col_offset
+                                    + codeLength(location.func)
+                                    + len("(")
                             )
                         return (
-                            location.args[-1].col_offset
-                            + codeLength(location.args[-1])
-                            + len(", ")
+                                location.args[-1].col_offset
+                                + codeLength(location.args[-1])
+                                + len(", ")
                         )
                     return (
-                        location.keywords[-1].value.col_offset
-                        + codeLength(location.keywords[-1].value)
-                        + len(", ")
+                            location.keywords[-1].value.col_offset
+                            + codeLength(location.keywords[-1].value)
+                            + len(", ")
                     )
                 return (
-                    location.starargs.col_offset
-                    + codeLength(location.starargs)
-                    + len(", ")
+                        location.starargs.col_offset
+                        + codeLength(location.starargs)
+                        + len(", ")
                 )
             elif childType == "type":
                 if type(location) == ast.ExceptHandler:
@@ -672,15 +670,15 @@ def getColumnNumber(tree, path, value):
                 if len(location.values) == 0:
                     return location.col_offset + len("print(")
                 return (
-                    location.values[-1].col_offset
-                    + codeLength(location.values[-1])
-                    + len(", ")
+                        location.values[-1].col_offset
+                        + codeLength(location.values[-1])
+                        + len(", ")
                 )
             elif childType == "optional_vars":
                 return (
-                    location.context_expr.col_offset
-                    + codeLength(location.context_expr)
-                    + len(" as ")
+                        location.context_expr.col_offset
+                        + codeLength(location.context_expr)
+                        + len(" as ")
                 )
             elif childType == "exc":
                 return location.lineno + len("raise ")
@@ -691,30 +689,30 @@ def getColumnNumber(tree, path, value):
             elif childType == "locals":
                 if location.globals == None:
                     return (
-                        location.body.col_offset + codeLength(location.body) + len(", ")
+                            location.body.col_offset + codeLength(location.body) + len(", ")
                     )
                 return (
-                    location.globals.col_offset
-                    + codeLength(location.globals)
-                    + len(", ")
+                        location.globals.col_offset
+                        + codeLength(location.globals)
+                        + len(", ")
                 )
             elif childType == "starargs":
                 if len(location.keywords) == 0:
                     if len(location.args) == 0:
                         return (
-                            location.func.col_offset
-                            + codeLength(location.func)
-                            + len("(")
+                                location.func.col_offset
+                                + codeLength(location.func)
+                                + len("(")
                         )
                     return (
-                        location.args[-1].col_offset
-                        + codeLength(location.args[-1])
-                        + len(", ")
+                            location.args[-1].col_offset
+                            + codeLength(location.args[-1])
+                            + len(", ")
                     )
                 return (
-                    location.keywords[-1].value.col_offset
-                    + codeLength(location.keywords[-1].value)
-                    + len(", ")
+                        location.keywords[-1].value.col_offset
+                        + codeLength(location.keywords[-1].value)
+                        + len(", ")
                 )
 
         # Third, check non-expr/stmt child types
@@ -728,13 +726,13 @@ def getColumnNumber(tree, path, value):
         elif childType == "op":
             if type(location) == ast.AugAssign:
                 return (
-                    location.target.col_offset + codeLength(location.target) + len(" ")
+                        location.target.col_offset + codeLength(location.target) + len(" ")
                 )
             elif type(location) == ast.BoolOp:
                 return (
-                    location.values[0].col_offset
-                    + codeLength(location.values[0])
-                    + len(" ")
+                        location.values[0].col_offset
+                        + codeLength(location.values[0])
+                        + len(" ")
                 )
             elif type(location) == ast.BinOp:
                 return location.left.col_offset + codeLength(location.left) + len(" ")
@@ -750,9 +748,9 @@ def getColumnNumber(tree, path, value):
                 if len(location.values) == 0:
                     return location.col_offset + len("print(")
                 return (
-                    location.values[-1].col_offset
-                    + codeLength(location.values[-1])
-                    + len(", ")
+                        location.values[-1].col_offset
+                        + codeLength(location.values[-1])
+                        + len(", ")
                 )
             return location.dest.col_offset + codeLength(location.dest) + len(", ")
         elif childType == "module":
@@ -821,34 +819,34 @@ def getColumnNumber(tree, path, value):
             elif childType == "ops":
                 if len(l) == 0 or firstStep == 0:
                     return (
-                        location.left.col_offset + codeLength(location.left) + len(" ")
+                            location.left.col_offset + codeLength(location.left) + len(" ")
                     )
                 else:
                     index = -1 if (len(l) <= firstStep) else (firstStep - 1)
                     return (
-                        location.comparators[index].col_offset
-                        + codeLength(location.comparators[index])
-                        + len(" ")
+                            location.comparators[index].col_offset
+                            + codeLength(location.comparators[index])
+                            + len(" ")
                     )
             elif childType == "generators":
                 if len(l) == 0:
                     if type(location) in [ast.ListComp, ast.SetComp, ast.GeneratorExp]:
                         return (
-                            location.elt.col_offset
-                            + codeLength(location.elt)
-                            + len(" ")
+                                location.elt.col_offset
+                                + codeLength(location.elt)
+                                + len(" ")
                         )
                     elif type(location) == ast.DictComp:
                         return (
-                            location.value.col_offset
-                            + codeLength(location.value)
-                            + len(" ")
+                                location.value.col_offset
+                                + codeLength(location.value)
+                                + len(" ")
                         )
                 elif len(l) <= firstStep:
                     if len(l[-1].ifs) == 0:
                         return l[-1].iter.col_offset + codeLength(l[-1].iter) + len(" ")
                     return (
-                        l[-1].ifs[-1].col_offset + codeLength(l[-1].ifs[-1]) + len(" ")
+                            l[-1].ifs[-1].col_offset + codeLength(l[-1].ifs[-1]) + len(" ")
                     )
                 else:
                     return l[firstStep].target.col_offset
@@ -857,14 +855,14 @@ def getColumnNumber(tree, path, value):
                     if type(location) == ast.FunctionDef:
                         if len(location.args) == 0:
                             return (
-                                location.func.col_offset
-                                + codeLength(location.func)
-                                + len("(")
+                                    location.func.col_offset
+                                    + codeLength(location.func)
+                                    + len("(")
                             )
                         return (
-                            location.args[-1].col_offset
-                            + codeLength(location.args[-1])
-                            + len(", ")
+                                location.args[-1].col_offset
+                                + codeLength(location.args[-1])
+                                + len(", ")
                         )
                     else:  # ClassDef
                         if len(location.bases) == 0:
@@ -876,16 +874,16 @@ def getColumnNumber(tree, path, value):
                     return l[-1].value.col_offset + codeLength(l[-1].value) + len(", ")
                 else:
                     return (
-                        l[firstStep].value.col_offset
-                        - len(" : ")
-                        - len(l[firstStep].arg)
+                            l[firstStep].value.col_offset
+                            - len(" : ")
+                            - len(l[firstStep].arg)
                     )
 
             # First, the parents without cols
             if type(location) == ast.comprehension:  # only list is ifs
                 if len(l) == 0:
                     return (
-                        location.iter.col_offset + codeLength(location.iter) + len(" ")
+                            location.iter.col_offset + codeLength(location.iter) + len(" ")
                     )
                 elif len(l) <= firstStep:
                     return l[-1].col_offset + codeLength(l[-1]) + len(" ")
@@ -906,9 +904,9 @@ def getColumnNumber(tree, path, value):
                             col = getColumnNumber(tree, path[2:], None)
                         else:
                             col = (
-                                location.args[-1].col_offset
-                                + codeLength(location.args[-1])
-                                + len(", ")
+                                    location.args[-1].col_offset
+                                    + codeLength(location.args[-1])
+                                    + len(", ")
                             )
                         if location.vararg != None:
                             col += len(location.vararg) + len(", ")
@@ -987,22 +985,22 @@ def getColumnNumber(tree, path, value):
             if 0 < len(l) <= firstStep:
                 if type(location) == ast.Dict:
                     if childType == "values" and len(location.keys) > len(
-                        location.values
+                            location.values
                     ):
                         i = -1 if len(location.keys) <= firstStep else firstStep
                         return (
-                            location.keys[i].col_offset
-                            + codeLength(location.keys[i])
-                            + len(" : ")
+                                location.keys[i].col_offset
+                                + codeLength(location.keys[i])
+                                + len(" : ")
                         )
                     elif childType == "keys" and len(location.keys) <= len(
-                        location.values
+                            location.values
                     ):
                         i = -1 if len(location.values) <= firstStep else firstStep - 1
                         return (
-                            location.values[i].col_offset
-                            + codeLength(location.values[i])
-                            + len(", ")
+                                location.values[i].col_offset
+                                + codeLength(location.values[i])
+                                + len(", ")
                         )
 
                 col = l[-1].col_offset + codeLength(l[-1])
@@ -1030,17 +1028,17 @@ def getColumnNumber(tree, path, value):
                         return location.col_offset
                 elif childType == "args":
                     return (
-                        location.func.col_offset + codeLength(location.func) + len("(")
+                            location.func.col_offset + codeLength(location.func) + len("(")
                     )
                 elif childType == "bases":
                     return len("class ") + len(location.name) + len("(")
                 elif childType == "comparators":
                     return (
-                        location.left.col_offset
-                        + codeLength(location.left)
-                        + len(" ")
-                        + codeLength(location.ops[0])
-                        + len(" ")
+                            location.left.col_offset
+                            + codeLength(location.left)
+                            + len(" ")
+                            + codeLength(location.ops[0])
+                            + len(" ")
                     )
                 else:
                     log("MISSING COL TYPE IN TUPLE:" + str(childType), "bug")
@@ -1765,6 +1763,7 @@ def formatHints(edit, hintLevel):
             if len(cv.path) == 2 and cv.path[0] == 0:
                 line = col = 0
             else:
+
                 log(
                     "generate_message\tformatHints\tCouldn't find line/col number: "
                     + "IDWOULDBEHERE"
@@ -1777,14 +1776,14 @@ def formatHints(edit, hintLevel):
 
         pos = "line " + str(line) + ", column " + str(col) + " "
         message += (
-            "At "
-            + pos
-            + verb1
-            + oldStr
-            + verb2
-            + newStr
-            + context
-            + "\n"
+                "At "
+                + pos
+                + verb1
+                + oldStr
+                + verb2
+                + newStr
+                + context
+                + "\n"
         )
 
         tmp = cv.deepcopy()
