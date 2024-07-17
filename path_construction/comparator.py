@@ -283,8 +283,12 @@ def _diff_same_type_nodes(x, y, ignore_variables):
     """Diff two AST nodes of the same type."""
     result = []
     for field in x._fields:
-        x_field_val = getattr(x, field)
-        y_field_val = getattr(y, field)
+        try:
+            x_field_val = getattr(x, field)
+            y_field_val = getattr(y, field)
+        except AttributeError:
+            pass
+            
         current_diffs = diff_asts(x_field_val, y_field_val, ignore_variables)
         
         for change in current_diffs:
@@ -448,7 +452,8 @@ def getWeight(a, countTokens=True):
 					getWeight(a.vararg, countTokens=countTokens) + \
 					getWeight(a.kwonlyargs, countTokens=countTokens) + \
 					getWeight(a.kw_defaults, countTokens=countTokens) + \
-					getWeight(a.kwarg, countTokens=countTokens)
+					getWeight(a.kwarg, countTokens=countTokens) + \
+                    getWeight(a.posonlyargs, countTokens=countTokens)
 					
 		elif type(a) == ast.arg:
 			weight = 1 + getWeight(a.annotation, countTokens=countTokens)

@@ -1,8 +1,6 @@
-def twoSum(list, target):
-    length = len(list)
-    for i in range(1, length):  # Start from 1 instead of 0
-        for j in range(i):  # Go up to, but not including, i
-            if list[i] + list[j] == target:
-                new_list = i, j
-                return list(new_list)
-    return -1
+def twoSum(list, target: int):
+        for i in range(len(list)):
+            for j in range(i + 1, len(list)):
+                if (i!= j and list[i] + list[j] == target):
+                    return  [i, j]
+        return []

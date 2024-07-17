@@ -83,7 +83,6 @@ class ChangeVector:
 
 	def update(self, newStart, mapDict): 
 		# WARNING: mapDict will be modified!
-		print(newStart, "newStart")
 		self.start = newStart
 		treeSpot, mapDict = self.updateTree(newStart, mapDict)
 

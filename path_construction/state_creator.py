@@ -32,6 +32,7 @@ def filterChanges(combinations, changes, oldStart, newStart):
 			combinations.pop(i)
 	return combinations
 
+# TODO: Change this to use the updated system.
 def desirability(s, n, g):
 	"""Scores the state n based on the four desirable properties. Returns a number
 		between 0 (not desirable) and 1 (very desirable)."""
@@ -48,9 +49,9 @@ def desirability(s, n, g):
 	score += 2 * b
 
 	# Third: maximize the performance on test cases
-	c = n.score
-	n.test = c
-	score += 1 * c
+	# c = n.score
+	# n.test = c
+	# score += 1 * c
 
 	# Forth: minimize the distance from the next state to the final state
 	#if n != g and not hasattr(n, "goalDist"):
@@ -117,7 +118,9 @@ def applyChangeVectors(s, changes) -> State:
         return s
     tup = updateChangeVectors(changes, changes[0].start, s.tree)
     changes, newState = tup
-    return IntermediateState(changes, newState)
+    inter_state = IntermediateState(changes, newState)
+    inter_state.code = printFunction(inter_state.tree)
+    return inter_state
 
 	
 
@@ -447,84 +450,85 @@ def isValidNextState(s, n, g):
 		return False # didn't load properly
 
 	# Third: is test.test(n) >= test.test(s)?
-	if n.score < s.score and abs(n.score - s.score) > 0.001:
-		return False
+	#TODO: Figure out if we can use AutoMarker scores here?
+ 
+	# if n.score < s.score and abs(n.score - s.score) > 0.001:
+	# 	return False
 
 	# Loadable technically falls here, but it takes a while
 	# so filter with diff first
 	# Second: is diff(n, g) < diff(s, g)?
-	if n.score != 1 and n != g:
-		n.goal = g
-		n.goalDist, _ = distance(n, g)
-		if n.goalDist >= s.goalDist:
-			return False
+ 
+	# if n.score != 1 and n != g:
+	# 	n.goal = g
+	# 	n.goalDist, _ = distance(n, g)
+	# 	if n.goalDist >= s.goalDist:
+	# 		return False
 
 	# If we pass all the checks, it's a valid state
 	return True
 
-def generateStatesInPath(s, goals, states, validCombinations):
+# TODO: Fix this to use the new scoring system (desirability)
+def generateStatesInPath(s, validCombinations):
 	# Now we need to find the desirability of each state and take the best one
 	# We'll keep cycling here to find the whole path of states 'til we get to the correct solution
 	originalS = s
-	while s.score != 1:
-		bestScore, bestState = -1, None
-		for (c,n) in validCombinations:
-			score = desirability(s, n, s.goal)
-			if score > bestScore:
-				bestScore, bestState = score, (c,n)
+	bestScore, bestState = -1, None
+	idealChanges = None
+	for (c,n) in validCombinations:
+		score = desirability(s, n, s.goal)
+		if score > bestScore:
+			bestScore = score
+			bestState = n
+			idealChanges = c
 
-		if bestState == None:
-			log("Path Construction\tgetNextState\t" + str(s.id) + " could not find best next out of " + str(len(validCombinations)) + " combinations", "bug")
-			if s != originalS:
-				getNextState(s, goals, states) # start over with the broken state- resetting the diff will probably help
-			else:
-				log("Path Construction\tgetNextState\tPermanently stuck", "bug")
-			break
-		(s.edit, s.next) = bestState
-		if s.next.score != 1:
-			validCombinations.remove(bestState)
-			validCombinations = filterChanges(validCombinations, s.edit, s, s.next)
-		s = s.next
+		# (s.edit, s.next) = bestState
+		# if s.next.score != 1:
+		# 	validCombinations.remove(bestState)
+		# 	validCombinations = filterChanges(validCombinations, s.edit, s, s.next)
+	s.next = bestState
 
-def getAllCombinations(s, changes, states, goals):
+def getAllCombinations(s, changes):
 	allChanges = powerSet(changes)
 	# Also find the solution states associated with the changes
 	allCombinations = []
 	for x in allChanges:
-		allCombinations.append((x, applyChangeVectors(s, x, states, goals)))
+		allCombinations.append((x, applyChangeVectors(s, x)))
 	return allCombinations
 
-def getNextState(s, goals, states, given_goal=None):
+def getNextState(s, given_goal):
 	"""Generate the best next state for s, so that it will produce a desirable hint"""
-	s.goal = chooseGoal(s, goals, states) if given_goal == None else given_goal
+	s.goal = given_goal # Set goal because we only have 1 anyways
+	s.code = printFunction(s.tree)
 	if s.goal == None:
 		log("Path Construction\tgetNextState\tno goal found\t" + s.problem.name, "bug")
 		return
 	(s.goalDist, changes) = distance(s, s.goal) # now get the actual changes
 
-	firstRound = True
-	while len(changes) > 3: # might as well go with this while we can, since it's faster
-		fastChanges = fastOptimizeGoal(s, changes, states, goals, includeSmallSets=firstRound)
-		firstRound = False
-		if fastChanges == None: 
-			if len(changes) > 6: # Cut off at 6 because 2^6 = 64 * 0.1s per test = 6 seconds at worst
-				# Just say that the next state is the goal.
-				s.next = s.goal
-				return
-			else:
-				break
-		else:
-			changes = fastChanges
+	# firstRound = True
+	# while len(changes) > 3: # might as well go with this while we can, since it's faster
+	# 	fastChanges = fastOptimizeGoal(s, changes, states, goals, includeSmallSets=firstRound)
+	# 	firstRound = False
+	# 	if fastChanges == None: 
+	# 		if len(changes) > 6: # Cut off at 6 because 2^6 = 64 * 0.1s per test = 6 seconds at worst
+	# 			# Just say that the next state is the goal.
+	# 			s.next = s.goal
+	# 			return
+	# 		else:
+	# 			break
+	# 	else:
+	# 		changes = fastChanges
 
 	# Now, update the goal by optimizing for it
-	allCombinations = optimizeGoal(s, changes)
-	if allCombinations == None: # There's an optimized goal
+	# allCombinations = optimizeGoal(s, changes) 
+	# if allCombinations == None: # There's an optimized goal
 		# Let's get the new change vectors!
-		changes = getChanges(s.tree, s.goal.tree)
-		allCombinations = getAllCombinations(s, changes, states, goals)
+	changes = getChanges(s.tree, s.goal.tree)
+	allCombinations = getAllCombinations(s, changes)
 
 	s.changesToGoal = len(changes)
 
+	#TODO: Fix isValidNextState to work with the new scoring system
 	# Now check for the required properties of a next state. Filter before sorting to save time
 	validCombinations = filter(lambda x : isValidNextState(s, x[1], s.goal), allCombinations)
 	# Order based on the longest-changes first, but with edits in order
@@ -536,4 +540,5 @@ def getNextState(s, goals, states, given_goal=None):
 		s.next = None
 		return
 
-	generateStatesInPath(s, goals, states, validCombinations)
+
+	generateStatesInPath(s, validCombinations)

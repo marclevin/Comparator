@@ -100,6 +100,7 @@ def getBottomLine(tree):
         ast.Bytes,
         ast.NameConstant,
         ast.Ellipsis,
+        ast.Constant,
     ]:
         return tree.lineno
     elif type(tree) == ast.Name:
@@ -1709,7 +1710,7 @@ def formatButCatchNone(val):
         return formatNode(val)
 
 
-def formatHints(edit, hintLevel, tree):
+def formatHints(edit, hintLevel):
     i = 0
     message = ""
     startTree = edit[0].start
@@ -1779,13 +1780,9 @@ def formatHints(edit, hintLevel, tree):
             "At "
             + pos
             + verb1
-            + "<b>"
             + oldStr
-            + "</b>"
             + verb2
-            + "<b>"
             + newStr
-            + "</b>"
             + context
             + "\n"
         )
@@ -1796,15 +1793,15 @@ def formatHints(edit, hintLevel, tree):
         tmpS = State()
         tmpS.tree = t
         tmpS.fun = printFunction(t, 0)
-        try:
-            ast.parse(tmpS.fun)
-            if hintLevel == "next_step" or (
-                hintLevel == "half_steps" and i + 1 >= math.ceil(len(edit) / 2.0)
-            ):
-                message += "If you need more help, ask for feedback again."
-                break
-        except:
-            pass
+        # try:
+        #     ast.parse(tmpS.fun)
+        #     if hintLevel == "next_step" or (
+        #         hintLevel == "half_steps" and i + 1 >= math.ceil(len(edit) / 2.0)
+        #     ):
+        #         message += "If you need more help, ask for feedback again."
+        #         break
+        # except:
+        #     pass
         startTree = t
         i += 1
     edit = edit[: i + 1]

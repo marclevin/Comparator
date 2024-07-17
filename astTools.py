@@ -1183,9 +1183,9 @@ def deepcopy(a):
 	elif type(a) == ast.ExceptHandler:
 		cp = ast.ExceptHandler(deepcopy(a.type), a.name, deepcopyList(a.body))
 	elif type(a) == ast.arguments:
-		cp = ast.arguments(deepcopyList(a.args), deepcopy(a.vararg), 
-			deepcopyList(a.kwonlyargs), deepcopyList(a.kw_defaults), 
-			deepcopy(a.kwarg), deepcopyList(a.kw_defaults))
+		cp = ast.arguments(deepcopyList(a.posonlyargs), deepcopy(a.args), 
+			deepcopyList(a.vararg), deepcopyList(a.kwonlyargs), 
+			deepcopy(a.kw_defaults), deepcopyList(a.kwarg), deepcopyList(a.defaults))
 	elif type(a) == ast.arg:
 		cp = ast.arg(a.arg, deepcopy(a.annotation))
 	elif type(a) == ast.keyword:

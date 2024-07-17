@@ -83,6 +83,7 @@ class IntermediateState(State):
     distance_to_goal = -1
     distance_to_original = -1
     change_vectors : list = None
+    count = 0
     
     def __init__(self, change_vectors = None, tree = None):
         self.change_vectors = change_vectors
