@@ -10,4 +10,4 @@ def compare_solutions(student_ast, solution_ast) -> str:
     get_next_state(student_code_state)
     return formatHints(student_code_state.change_vectors, 1)
 
-# compare(".\\test_ast\\isWeekendBroken.py", ".\\test_ast\\isWeekend.py")
+# compare(".\\data\\isWeekendBroken.py", ".\\data\\isWeekend.py")
