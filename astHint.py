@@ -57,7 +57,7 @@ def compare(student_solution, correct_solution):
 
 
 def compare_internal(student_solution, correct_solution) -> str:
-    click.echo('Comparing the given files...')
+    click.echo(click.style('Comparing the given files...', fg='red'))
     try:
         hint = compare_solutions(student_solution, correct_solution)
     except FileNotFoundError as e:
@@ -73,14 +73,22 @@ def generative_ai_hint(student_solution, correct_solution, problem_description):
     """
     Generate a hint using comparator & AI.
     """
+    # validate that we are receiving python files and a text file
+    if not student_solution.name.endswith('.py'):
+        raise click.ClickException('Error: student_solution must be a python file')
+    if not correct_solution.name.endswith('.py'):
+        raise click.ClickException('Error: correct_solution must be a python file')
+    if not problem_description.name.endswith('.txt'):
+        raise click.ClickException('Error: problem_description must be a text file')
+
     student_solution = student_solution.read()
     correct_solution = correct_solution.read()
     problem_description = problem_description.read()
     edit = compare_internal(student_solution, correct_solution)
-    click.echo('Generating a hint from the AI...')
+    click.echo(click.style(text='Generating a hint from the AI...', fg='blue'))
     short_hint = generate_ai_hint(problem_description, student_solution, edit)
-    click.echo('Your hint is:')
-    click.echo(short_hint)
+    click.echo(click.style(text="Your hint is:", fg='green'))
+    click.echo(click.style(short_hint, fg='yellow'))
 
 
 if __name__ == "__main__":
