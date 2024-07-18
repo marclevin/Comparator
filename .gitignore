@@ -4,3 +4,5 @@ __pycache__
 *.pyc
 paper.pdf
 .env
+.idea
+*.log
