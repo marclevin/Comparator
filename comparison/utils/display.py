@@ -281,7 +281,7 @@ def printFunction(a, indent=0):
     elif t == ast.NameConstant:
         s += str(a.value)
     elif t == ast.Constant:
-        s += str(a.value)
+        s += printFunction(a.value, indent)
     elif t == ast.Attribute:
         s += printFunction(a.value, indent) + "." + str(a.attr)
     elif t == ast.Subscript:
