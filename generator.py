@@ -1,3 +1,4 @@
+import ast
 import logging
 import os
 from typing import Tuple
@@ -6,8 +7,11 @@ import click
 from dotenv import load_dotenv
 from openai import OpenAI
 
+from comparison.path_construction.comparator import distance
+from comparison.structures.State import CodeState, IntermediateState
 
-def generate_ai_hint(problem_description: str, student_code: str, edit: str) -> Tuple[str, str]:
+
+def generate_ai_hint(problem_description: str, student_code: str, edit: str, goal_code: str) -> Tuple[str, str]:
     load_dotenv()
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     if client is None:
@@ -30,18 +34,24 @@ def generate_ai_hint(problem_description: str, student_code: str, edit: str) -> 
     logging.log(logging.INFO, f"Short-form hint: {short_form_hint}")
 
     filled_student_template = populate_student_template(long_form_hint, student_code)
-
-    # completion_student = client.chat.completions.create(
-    #     model="gpt-3.5-turbo",
-    #     messages=[
-    #         {"role": "user", "content": f"{filled_student_template}"},
-    #     ],
-    # )
-    # TODO Add logic for the student models to generate 10 responses.
-    # TODO Add logic to compare student responses with goal code.
-    # TODO add logic to return the best response.
+    completions = []
+    for _ in range(10):
+        completion_student = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "user", "content": f"{filled_student_template}"},
+            ],
+        )
+        completions.append(completion_student.choices[0].message.content)
+    logging.log(logging.INFO, f"Student completions: {completions}")
+    # Now to compare the completions to the goal code.
+    student_code_state = CodeState(tree=ast.parse(student_code), goal=IntermediateState(tree=ast.parse(goal_code)))
+    distances = [(distance(student_code_state, IntermediateState(tree=ast.parse(candidate_code))), candidate_code) for
+                 candidate_code in completions]
+    print(distances)
     # Returning the teacher response for now, since the student response is not implemented.
     # return completion_student.choices[0].message.content
+
     return short_form_hint, long_form_hint
 
 
