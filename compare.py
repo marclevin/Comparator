@@ -1,4 +1,5 @@
 # Entry point
+import autopep8
 
 from comparison.path_construction.comparator import *
 from comparison.path_construction.state_creator import get_next_state
@@ -6,7 +7,12 @@ from comparison.utils.generate_message import *
 
 
 def compare_solutions(student_ast, solution_ast) -> str:
-    student_code_state = CodeState(tree=ast.parse(student_ast), goal=IntermediateState(tree=ast.parse(solution_ast)))
+    # First we must use pep8 to format the code to ensure we have a consistent format
+    student_ast = autopep8.fix_code(student_ast)
+    solution_ast = autopep8.fix_code(solution_ast)
+    # Maybe we should consider type erasure here?
+    student_code_state = CodeState(tree=ast.parse(student_ast),
+                                   goal=IntermediateState(tree=ast.parse(solution_ast)))
     get_next_state(student_code_state)
     return formatHints(student_code_state.change_vectors, 1)
 

@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 
-def generate_ai_hint(problem_description: str, student_code: str, edit: str) -> str:
+def generate_ai_hint(problem_description: str, student_code: str, edit: str) -> Tuple[str, str]:
     load_dotenv()
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     if client is None:
@@ -16,7 +16,7 @@ def generate_ai_hint(problem_description: str, student_code: str, edit: str) -> 
     filled_template = populate_teacher_template(problem_description, student_code, edit)
 
     teacher_interaction = client.chat.completions.create(
-        model="gpt-3.5-turbo",
+        model="gpt-4o-mini",
         messages=[
             {"role": "user", "content": f"{filled_template}"},
         ],
@@ -42,7 +42,7 @@ def generate_ai_hint(problem_description: str, student_code: str, edit: str) -> 
     # TODO add logic to return the best response.
     # Returning the teacher response for now, since the student response is not implemented.
     # return completion_student.choices[0].message.content
-    return short_form_hint
+    return short_form_hint, long_form_hint
 
 
 def populate_teacher_template(problem_description, student_code, edit):

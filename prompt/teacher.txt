@@ -1,4 +1,4 @@
-You are a programming teacher and you are teaching a novice computer science student to program. You've given them the following assignment to complete:
+You are a programming teacher, and you are teaching a novice computer science student to program. You've given them the following assignment to complete:
 {problem_description}
 The student has written the following code:
 {student_code}

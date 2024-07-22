@@ -3,6 +3,8 @@ import click
 from compare import compare_solutions
 from generator import generate_ai_hint
 
+fg_ast_hint = 'blue'
+
 
 @click.group()
 @click.option(
@@ -53,11 +55,12 @@ def compare(student_solution, correct_solution):
     """
     content1 = student_solution.read()
     content2 = correct_solution.read()
-    compare_internal(content1, content2)
+    edit = compare_internal(content1, content2)
+    click.echo((click.style(f'Your hint is::{edit}', fg='blue')))
 
 
 def compare_internal(student_solution, correct_solution) -> str:
-    click.echo(click.style('Comparing the given files...', fg='red'))
+    click.echo(click.style('Comparing the given files...', fg=fg_ast_hint))
     try:
         hint = compare_solutions(student_solution, correct_solution)
     except FileNotFoundError as e:
@@ -85,10 +88,11 @@ def generative_ai_hint(student_solution, correct_solution, problem_description):
     correct_solution = correct_solution.read()
     problem_description = problem_description.read()
     edit = compare_internal(student_solution, correct_solution)
-    click.echo(click.style(text='Generating a hint from the AI...', fg='blue'))
-    short_hint = generate_ai_hint(problem_description, student_solution, edit)
-    click.echo(click.style(text="Your hint is:", fg='green'))
-    click.echo(click.style(short_hint, fg='yellow'))
+    click.echo(click.style(text='Generating a hint from the AI...', fg=fg_ast_hint))
+    short_hint, long_hint = generate_ai_hint(problem_description, student_solution, edit)
+    click.echo(click.style(text="Your hint is:", fg=fg_ast_hint))
+    click.echo(click.style(short_hint, fg='green'))
+    click.echo(click.style(long_hint, fg='green'))
 
 
 if __name__ == "__main__":
