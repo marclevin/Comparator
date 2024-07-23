@@ -4,48 +4,50 @@ from comparison.utils.astTools import *
 from comparison.utils.tools import log
 
 
-### VARIABLE ANONYMIZATION ###
+# VARIABLE ANONYMIZATION
 
-def updateVariableNames(a, varMap, scopeName, randomCounter, imports):
-    if not isinstance(a, ast.AST):
+def updateVariableNames(candidate_ast, var_map, scope_name, random_counter, imports):
+    if not isinstance(candidate_ast, ast.AST):
         return
 
-    if type(a) in [ast.FunctionDef, ast.ClassDef]:
-        if a.name in varMap:
-            if not hasattr(a, "originalId"):
-                a.originalId = a.name
-            a.name = varMap[a.name]
-        anonymizeStatementNames(a, varMap, "_" + a.name, imports)
-    elif type(a) == ast.arg:
-        if a.arg not in varMap and not (builtInName(a.arg) or importedName(a.arg, imports)):
+    if type(candidate_ast) in [ast.FunctionDef, ast.ClassDef]:
+        if candidate_ast.name in var_map:
+            if not hasattr(candidate_ast, "originalId"):
+                candidate_ast.originalId = candidate_ast.name
+            candidate_ast.name = var_map[candidate_ast.name]
+        anonymize_statement_names(candidate_ast, var_map, "_" + candidate_ast.name, imports)
+    elif type(candidate_ast) == ast.arg:
+        if candidate_ast.arg not in var_map and not (
+                builtInName(candidate_ast.arg) or importedName(candidate_ast.arg, imports)):
             log("Can't assign to arg?", "bug")
-        if a.arg in varMap:
-            if not hasattr(a, "originalId"):
-                a.originalId = a.arg
-            if varMap[a.arg][0] == "r":
-                a.randomVar = True  # so we know it can crash
-            if a.arg == varMap[a.arg]:
+        if candidate_ast.arg in var_map:
+            if not hasattr(candidate_ast, "originalId"):
+                candidate_ast.originalId = candidate_ast.arg
+            if var_map[candidate_ast.arg][0] == "r":
+                candidate_ast.randomVar = True  # so we know it can crash
+            if candidate_ast.arg == var_map[candidate_ast.arg]:
                 # Check whether this is a given name
-                if not isAnonVariable(varMap[a.arg]):
-                    a.dontChangeName = True
-            a.arg = varMap[a.arg]
-    elif type(a) == ast.Name:
-        if a.id not in varMap and not (builtInName(a.id) or importedName(a.id, imports)):
-            varMap[a.id] = "r" + str(randomCounter[0]) + scopeName
-            randomCounter[0] += 1
-        if a.id in varMap:
-            if not hasattr(a, "originalId"):
-                a.originalId = a.id
-            if varMap[a.id][0] == "r":
-                a.randomVar = True  # so we know it can crash
-            if a.id == varMap[a.id]:
+                if not isAnonVariable(var_map[candidate_ast.arg]):
+                    candidate_ast.dontChangeName = True
+            candidate_ast.arg = var_map[candidate_ast.arg]
+    elif type(candidate_ast) == ast.Name:
+        if candidate_ast.id not in var_map and not (
+                builtInName(candidate_ast.id) or importedName(candidate_ast.id, imports)):
+            var_map[candidate_ast.id] = "r" + str(random_counter[0]) + scope_name
+            random_counter[0] += 1
+        if candidate_ast.id in var_map:
+            if not hasattr(candidate_ast, "originalId"):
+                candidate_ast.originalId = candidate_ast.id
+            if var_map[candidate_ast.id][0] == "r":
+                candidate_ast.randomVar = True  # so we know it can crash
+            if candidate_ast.id == var_map[candidate_ast.id]:
                 # Check whether this is a given name
-                if not isAnonVariable(varMap[a.id]):
-                    a.dontChangeName = True
-            a.id = varMap[a.id]
+                if not isAnonVariable(var_map[candidate_ast.id]):
+                    candidate_ast.dontChangeName = True
+            candidate_ast.id = var_map[candidate_ast.id]
     else:
-        for child in ast.iter_child_nodes(a):
-            updateVariableNames(child, varMap, scopeName, randomCounter, imports)
+        for child in ast.iter_child_nodes(candidate_ast):
+            updateVariableNames(child, var_map, scope_name, random_counter, imports)
 
 
 def gatherLocalScope(a, globalMap, scopeName, imports, goBackwards=False):
@@ -115,7 +117,7 @@ def gatherLocalScope(a, globalMap, scopeName, imports, goBackwards=False):
     return localMap
 
 
-def anonymizeStatementNames(a, globalMap, scopeName, imports, goBackwards=False):
+def anonymize_statement_names(a, globalMap, scopeName, imports, goBackwards=False):
     """Gather the local variables, then update variable names in each line"""
     localMap = gatherLocalScope(a, globalMap, scopeName, imports, goBackwards=goBackwards)
     varMap = {}
@@ -138,7 +140,7 @@ def anonymizeNames(a, namesToKeep, imports):
     globalMap = {}
     for var in namesToKeep:
         globalMap[var] = var
-    anonymizeStatementNames(a, globalMap, "", imports, goBackwards=True)
+    anonymize_statement_names(a, globalMap, "", imports, goBackwards=True)
     return a
 
 
