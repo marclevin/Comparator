@@ -20,13 +20,13 @@ def str_to_tree(s):
     return pickle.loads(eval(s))
 
 
-def builtInName(id):
+def builtInName(name_id):
     """Determines whether the given id is a built-in name"""
-    if id in builtInNames + exceptionClasses:
+    if name_id in builtInNames + exceptionClasses:
         return True
-    elif id in builtInFunctions.keys():
+    elif name_id in builtInFunctions.keys():
         return True
-    elif id in list(allPythonFunctions.keys()) + supportedLibraries:
+    elif name_id in list(allPythonFunctions.keys()) + supportedLibraries:
         return False
 
 

@@ -32,3 +32,11 @@ def validate_student_attempts(student_attempts: List[str], goal_code: str) -> fl
         distances[student_code_state] = ast_distance
     # Now we have the distances, this will be used for now. Desirability would be useful here too.
     return 1 - sum(distances.values()) / len(distances)
+
+
+def test_compare():
+    student_solution = open(
+        'C:\\Users\\marcl\\OneDrive\\Desktop\\University\\AST-Hints\\Comparator\\problems/p1/student_code.py', 'r')
+    correct_solution = open(
+        'C:\\Users\\marcl\\OneDrive\\Desktop\\University\\AST-Hints\\Comparator\\problems/p1/goal_code.py', 'r')
+    print(compare_solutions(student_solution.read(), correct_solution.read()))
