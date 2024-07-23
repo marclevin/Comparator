@@ -61,12 +61,7 @@ def internal_generate_ai_hint(problem_description: str, student_code: str, edit:
 
 
 def populate_teacher_template(problem_description, student_code, edit):
-    teacher_template = ""
-    try:
-        with open("prompt/teacher.txt", "r") as f:
-            teacher_template = f.read()
-    except FileNotFoundError:
-        raise Exception("Teacher template not found.")
+    global teacher_template
     filled_template = teacher_template.format(
         problem_description=problem_description,
         student_code=student_code,
@@ -76,12 +71,7 @@ def populate_teacher_template(problem_description, student_code, edit):
 
 
 def populate_student_template(long_form_hint, student_code):
-    student_template = ""
-    try:
-        with open("prompt/student.txt", "r") as f:
-            student_template = f.read()
-    except FileNotFoundError:
-        raise Exception("Student template not found.")
+    global student_template
     filled_student_template = student_template.format(
         student_code=student_code,
         long_form_hint=long_form_hint,
@@ -102,3 +92,28 @@ def extract_hints(response: str) -> Tuple[str, str]:
     start_index = response.find("Short-form hint:") + len("Short-form hint:")
     short_form_hint = response[start_index:].strip()
     return long_form_hint, short_form_hint
+
+
+student_template = """You are a novice computer science student, and you are working on a programming assignment. You've written the following code:
+{student_code}
+You are stuck on a part of the code, and you need help, your teacher has given you the following long-form hint:
+{long_form_hint}
+Your job is to apply the hint to your code and write the corrected code. You are not allowed to change the code in any way except to apply the hint, you must use the hint as is.
+You must output only the corrected code, even if it would not run as is, or is still incorrect. You must output the code exactly as it would be written by the student, with the hint applied.
+You are not allowed to add comments to the code.
+"""
+
+teacher_template = """You are a programming teacher, and you are teaching a novice computer science student to program. You've given them the following assignment to complete:
+{problem_description}
+The student has written the following code:
+{student_code}
+A person helping the student has given them an edit that they believe will fix the code but does not know how to tell the student to use the edit. The edit is as follows:
+{edit}
+You are tasked with writing a long-form hint, one paragraph at most, that will help the student understand the edit and how to use it in their code. The hint should be written in a way that is easy to understand for a novice programmer, but doesn't give away the answer, it is a hint after all. Do not fix the code for the student, only provide a hint.
+You should then write a short-form hint, one sentence at most, that will help the student understand the edit and how to use it in their code.
+Your output should be the long-form hint followed by the short-form hint like so:
+Long-form hint:
+LONG HINT HERE
+Short-form hint:
+SHORT HINT HERE
+"""
