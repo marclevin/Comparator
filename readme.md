@@ -20,13 +20,47 @@ will show the available commands and options.
 
 ## Installation
 
-First, install the required dependencies:
-``
-pip install -r requirements.txt
-``
-Ideally, in your favorite virtual environment.
+To install the CLI, clone the repository and run the following commands in the root directory:
 
-Then, install the package:
-``
-pip install .
-``
+1. Activate your favourite virtual environment.
+   ``
+   conda create -n ast-hints python=3.11
+   ``
+2. Install AST-Hints as a package. (Editable mode, remove -e if you want to install it plainly)
+   ``
+   pip install -e .
+   ``
+3. Get an OpenAI API key and set it as an environment variable.
+   ``
+   export OPEN_AI_API_KEY=your_api_key
+   ``
+4. Run the CLI
+   ``
+   astHint --help
+   ``
+
+## Development
+
+To develop the CLI, clone the repository and run the following commands in the root directory:
+
+1. Activate your favourite virtual environment.
+   ``
+   conda create -n ast-hints python=3.11
+   ``
+2. Add a `.env` file in the root directory with the following content:
+   ``
+   OPEN_AI_API_KEY=your_api_key
+   ``
+3. Install the requirements.
+   ``
+   pip install -r requirements.txt
+   ``
+
+4. Install AST-Hints as a package. (Editable mode, remove -e if you want to install it plainly)
+   ``
+   pip install -e .
+   ``
+5. Run the CLI
+   ``
+   astHint --help
+   ``
