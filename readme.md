@@ -1,17 +1,32 @@
 # AST-Hints: Comparator and Hint Generator
 
-
-
 ## Comparator
 
-The comparator is a tool that compares the ASTs of two files and returns the differences between them.
+The comparator is a tool that compares two ASTs.
 
-## TODO:
-1. Retrieve the correct solution AST from the database. (Chris)
-2. Retrieve the next-best solution AST from the database. (Chris)
-3. Compute edit vectors between the current solution and the next best solution.
-4. Generate a power set of all edit vectors.
-5. Construct intermediate ASTs by applying subsets of the edit vectors to the current solution AST.
-6. Score each intermediate AST using the desirability metric.
-7. Return the intermediate AST with the highest score along with the edit vectors.
-8. 
+## Hint Generator
+
+The hint generator is a tool that generates hints for a given AST, calling OpenAI's API for use of the GPT-3.5 model and
+the new GPT-4o-mini model.
+
+## Command Line Interface
+
+The command line interface is called astHint.
+This is the primary entry point for the tool.
+``
+astHint --help
+``
+will show the available commands and options.
+
+## Installation
+
+First, install the required dependencies:
+``
+pip install -r requirements.txt
+``
+Ideally, in your favorite virtual environment.
+
+Then, install the package:
+``
+pip install .
+``
