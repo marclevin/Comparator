@@ -403,7 +403,7 @@ def optimize_goal(s: CodeState, changes: list[ChangeVector]):
                 if new_state is None:  # shouldn't happen
                     log("generateNextStates\toptimizeGoal\tBroken edit: " + str(new_changes), "bug")
                     continue
-                new_distance, _ = distance(s, new_state, givenChanges=new_changes)
+                new_distance, _ = distance(s, new_state, given_changes=new_changes)
 
                 all_changes.append((new_changes, new_state))  # just in case we need the final goal
 
@@ -426,7 +426,7 @@ def fastOptimizeGoal(s, changes, states, goals, includeSmallSets=False):
         if isStrictSubset(currentEdits, changeSet):    continue
         newState = apply_change_vectors(s, changeSet, states, goals)
         if newState == None:    continue
-        newDistance, _ = distance(s, newState, givenChanges=changeSet)
+        newDistance, _ = distance(s, newState, given_changes=changeSet)
         if newDistance <= currentDiff and newState.score == 1:
             # Just take the first one we find
             currentGoal, currentDiff, currentEdits = newState, newDistance, changeSet

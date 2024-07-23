@@ -495,27 +495,31 @@ def getChangesWeight(changes, countTokens=True):
     return weight
 
 
-def distance(student_state: CodeState, candidate: State, givenChanges=None, forceReweight=False, ignoreVariables=False):
+def distance(student_state: CodeState, candidate: State, given_changes=None, forceReweight=False,
+             ignoreVariables=False):
     """A method for comparing solution states, which returns a number between
         0 (identical solutions) and 1 (completely different)
   returns a tuple of (distance, changes)
   """
     # First weigh the trees, to propogate metadata
-    if student_state == None or candidate == None:
+    if student_state is None or candidate is None:
         return 1  # can't compare to a None state
     if forceReweight:
-        baseWeight = max(getWeight(student_state.tree), getWeight(candidate.tree))
+        base_weight = max(getWeight(student_state.tree), getWeight(candidate.tree))
     else:
         if not hasattr(student_state, "treeWeight"):
             student_state.treeWeight = getWeight(student_state.tree)
         if not hasattr(candidate, "treeWeight"):
             candidate.treeWeight = getWeight(candidate.tree)
-        baseWeight = max(student_state.treeWeight, candidate.treeWeight)
+        base_weight = max(student_state.treeWeight, candidate.treeWeight)
 
-    if givenChanges != None:
-        changes = givenChanges
+    # Check if equal
+    if student_state.tree == candidate.tree:
+        return 0, []
+    if given_changes is not None:
+        changes = given_changes
     else:
         changes = getChanges(student_state.tree, candidate.tree, ignoreVariables=ignoreVariables)
 
-    changeWeight = getChangesWeight(changes)
-    return (1.0 * changeWeight / baseWeight, changes)
+    change_weight = getChangesWeight(changes)
+    return 1.0 * change_weight / base_weight, changes
