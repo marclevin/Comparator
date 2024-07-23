@@ -1,7 +1,7 @@
 import ast
 import collections.abc
 
-supportedLibraries = ["string", "math", "random", "__future__", "copy"]
+supported_libraries = ["string", "math", "random", "__future__", "copy"]
 
 builtInTypes = [bool, bytes, complex, dict, float, int, list, set, str, tuple, type]
 
@@ -41,7 +41,7 @@ mutatingTypeCastBuiltInFunctions = {
     "super": None,
 }
 
-builtInNames = ["None", "True", "False", "NotImplemented", "Ellipsis"]
+built_in_names = ["None", "True", "False", "NotImplemented", "Ellipsis"]
 
 staticBuiltInFunctions = {
     "abs": {(int,): int, (float,): float},
@@ -129,7 +129,7 @@ builtInSafeFunctions = [
     "type",
 ]
 
-exceptionClasses = [
+exception_classes = [
     "ArithmeticError",
     "AssertionError",
     "AttributeError",
@@ -199,7 +199,7 @@ exceptionClasses = [
     "StopAsyncIteration",
 ]
 
-builtInFunctions = dict(
+built_in_functions = dict(
     list(staticBuiltInFunctions.items())
     + list(mutatingBuiltInFunctions.items())
     + list(staticTypeCastBuiltInFunctions.items())
@@ -455,7 +455,7 @@ allMutatingFunctions = dict(
     + list(timeFunctions.items())
 )
 
-allPythonFunctions = dict(
+all_python_functions = dict(
     list(allStaticFunctions.items()) + list(allMutatingFunctions.items())
 )
 

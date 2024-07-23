@@ -1,7 +1,7 @@
 import ast
 
-from comparison.utils.astTools import compareASTs, deepcopy
-from comparison.utils.display import printFunction
+from comparison.utils.astTools import compareASTs, deepcopy, cmp
+from comparison.utils.display import print_function
 from comparison.utils.tools import log
 
 
@@ -18,8 +18,8 @@ class ChangeVector:
         self.newSubtree = newSubtree
 
     def __repr__(self):
-        oldStr = printFunction(self.oldSubtree, 0) if isinstance(self.oldSubtree, ast.AST) else repr(self.oldSubtree)
-        newStr = printFunction(self.newSubtree, 0) if isinstance(self.newSubtree, ast.AST) else repr(self.newSubtree)
+        oldStr = print_function(self.oldSubtree, 0) if isinstance(self.oldSubtree, ast.AST) else repr(self.oldSubtree)
+        newStr = print_function(self.newSubtree, 0) if isinstance(self.newSubtree, ast.AST) else repr(self.newSubtree)
         return oldStr + " - " + newStr + " : " + str(self.path)
 
     def __cmp__(self, other):
@@ -106,7 +106,8 @@ class ChangeVector:
                 if hasattr(treeSpot, move[0]):
                     treeSpot = getattr(treeSpot, move[0])
                 else:
-                    log("Change Vector\ttraverseTree\t\tMissing attr: " + str(move[0]) + "\n" + printFunction(t), "bug")
+                    log("Change Vector\ttraverseTree\t\tMissing attr: " + str(move[0]) + "\n" + print_function(t),
+                        "bug")
                     return -99
             elif type(move) == int:
                 if type(treeSpot) == list:
@@ -114,14 +115,14 @@ class ChangeVector:
                         treeSpot = treeSpot[move]
                     else:
                         log("Change Vector\ttraverseTree\t\tMissing position: " + str(move) + "," + str(
-                            treeSpot) + "\n" + printFunction(t), "bug")
+                            treeSpot) + "\n" + print_function(t), "bug")
                         return -99
                 else:
-                    log("Change Vector\ttraverseTree\t\tNot a list: " + str(treeSpot) + "\n" + printFunction(t), "bug")
+                    log("Change Vector\ttraverseTree\t\tNot a list: " + str(treeSpot) + "\n" + print_function(t), "bug")
                     return -99
 
             else:  # wat?
-                log("Change Vector\ttraverseTree\t\tBad Path: " + str(move) + "\n" + printFunction(t), "bug")
+                log("Change Vector\ttraverseTree\t\tBad Path: " + str(move) + "\n" + print_function(t), "bug")
                 return -99
         return treeSpot
 
@@ -143,7 +144,7 @@ class ChangeVector:
                     self.newSubtree.col_offset = oldSpot.col_offset
             if compareASTs(oldSpot, self.oldSubtree, checkEquality=True) != 0:
                 log("ChangeVector\tapplyChange\t" + str(caller) + "\t" + "Change old values don't match: " + str(
-                    self) + "\n" + str(printFunction(self.start)), "bug")
+                    self) + "\n" + str(print_function(self.start)), "bug")
             setattr(treeSpot, location[0], self.newSubtree)
             # SPECIAL CASE. If we're changing the variable name, get rid of metadata
             if type(treeSpot) == ast.Name and location[0] == "id":
@@ -169,7 +170,7 @@ class ChangeVector:
                     self.newSubtree.col_offset = treeSpot[location].col_offset
                 treeSpot[location] = self.newSubtree
             else:
-                log("ChangeVector\tapplyChange\tDoesn't fit in list: " + str(location) + "\n" + printFunction(
+                log("ChangeVector\tapplyChange\tDoesn't fit in list: " + str(location) + "\n" + print_function(
                     self.start), "bug")
         else:
             log("ChangeVector\tapplyChange\t\tBroken at: " + str(location), "bug")
@@ -194,8 +195,8 @@ class SubVector(ChangeVector):
         return ChangeVector.__cmp__(self, other)
 
     def __repr__(self):
-        oldStr = printFunction(self.oldSubtree, 0) if isinstance(self.oldSubtree, ast.AST) else repr(self.oldSubtree)
-        newStr = printFunction(self.newSubtree, 0) if isinstance(self.newSubtree, ast.AST) else repr(self.newSubtree)
+        oldStr = print_function(self.oldSubtree, 0) if isinstance(self.oldSubtree, ast.AST) else repr(self.oldSubtree)
+        newStr = print_function(self.newSubtree, 0) if isinstance(self.newSubtree, ast.AST) else repr(self.newSubtree)
         return "Sub: " + oldStr + " - " + newStr + " : " + str(self.path)
 
     def deepcopy(self):
@@ -217,8 +218,8 @@ class SuperVector(ChangeVector):
         return ChangeVector.__cmp__(self, other)
 
     def __repr__(self):
-        oldStr = printFunction(self.oldSubtree, 0) if isinstance(self.oldSubtree, ast.AST) else repr(self.oldSubtree)
-        newStr = printFunction(self.newSubtree, 0) if isinstance(self.newSubtree, ast.AST) else repr(self.newSubtree)
+        oldStr = print_function(self.oldSubtree, 0) if isinstance(self.oldSubtree, ast.AST) else repr(self.oldSubtree)
+        newStr = print_function(self.newSubtree, 0) if isinstance(self.newSubtree, ast.AST) else repr(self.newSubtree)
         return "Super: " + oldStr + " - " + newStr + " : " + str(self.path)
 
     def deepcopy(self):
@@ -239,8 +240,8 @@ class AddVector(ChangeVector):
         return ChangeVector.__cmp__(self, other)
 
     def __repr__(self):
-        oldStr = printFunction(self.oldSubtree, 0) if isinstance(self.oldSubtree, ast.AST) else repr(self.oldSubtree)
-        newStr = printFunction(self.newSubtree, 0) if isinstance(self.newSubtree, ast.AST) else repr(self.newSubtree)
+        oldStr = print_function(self.oldSubtree, 0) if isinstance(self.oldSubtree, ast.AST) else repr(self.oldSubtree)
+        newStr = print_function(self.newSubtree, 0) if isinstance(self.newSubtree, ast.AST) else repr(self.newSubtree)
         return "Add: " + oldStr + " - " + newStr + " : " + str(self.path)
 
     def deepcopy(self):
@@ -311,8 +312,8 @@ class DeleteVector(ChangeVector):
         return ChangeVector.__cmp__(self, other)
 
     def __repr__(self):
-        oldStr = printFunction(self.oldSubtree, 0) if isinstance(self.oldSubtree, ast.AST) else repr(self.oldSubtree)
-        newStr = printFunction(self.newSubtree, 0) if isinstance(self.newSubtree, ast.AST) else repr(self.newSubtree)
+        oldStr = print_function(self.oldSubtree, 0) if isinstance(self.oldSubtree, ast.AST) else repr(self.oldSubtree)
+        newStr = print_function(self.newSubtree, 0) if isinstance(self.newSubtree, ast.AST) else repr(self.newSubtree)
         return "Delete: " + oldStr + " - " + newStr + " : " + str(self.path)
 
     def deepcopy(self):
@@ -333,7 +334,7 @@ class DeleteVector(ChangeVector):
             if location < len(treeSpot):
                 if compareASTs(treeSpot[location], self.oldSubtree, checkEquality=True) != 0:
                     log("DeleteVector\tapplyChange\t" + str(caller) + "\t" + "Delete old values don't match: " + str(
-                        self) + "\n" + str(printFunction(self.start)), "bug")
+                        self) + "\n" + str(print_function(self.start)), "bug")
                 del treeSpot[location]
             else:
                 log("DeleteVector\tapplyChange\t\tBad location: " + str(location) + "\t" + str(self.oldSubtree), "bug")
@@ -374,8 +375,8 @@ class SwapVector(ChangeVector):
         return ChangeVector.__cmp__(self, other)
 
     def __repr__(self):
-        oldStr = printFunction(self.oldSubtree, 0) if isinstance(self.oldSubtree, ast.AST) else repr(self.oldSubtree)
-        newStr = printFunction(self.newSubtree, 0) if isinstance(self.newSubtree, ast.AST) else repr(self.newSubtree)
+        oldStr = print_function(self.oldSubtree, 0) if isinstance(self.oldSubtree, ast.AST) else repr(self.oldSubtree)
+        newStr = print_function(self.newSubtree, 0) if isinstance(self.newSubtree, ast.AST) else repr(self.newSubtree)
         if self.oldPath != None:
             return "Swap: " + oldStr + " : " + str(self.oldPath) + "\n" + \
                 newStr + " : " + str(self.newPath)
@@ -473,8 +474,9 @@ class SwapVector(ChangeVector):
                     self.newSubtree < len(treeSpot):
                 return (treeSpot[self.oldSubtree], treeSpot[self.newSubtree])
             else:
-                log("SwapVector\tgetSwapees\tBroken: \n" + printFunction(treeSpot, 0) + "," + printFunction(
-                    self.oldSubtree, 0) + "," + printFunction(self.newSubtree, 0) + "\n" + printFunction(self.start, 0),
+                log("SwapVector\tgetSwapees\tBroken: \n" + print_function(treeSpot, 0) + "," + print_function(
+                    self.oldSubtree, 0) + "," + print_function(self.newSubtree, 0) + "\n" + print_function(self.start,
+                                                                                                           0),
                     "bug")
         else:
             oldTreeSpot = self.traverseTree(self.start, path=self.oldPath)
@@ -516,8 +518,8 @@ class MoveVector(ChangeVector):
         return ChangeVector.__cmp__(self, other)
 
     def __repr__(self):
-        oldStr = printFunction(self.oldSubtree, 0) if isinstance(self.oldSubtree, ast.AST) else repr(self.oldSubtree)
-        newStr = printFunction(self.newSubtree, 0) if isinstance(self.newSubtree, ast.AST) else repr(self.newSubtree)
+        oldStr = print_function(self.oldSubtree, 0) if isinstance(self.oldSubtree, ast.AST) else repr(self.oldSubtree)
+        newStr = print_function(self.newSubtree, 0) if isinstance(self.newSubtree, ast.AST) else repr(self.newSubtree)
         return "Move: " + oldStr + " - " + newStr + " : " + str(self.path)
 
     def deepcopy(self):
