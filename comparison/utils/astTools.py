@@ -7,7 +7,7 @@ from comparison.utils.tools import *
 
 
 def cmp(a, b):
-    if type(a) == type(b) == complex:
+    if type(a) is type(b) is complex:
         return (a.real > b.real) - (a.real < b.real)
     return (a > b) - (a < b)
 
@@ -20,17 +20,17 @@ def str_to_tree(s):
     return pickle.loads(eval(s))
 
 
-def builtInName(name_id):
+def built_in_name(name_id):
     """Determines whether the given id is a built-in name"""
-    if name_id in builtInNames + exceptionClasses:
+    if name_id in built_in_names + exception_classes:
         return True
-    elif name_id in builtInFunctions.keys():
+    elif name_id in built_in_functions.keys():
         return True
-    elif name_id in list(allPythonFunctions.keys()) + supportedLibraries:
+    elif name_id in list(all_python_functions.keys()) + supported_libraries:
         return False
 
 
-def importedName(id, importList):
+def imported_name(id, importList):
     for imp in importList:
         if type(imp) == ast.Import:
             for name in imp.names:
@@ -52,10 +52,10 @@ def importedName(id, importList):
                             if id == name.name:
                                 return True
                 else:
-                    log("astTools\timportedName\tUnsupported library: " + printFunction(imp), "bug")
+                    log("astTools\timportedName\tUnsupported library: " + print_function(imp), "bug")
 
             else:
-                log("astTools\timportedName\tWhy no module? " + printFunction(imp), "bug")
+                log("astTools\timportedName\tWhy no module? " + print_function(imp), "bug")
     return False
 
 
@@ -83,7 +83,7 @@ def codeLength(a):
     """Returns the number of characters in this AST"""
     if type(a) == list:
         return sum([codeLength(x) for x in a])
-    return len(printFunction(a))
+    return len(print_function(a))
 
 
 def applyToChildren(a, f):
@@ -192,7 +192,7 @@ def gatherAllVariables(a, keep_orig=True):
         if type(node) == ast.Name or type(node) == ast.arg:
             currentId = node.id if type(node) == ast.Name else node.arg
             # Only take variables
-            if not (builtInName(currentId) or hasattr(node, "dontChangeName")):
+            if not (built_in_name(currentId) or hasattr(node, "dontChangeName")):
                 origName = node.originalId if (keep_orig and hasattr(node, "originalId")) else None
                 if (currentId, origName) not in allIds:
                     for pair in allIds:
@@ -204,7 +204,7 @@ def gatherAllVariables(a, keep_orig=True):
                                 pass
                             else:
                                 log("astTools\tgatherAllVariables\tConflicting originalIds? " + pair[0] + " : " + pair[
-                                    1] + " , " + origName + "\n" + printFunction(a), "bug")
+                                    1] + " , " + origName + "\n" + print_function(a), "bug")
                             break
                     else:
                         allIds |= {(currentId, origName)}
@@ -323,12 +323,12 @@ def getAllImports(a):
     for child in ast.walk(a):
         if type(child) == ast.Import:
             for alias in child.names:
-                if alias.name in supportedLibraries:
+                if alias.name in supported_libraries:
                     imports.append(alias.asname if alias.asname != None else alias.name)
                 else:
                     log("astTools\tgetAllImports\tUnknown library: " + alias.name, "bug")
         elif type(child) == ast.ImportFrom:
-            if child.module in supportedLibraries:
+            if child.module in supported_libraries:
                 for alias in child.names:  # these are all functions
                     if alias.name in libraryMap[child.module]:
                         imports.append(alias.asname if alias.asname != None else alias.name)
@@ -572,10 +572,10 @@ def couldCrash(a):
             return True
     elif type(a) == ast.Import:
         for name in a.names:
-            if name not in supportedLibraries:
+            if name not in supported_libraries:
                 return True
     elif type(a) == ast.ImportFrom:
-        if a.module not in supportedLibraries:
+        if a.module not in supported_libraries:
             return True
         if a.level != None:
             return True
@@ -637,11 +637,11 @@ def couldCrash(a):
             funName = a.func.id
             if funName not in builtInSafeFunctions:
                 return True
-            funDict = builtInFunctions
+            funDict = built_in_functions
         elif type(a.func) == ast.Attribute:
             if type(a.func.value) == a.Name and \
                     (not hasattr(a.func.value, "varID")) and \
-                    a.func.value.id in supportedLibraries:
+                    a.func.value.id in supported_libraries:
                 funName = a.func.attr
                 if funName not in safeLibraryMap(a.func.value.id):
                     return True
@@ -777,14 +777,14 @@ def eventualType(a):
         # Go through our different sets of known functions to see if we know the type
         argTypes = [eventualType(x) for x in a.args]
         if type(a.func) == ast.Name:
-            funDict = builtInFunctions
+            funDict = built_in_functions
             funName = a.func.id
         elif type(a.func) == ast.Attribute:
             # TODO: get a better solution than this
             funName = a.func.attr
             if type(a.func.value) == ast.Name and \
                     (not hasattr(a.func.value, "varID")) and \
-                    a.func.value.id in supportedLibraries:
+                    a.func.value.id in supported_libraries:
                 funDict = libraryDictMap[a.func.value.id]
                 if a.func.value.id in ["string", "str", "list", "dict"] and len(argTypes) > 0:
                     argTypes.pop(0)  # get rid of the first string arg
@@ -889,12 +889,12 @@ def depthOfAST(a):
 def compareASTs(a, b, checkEquality=False):
     """A comparison function for ASTs"""
     # None before others
-    if a == b == None:
+    if a == b is None:
         return 0
-    elif a == None or b == None:
-        return -1 if a == None else 1
+    elif a is None or b is None:
+        return -1 if a is None else 1
 
-    if type(a) == type(b) == list:
+    if type(a) is type(b) is list:
         if len(a) != len(b):
             return len(a) - len(b)
         for i in range(len(a)):
@@ -905,7 +905,7 @@ def compareASTs(a, b, checkEquality=False):
 
     # AST before primitive
     if (not isinstance(a, ast.AST)) and (not isinstance(b, ast.AST)):
-        if type(a) != type(b):
+        if type(a) is not type(b):
             builtins = [bool, int, float, str, bytes, complex]
             if type(a) not in builtins or type(b) not in builtins:
                 log("MISSING BUILT-IN TYPE: " + str(type(a)) + "," + str(type(b)), "bug")
@@ -915,13 +915,13 @@ def compareASTs(a, b, checkEquality=False):
         return -1 if isinstance(a, ast.AST) else 1
 
     # Order by differing types
-    if type(a) != type(b):
+    if type(a) is not type(b):
         # Here is a brief ordering of types that we care about
-        blehTypes = [ast.Load, ast.Store, ast.Del, ast.AugLoad, ast.AugStore, ast.Param]
-        if type(a) in blehTypes and type(b) in blehTypes:
+        important_types = [ast.Load, ast.Store, ast.Del, ast.AugLoad, ast.AugStore, ast.Param]
+        if type(a) in important_types and type(b) in important_types:
             return 0
-        elif type(a) in blehTypes or type(b) in blehTypes:
-            return -1 if type(a) in blehTypes else 1
+        elif type(a) in important_types or type(b) in important_types:
+            return -1 if type(a) in important_types else 1
 
         types = [ast.Module, ast.Interactive, ast.Expression, ast.Suite,
 
@@ -962,11 +962,11 @@ def compareASTs(a, b, checkEquality=False):
             return bd - ad
 
     # Add this case after handling ast.NameConstant
-    if type(a) == ast.Constant:
+    if type(a) is ast.Constant:
         # Compare the values of the Constant nodes
         if hasattr(a, 'value') and hasattr(b, 'value'):
             # Handle comparison for simple types directly
-            if type(a.value) != type(b.value):
+            if type(a.value) is not type(b.value):
                 return -1 if type(a.value).__name__ < type(b.value).__name__ else 1
             else:
                 return cmp(a.value, b.value)

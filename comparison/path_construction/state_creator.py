@@ -64,7 +64,7 @@ def desirability(s, n, g):
 
 def mapDifferences(start, end):
     d = {"start": {}}
-    allChanges = getChanges(start, end)
+    allChanges = get_changes(start, end)
     s = deepcopy(start)
     for change in allChanges:
         change.update(s, d)
@@ -120,7 +120,7 @@ def apply_change_vectors(student_state: CodeState, changes: List[ChangeVector]) 
     tup = update_change_vectors(changes, changes[0].start, student_state.tree)
     changes, newState = tup
     inter_state = IntermediateState(tree=newState)
-    inter_state.code = printFunction(inter_state.tree)
+    inter_state.code = print_function(inter_state.tree)
     return inter_state
 
 
@@ -213,7 +213,7 @@ def generateHelperDistributions(s, g, goals, states):
     for map in allMaps:
         tmpTree = deepcopy(g.tree)
         tmpTree = applyHelperMap(tmpTree, map)
-        tmpCode = printFunction(tmpTree)
+        tmpCode = print_function(tmpTree)
 
         matches = list(filter(lambda x: x.code == tmpCode, goals))
         if len(matches) > 0:
@@ -229,7 +229,7 @@ def generateHelperDistributions(s, g, goals, states):
             if tmpG.score != 1:
                 log("generateNextStates\tgenerateHelperDistributions\tBad helper remapping: " + str(map), "bug")
                 log(s.code, "bug")
-                log(printFunction(s.orig_tree), "bug")
+                log(print_function(s.orig_tree), "bug")
                 log(g.code, "bug")
                 log(tmpCode, "bug")
             allFuns.append(tmpG)
@@ -334,7 +334,7 @@ def generateVariableDistributions(s, g, goals, states):
     for map in allMaps:
         tmpTree = deepcopy(g.tree)
         tmpTree = applyVariableMap(tmpTree, map)
-        tmpCode = printFunction(tmpTree)
+        tmpCode = print_function(tmpTree)
 
         matches = list(filter(lambda x: x.code == tmpCode, goals))
         if len(matches) > 0:
@@ -350,7 +350,7 @@ def generateVariableDistributions(s, g, goals, states):
             if tmpG.score != 1:
                 log("generateNextStates\tgenerateVariablesDistributions\tBad variable remapping: " + str(map), "bug")
                 log(s.code, "bug")
-                log(printFunction(s.orig_tree), "bug")
+                log(print_function(s.orig_tree), "bug")
                 log(g.code, "bug")
                 log(tmpCode, "bug")
             allFuns.append(tmpG)
@@ -478,7 +478,6 @@ def is_valid_next_state(student_state, new_state, goal_state):
 def generate_states_in_path(student_state: CodeState, valid_combinations: list[tuple[list[ChangeVector], CodeState]]):
     # Now we need to find the desirability of each state and take the best one
     # We'll keep cycling here to find the whole path of states 'til we get to the correct solution
-    original_state = student_state
     best_score, best_state = -1, None
     ideal_changes = None
     for (change_vector, candidate_state) in valid_combinations:

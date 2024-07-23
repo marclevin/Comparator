@@ -212,7 +212,7 @@ def getLineNumber(tree, path, value):
             log(
                 "generate_message\tgetLineNumber\tBroken path: "
                 + str(path)
-                + printFunction(tree, 0),
+                + print_function(tree, 0),
                 "bug",
             )
             return getLineNumber(tree, path[1:], None)
@@ -379,7 +379,7 @@ def getLineNumber(tree, path, value):
                 log(
                     "generate_message\tgetLineNumber\tPath incorrect: "
                     + str(path)
-                    + printFunction(tree, 0),
+                    + print_function(tree, 0),
                     "bug",
                 )
                 return getLineNumber(tree, path[2:], None)
@@ -548,7 +548,7 @@ def getColumnNumber(tree, path, value):
             log(
                 "generate_message\tgetColumnNumber\tBroken path: "
                 + str(path)
-                + printFunction(tree, 0),
+                + print_function(tree, 0),
                 "bug",
             )
             return getColumnNumber(tree, path[1:], None)
@@ -785,7 +785,7 @@ def getColumnNumber(tree, path, value):
                 log(
                     "generate_message\tgetColumnNumber\tBroken path: "
                     + str(path)
-                    + printFunction(tree, 0),
+                    + print_function(tree, 0),
                     "bug",
                 )
                 return getColumnNumber(tree, path[2:], None)
@@ -1770,7 +1770,7 @@ def formatHints(edit, hintLevel):
                     + ";"
                     + str(cv)
                     + "\n"
-                    + printFunction(cv.start, 0),
+                    + print_function(cv.start, 0),
                     "bug",
                 )
 
@@ -1791,7 +1791,7 @@ def formatHints(edit, hintLevel):
         t = tmp.applyChange()
         tmpS = State()
         tmpS.tree = t
-        tmpS.fun = printFunction(t, 0)
+        tmpS.fun = print_function(t, 0)
         # try:
         #     ast.parse(tmpS.fun)
         #     if hintLevel == "next_step" or (

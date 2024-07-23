@@ -107,39 +107,6 @@ def match_lists(list_x, list_y):
     return map_set
 
 
-def findKey(d, val):
-    for k in d:
-        if d[k] == val:
-            return k
-    return None
-
-
-def xOffset(line, deletedLines):
-    offset = 0
-    for l in deletedLines:
-        if l <= line:
-            offset += 1
-    return offset
-
-
-def yOffset(line, addedLines):
-    offset = 0
-    for l in addedLines:
-        if l <= line:
-            offset += 1
-    return offset
-
-
-def findSwap(startList, endList):
-    for i in range(len(startList)):
-        if startList[i] == endList[i]:
-            pass
-        for j in range(i + 1, len(startList)):
-            if startList[i] == endList[j] and endList[i] == startList[j]:
-                return SwapVector([-1], startList[i], startList[j])
-    return None
-
-
 # Recursively generate all moves by working from the outside of the list inwards.
 # This should be optimal for lists of up to size four, and once you get to size five, your program is too
 # large and I don't care anymore.
@@ -210,6 +177,14 @@ def find_move_vectors(map_set, list_x, list_y, added_lines, deleted_lines):
                     if deleteAction <= action.newSubtree:
                         add_to_count += 1
                 action.newSubtree += add_to_count
+    if len(added_lines) > 0:
+        for action in move_actions:
+            if isinstance(action, MoveVector):
+                add_to_count = 0
+                for addAction in added_lines:
+                    if addAction <= action.newSubtree:
+                        add_to_count += 1
+                action.newSubtree += add_to_count
     return move_actions
 
 
@@ -256,7 +231,8 @@ def diff_asts(ast_x, ast_y):
             else:
                 return [ChangeVector([], ast_x, ast_y)]
         elif type(ast_x) is type(ast_y) is ast.Name:
-            if not builtInName(ast_x.id) and not builtInName(ast_y.id):
+            # TODO look into this
+            if not built_in_name(ast_x.id) and not built_in_name(ast_y.id):
                 return []  # ignore the actual IDs
 
         found_differences = []
@@ -268,7 +244,7 @@ def diff_asts(ast_x, ast_y):
                     for change in current_diffs:
                         change.path.append((field, astNames[type(ast_x)]))
                     found_differences += current_diffs
-            except AttributeError as e:
+            except AttributeError:
                 setattr(ast_x, field, None)
         return found_differences
     elif not isinstance(ast_x, ast.AST) and not isinstance(ast_y, ast.AST):
@@ -287,12 +263,12 @@ def sumWeight(bases):
     return sum(map(lambda x: get_weight(x), bases))
 
 
-def get_weight(given_tree, countTokens=True):
+def get_weight(given_tree, count_tokens=True):
     """Get the size of the given tree"""
     if given_tree is None:
         return 0
     elif type(given_tree) is list:
-        return sum(map(lambda x: get_weight(x, countTokens), given_tree))
+        return sum(map(lambda token: get_weight(token, count_tokens), given_tree))
     elif not isinstance(given_tree, ast.AST):
         return 1
     else:  # Otherwise, it's an AST node
@@ -300,152 +276,152 @@ def get_weight(given_tree, countTokens=True):
             return given_tree.treeWeight
         weight = 0
         if type(given_tree) in [ast.Module, ast.Interactive, ast.Suite]:
-            weight = get_weight(given_tree.body, countTokens=countTokens)
+            weight = get_weight(given_tree.body, count_tokens=count_tokens)
         elif type(given_tree) is ast.Expression:
-            weight = get_weight(given_tree.body, countTokens=countTokens)
+            weight = get_weight(given_tree.body, count_tokens=count_tokens)
         elif type(given_tree) is ast.FunctionDef:
             # add 1 for function name
-            weight = 1 + get_weight(given_tree.args, countTokens=countTokens) + \
-                     get_weight(given_tree.body, countTokens=countTokens) + \
-                     get_weight(given_tree.decorator_list, countTokens=countTokens) + \
-                     get_weight(given_tree.returns, countTokens=countTokens)
+            weight = 1 + get_weight(given_tree.args, count_tokens=count_tokens) + \
+                     get_weight(given_tree.body, count_tokens=count_tokens) + \
+                     get_weight(given_tree.decorator_list, count_tokens=count_tokens) + \
+                     get_weight(given_tree.returns, count_tokens=count_tokens)
         elif type(given_tree) is ast.ClassDef:
             # add 1 for class name
-            weight = 1 + sumWeight(given_tree.bases, countTokens=countTokens) + \
-                     sumWeight(given_tree.keywords, countTokens=countTokens) + \
-                     get_weight(given_tree.body, countTokens=countTokens) + \
-                     get_weight(given_tree.decorator_list, countTokens=countTokens)
+            weight = 1 + sumWeight(given_tree.bases) + \
+                     sumWeight(given_tree.keywords) + \
+                     get_weight(given_tree.body, count_tokens=count_tokens) + \
+                     get_weight(given_tree.decorator_list, count_tokens=count_tokens)
         elif type(given_tree) in [ast.Return, ast.Yield, ast.Attribute, ast.Starred]:
             # add 1 for action name
-            weight = 1 + get_weight(given_tree.value, countTokens=countTokens)
+            weight = 1 + get_weight(given_tree.value, count_tokens=count_tokens)
         elif type(given_tree) is ast.Delete:  # add 1 for del
-            weight = 1 + get_weight(given_tree.targets, countTokens=countTokens)
+            weight = 1 + get_weight(given_tree.targets, count_tokens=count_tokens)
         elif type(given_tree) is ast.Assign:  # add 1 for =
-            weight = 1 + get_weight(given_tree.targets, countTokens=countTokens) + \
-                     get_weight(given_tree.value, countTokens=countTokens)
+            weight = 1 + get_weight(given_tree.targets, count_tokens=count_tokens) + \
+                     get_weight(given_tree.value, count_tokens=count_tokens)
         elif type(given_tree) is ast.AugAssign:
-            weight = get_weight(given_tree.target, countTokens=countTokens) + \
-                     get_weight(given_tree.op, countTokens=countTokens) + \
-                     get_weight(given_tree.value, countTokens=countTokens)
+            weight = get_weight(given_tree.target, count_tokens=count_tokens) + \
+                     get_weight(given_tree.op, count_tokens=count_tokens) + \
+                     get_weight(given_tree.value, count_tokens=count_tokens)
         elif type(given_tree) is ast.For:  # add 1 for 'for' and 1 for 'in'
-            weight = 2 + get_weight(given_tree.target, countTokens=countTokens) + \
-                     get_weight(given_tree.iter, countTokens=countTokens) + \
-                     get_weight(given_tree.body, countTokens=countTokens) + \
-                     get_weight(given_tree.orelse, countTokens=countTokens)
-        elif type(given_tree) is [ast.While, ast.If]:
+            weight = 2 + get_weight(given_tree.target, count_tokens=count_tokens) + \
+                     get_weight(given_tree.iter, count_tokens=count_tokens) + \
+                     get_weight(given_tree.body, count_tokens=count_tokens) + \
+                     get_weight(given_tree.orelse, count_tokens=count_tokens)
+        elif type(given_tree) in [ast.While, ast.If]:
             # add 1 for while/if
-            weight = 1 + get_weight(given_tree.test, countTokens=countTokens) + \
-                     get_weight(given_tree.body, countTokens=countTokens)
+            weight = 1 + get_weight(given_tree.test, count_tokens=count_tokens) + \
+                     get_weight(given_tree.body, count_tokens=count_tokens)
             if len(given_tree.orelse) > 0:  # add 1 for else
-                weight += 1 + get_weight(given_tree.orelse, countTokens=countTokens)
+                weight += 1 + get_weight(given_tree.orelse, count_tokens=count_tokens)
         elif type(given_tree) is ast.With:  # add 1 for with
-            weight = 1 + get_weight(given_tree.items, countTokens=countTokens) + \
-                     get_weight(given_tree.body, countTokens=countTokens)
+            weight = 1 + get_weight(given_tree.items, count_tokens=count_tokens) + \
+                     get_weight(given_tree.body, count_tokens=count_tokens)
         elif type(given_tree) is ast.Raise:  # add 1 for raise
-            weight = 1 + get_weight(given_tree.exc, countTokens=countTokens) + \
-                     get_weight(given_tree.cause, countTokens=countTokens)
-        elif type(given_tree) == ast.Try:  # add 1 for try
-            weight = 1 + get_weight(given_tree.body, countTokens=countTokens) + \
-                     get_weight(given_tree.handlers, countTokens=countTokens)
+            weight = 1 + get_weight(given_tree.exc, count_tokens=count_tokens) + \
+                     get_weight(given_tree.cause, count_tokens=count_tokens)
+        elif type(given_tree) is ast.Try:  # add 1 for try
+            weight = 1 + get_weight(given_tree.body, count_tokens=count_tokens) + \
+                     get_weight(given_tree.handlers, count_tokens=count_tokens)
             if len(given_tree.orelse) > 0:  # add 1 for else
-                weight += 1 + get_weight(given_tree.orelse, countTokens=countTokens)
+                weight += 1 + get_weight(given_tree.orelse, count_tokens=count_tokens)
             if len(given_tree.finalbody) > 0:  # add 1 for finally
-                weight += 1 + get_weight(given_tree.finalbody, countTokens=countTokens)
-        elif type(given_tree) == ast.Assert:  # add 1 for assert
-            weight = 1 + get_weight(given_tree.test, countTokens=countTokens) + \
-                     get_weight(given_tree.msg, countTokens=countTokens)
+                weight += 1 + get_weight(given_tree.finalbody, count_tokens=count_tokens)
+        elif type(given_tree) is ast.Assert:  # add 1 for assert
+            weight = 1 + get_weight(given_tree.test, count_tokens=count_tokens) + \
+                     get_weight(given_tree.msg, count_tokens=count_tokens)
         elif type(given_tree) in [ast.Import, ast.Global]:  # add 1 for function name
-            weight = 1 + get_weight(given_tree.names, countTokens=countTokens)
-        elif type(given_tree) == ast.ImportFrom:  # add 3 for from module import
-            weight = 3 + get_weight(given_tree.names, countTokens=countTokens)
+            weight = 1 + get_weight(given_tree.names, count_tokens=count_tokens)
+        elif type(given_tree) is ast.ImportFrom:  # add 3 for from module import
+            weight = 3 + get_weight(given_tree.names, count_tokens=count_tokens)
         elif type(given_tree) in [ast.Expr, ast.Index]:
-            weight = get_weight(given_tree.value, countTokens=countTokens)
+            weight = get_weight(given_tree.value, count_tokens=count_tokens)
             if weight == 0:
                 weight = 1
-        elif type(given_tree) == ast.BoolOp:  # add 1 for each op
+        elif type(given_tree) is ast.BoolOp:  # add 1 for each op
             weight = (len(given_tree.values) - 1) + \
-                     get_weight(given_tree.values, countTokens=countTokens)
-        elif type(given_tree) == ast.BinOp:  # add 1 for op
-            weight = 1 + get_weight(given_tree.left, countTokens=countTokens) + \
-                     get_weight(given_tree.right, countTokens=countTokens)
-        elif type(given_tree) == ast.UnaryOp:  # add 1 for operator
-            weight = 1 + get_weight(given_tree.operand, countTokens=countTokens)
-        elif type(given_tree) == ast.Lambda:  # add 1 for lambda
-            weight = 1 + get_weight(given_tree.args, countTokens=countTokens) + \
-                     get_weight(given_tree.body, countTokens=countTokens)
-        elif type(given_tree) == ast.IfExp:  # add 2 for if and else
-            weight = 2 + get_weight(given_tree.test, countTokens=countTokens) + \
-                     get_weight(given_tree.body, countTokens=countTokens) + \
-                     get_weight(given_tree.orelse, countTokens=countTokens)
-        elif type(given_tree) == ast.Dict:  # return 1 if empty dictionary
-            weight = 1 + get_weight(given_tree.keys, countTokens=countTokens) + \
-                     get_weight(given_tree.values, countTokens=countTokens)
+                     get_weight(given_tree.values, count_tokens=count_tokens)
+        elif type(given_tree) is ast.BinOp:  # add 1 for op
+            weight = 1 + get_weight(given_tree.left, count_tokens=count_tokens) + \
+                     get_weight(given_tree.right, count_tokens=count_tokens)
+        elif type(given_tree) is ast.UnaryOp:  # add 1 for operator
+            weight = 1 + get_weight(given_tree.operand, count_tokens=count_tokens)
+        elif type(given_tree) is ast.Lambda:  # add 1 for lambda
+            weight = 1 + get_weight(given_tree.args, count_tokens=count_tokens) + \
+                     get_weight(given_tree.body, count_tokens=count_tokens)
+        elif type(given_tree) is ast.IfExp:  # add 2 for if and else
+            weight = 2 + get_weight(given_tree.test, count_tokens=count_tokens) + \
+                     get_weight(given_tree.body, count_tokens=count_tokens) + \
+                     get_weight(given_tree.orelse, count_tokens=count_tokens)
+        elif type(given_tree) is ast.Dict:  # return 1 if empty dictionary
+            weight = 1 + get_weight(given_tree.keys, count_tokens=count_tokens) + \
+                     get_weight(given_tree.values, count_tokens=count_tokens)
         elif type(given_tree) in [ast.Set, ast.List, ast.Tuple]:
-            weight = 1 + get_weight(given_tree.elts, countTokens=countTokens)
+            weight = 1 + get_weight(given_tree.elts, count_tokens=count_tokens)
         elif type(given_tree) in [ast.ListComp, ast.SetComp, ast.GeneratorExp]:
-            weight = 1 + get_weight(given_tree.elt, countTokens=countTokens) + \
-                     get_weight(given_tree.generators, countTokens=countTokens)
-        elif type(given_tree) == ast.DictComp:
-            weight = 1 + get_weight(given_tree.key, countTokens=countTokens) + \
-                     get_weight(given_tree.value, countTokens=countTokens) + \
-                     get_weight(given_tree.generators, countTokens=countTokens)
-        elif type(given_tree) == ast.Compare:
-            weight = len(given_tree.ops) + get_weight(given_tree.left, countTokens=countTokens) + \
-                     get_weight(given_tree.comparators, countTokens=countTokens)
-        elif type(given_tree) == ast.Call:
-            functionWeight = get_weight(given_tree.func, countTokens=countTokens)
-            functionWeight = functionWeight if functionWeight > 0 else 1
-            argsWeight = get_weight(given_tree.args, countTokens=countTokens) + \
-                         get_weight(given_tree.keywords, countTokens=countTokens)
-            argsWeight = argsWeight if argsWeight > 0 else 1
-            weight = functionWeight + argsWeight
-        elif type(given_tree) == ast.Subscript:
-            valueWeight = get_weight(given_tree.value, countTokens=countTokens)
-            valueWeight = valueWeight if valueWeight > 0 else 1
-            sliceWeight = get_weight(given_tree.slice, countTokens=countTokens)
-            sliceWeight = sliceWeight if sliceWeight > 0 else 1
-            weight = valueWeight + sliceWeight
+            weight = 1 + get_weight(given_tree.elt, count_tokens=count_tokens) + \
+                     get_weight(given_tree.generators, count_tokens=count_tokens)
+        elif type(given_tree) is ast.DictComp:
+            weight = 1 + get_weight(given_tree.key, count_tokens=count_tokens) + \
+                     get_weight(given_tree.value, count_tokens=count_tokens) + \
+                     get_weight(given_tree.generators, count_tokens=count_tokens)
+        elif type(given_tree) is ast.Compare:
+            weight = len(given_tree.ops) + get_weight(given_tree.left, count_tokens=count_tokens) + \
+                     get_weight(given_tree.comparators, count_tokens=count_tokens)
+        elif type(given_tree) is ast.Call:
+            function_weight = get_weight(given_tree.func, count_tokens=count_tokens)
+            function_weight = function_weight if function_weight > 0 else 1
+            args_weight = get_weight(given_tree.args, count_tokens=count_tokens) + \
+                          get_weight(given_tree.keywords, count_tokens=count_tokens)
+            args_weight = args_weight if args_weight > 0 else 1
+            weight = function_weight + args_weight
+        elif type(given_tree) is ast.Subscript:
+            value_weight = get_weight(given_tree.value, count_tokens=count_tokens)
+            value_weight = value_weight if value_weight > 0 else 1
+            slice_weight = get_weight(given_tree.slice, count_tokens=count_tokens)
+            slice_weight = slice_weight if slice_weight > 0 else 1
+            weight = value_weight + slice_weight
 
-        elif type(given_tree) == ast.Slice:
-            weight = get_weight(given_tree.lower, countTokens=countTokens) + \
-                     get_weight(given_tree.upper, countTokens=countTokens) + \
-                     get_weight(given_tree.step, countTokens=countTokens)
+        elif type(given_tree) is ast.Slice:
+            weight = get_weight(given_tree.lower, count_tokens=count_tokens) + \
+                     get_weight(given_tree.upper, count_tokens=count_tokens) + \
+                     get_weight(given_tree.step, count_tokens=count_tokens)
             if weight == 0:
                 weight = 1
-        elif type(given_tree) == ast.ExtSlice:
-            weight = get_weight(given_tree.dims, countTokens=countTokens)
+        elif type(given_tree) is ast.ExtSlice:
+            weight = get_weight(given_tree.dims, count_tokens=count_tokens)
 
-        elif type(given_tree) == ast.comprehension:  # add 2 for for and in
+        elif type(given_tree) is ast.comprehension:  # add 2 for for and in
             # and each of the if tokens
             weight = 2 + len(given_tree.ifs) + \
-                     get_weight(given_tree.target, countTokens=countTokens) + \
-                     get_weight(given_tree.iter, countTokens=countTokens) + \
-                     get_weight(given_tree.ifs, countTokens=countTokens)
-        elif type(given_tree) == ast.ExceptHandler:  # add 1 for except
-            weight = 1 + get_weight(given_tree.type, countTokens=countTokens)
+                     get_weight(given_tree.target, count_tokens=count_tokens) + \
+                     get_weight(given_tree.iter, count_tokens=count_tokens) + \
+                     get_weight(given_tree.ifs, count_tokens=count_tokens)
+        elif type(given_tree) is ast.ExceptHandler:  # add 1 for except
+            weight = 1 + get_weight(given_tree.type, count_tokens=count_tokens)
             # add 1 for as (if needed)
-            weight += (1 if given_tree.name != None else 0) + \
-                      get_weight(given_tree.name, countTokens=countTokens)
-            weight += get_weight(given_tree.body, countTokens=countTokens)
-        elif type(given_tree) == ast.arguments:
-            weight = get_weight(given_tree.args, countTokens=countTokens) + \
-                     get_weight(given_tree.vararg, countTokens=countTokens) + \
-                     get_weight(given_tree.kwonlyargs, countTokens=countTokens) + \
-                     get_weight(given_tree.kw_defaults, countTokens=countTokens) + \
-                     get_weight(given_tree.kwarg, countTokens=countTokens) + \
-                     get_weight(given_tree.posonlyargs, countTokens=countTokens)
+            weight += (1 if given_tree.name is not None else 0) + \
+                      get_weight(given_tree.name, count_tokens=count_tokens)
+            weight += get_weight(given_tree.body, count_tokens=count_tokens)
+        elif type(given_tree) is ast.arguments:
+            weight = get_weight(given_tree.args, count_tokens=count_tokens) + \
+                     get_weight(given_tree.vararg, count_tokens=count_tokens) + \
+                     get_weight(given_tree.kwonlyargs, count_tokens=count_tokens) + \
+                     get_weight(given_tree.kw_defaults, count_tokens=count_tokens) + \
+                     get_weight(given_tree.kwarg, count_tokens=count_tokens) + \
+                     get_weight(given_tree.posonlyargs, count_tokens=count_tokens)
 
-        elif type(given_tree) == ast.arg:
-            weight = 1 + get_weight(given_tree.annotation, countTokens=countTokens)
-        elif type(given_tree) == ast.keyword:  # add 1 for identifier
-            weight = 1 + get_weight(given_tree.value, countTokens=countTokens)
-        elif type(given_tree) == ast.alias:  # 1 for name, 1 for as, 1 for asname
-            weight = 1 + (2 if given_tree.asname != None else 0)
-        elif type(given_tree) == ast.withitem:
-            weight = get_weight(given_tree.context_expr, countTokens=countTokens) + \
-                     get_weight(given_tree.optional_vars, countTokens=countTokens)
-        elif type(given_tree) == ast.Str:
-            if countTokens:
+        elif type(given_tree) is ast.arg:
+            weight = 1 + get_weight(given_tree.annotation, count_tokens=count_tokens)
+        elif type(given_tree) is ast.keyword:  # add 1 for identifier
+            weight = 1 + get_weight(given_tree.value, count_tokens=count_tokens)
+        elif type(given_tree) is ast.alias:  # 1 for name, 1 for as, 1 for asname
+            weight = 1 + (2 if given_tree.asname is not None else 0)
+        elif type(given_tree) is ast.withitem:
+            weight = get_weight(given_tree.context_expr, count_tokens=count_tokens) + \
+                     get_weight(given_tree.optional_vars, count_tokens=count_tokens)
+        elif type(given_tree) is ast.Str:
+            if count_tokens:
                 weight = 1
             elif len(given_tree.s) >= 2 and given_tree.s[0] == "~" and given_tree.s[-1] == "~":
                 weight = 0
@@ -472,33 +448,33 @@ def get_weight(given_tree, countTokens=True):
         return weight
 
 
-def getChanges(s, t, ignoreVariables=False):
-    changes = diff_asts(s, t)
+def get_changes(student_code_state, candidate_code_state):
+    changes = diff_asts(student_code_state, candidate_code_state)
     for change in changes:
-        change.start = s  # WARNING: should maybe have a deepcopy here? It will alias s
+        change.start = student_code_state
     return changes
 
 
-def getChangesWeight(changes, countTokens=True):
+def get_changes_weight(changes, countTokens=True):
     weight = 0
     for change in changes:
         if isinstance(change, AddVector):
-            weight += get_weight(change.newSubtree, countTokens=countTokens)
+            weight += get_weight(change.newSubtree, count_tokens=countTokens)
         elif isinstance(change, DeleteVector):
-            weight += get_weight(change.oldSubtree, countTokens=countTokens)
+            weight += get_weight(change.oldSubtree, count_tokens=countTokens)
         elif isinstance(change, SwapVector):
             weight += 2  # only changing the positions
         elif isinstance(change, MoveVector):
             weight += 1  # only moving one item
         elif isinstance(change, SubVector):
-            weight += abs(get_weight(change.newSubtree, countTokens=countTokens) - \
-                          get_weight(change.oldSubtree, countTokens=countTokens))
+            weight += abs(get_weight(change.newSubtree, count_tokens=countTokens) - \
+                          get_weight(change.oldSubtree, count_tokens=countTokens))
         elif isinstance(change, SuperVector):
-            weight += abs(get_weight(change.oldSubtree, countTokens=countTokens) - \
-                          get_weight(change.newSubtree, countTokens=countTokens))
+            weight += abs(get_weight(change.oldSubtree, count_tokens=countTokens) - \
+                          get_weight(change.newSubtree, count_tokens=countTokens))
         else:
-            weight += max(get_weight(change.oldSubtree, countTokens=countTokens),
-                          get_weight(change.newSubtree, countTokens=countTokens))
+            weight += max(get_weight(change.oldSubtree, count_tokens=countTokens),
+                          get_weight(change.newSubtree, count_tokens=countTokens))
     return weight
 
 
@@ -508,7 +484,7 @@ def distance(student_state: State, candidate: State, given_changes=None, forceRe
         0 (identical solutions) and 1 (completely different)
   returns a tuple of (distance, changes)
   """
-    # First weigh the trees, to propogate metadata
+    # First weigh the trees, to propagate metadata
     if student_state is None or candidate is None:
         return 1  # can't compare to a None state
     if forceReweight:
@@ -521,12 +497,12 @@ def distance(student_state: State, candidate: State, given_changes=None, forceRe
         base_weight = max(student_state.treeWeight, candidate.treeWeight)
 
     # Check if equal
-    if student_state.tree == candidate.tree:
+    if student_state.tree is candidate.tree:
         return 0, []
     if given_changes is not None:
         changes = given_changes
     else:
-        changes = getChanges(student_state.tree, candidate.tree, ignoreVariables=ignoreVariables)
+        changes = get_changes(student_state.tree, candidate.tree)
 
-    change_weight = getChangesWeight(changes)
+    change_weight = get_changes_weight(changes)
     return 1.0 * change_weight / base_weight, changes
