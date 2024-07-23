@@ -1702,7 +1702,7 @@ def reduceToOneToken(oldVal, newVal, typeVector):
 
 
 def formatButCatchNone(val):
-    if val == None:
+    if val is None:
         return "None"
     else:
         return formatNode(val)

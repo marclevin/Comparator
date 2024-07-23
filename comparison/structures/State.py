@@ -87,7 +87,7 @@ class CanonicalState(State):
     count = 0  # how many students have submitted this state before?
 
     goal = None  # the eventual goal state for this student
-    goalDist = -1
+    goal_dist = -1
     goal_id = None
 
     next = None  # the next state in the solution space
