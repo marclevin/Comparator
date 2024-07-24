@@ -59,8 +59,8 @@ def prepare_code(student_code_state, student_ast) -> CodeState:
 
 
 def test_compare():
-    student_file = ".\\data\\isWeekendBroken.py"
-    solution_file = ".\\data\\isWeekend.py"
+    student_file = ".\\data\\twoSumBroken.py"
+    solution_file = ".\\data\\twoSum.py"
     student_code = open(student_file, "r").read()
     solution_code = open(solution_file, "r").read()
     print(compare_solutions(student_code, solution_code))
