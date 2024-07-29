@@ -3,6 +3,7 @@
 import autopep8
 
 from comparison.canonicalize import getCanonicalForm
+from comparison.individualize import map_edit
 from comparison.path_construction.comparator import *
 from comparison.path_construction.state_creator import get_next_state
 from comparison.utils.generate_message import *
@@ -24,11 +25,11 @@ def compare_solutions(student_ast, solution_ast) -> str:
     inp = import_names + (list(args.keys()) if type(args) is dict else [])
     given_names = [str(x) for x in inp]
     imports = getAllImportStatements(student_code_state.tree) + getAllImportStatements(given_code)
+    original_tree = student_code_state.tree
     student_code_state = getCanonicalForm(student_code_state, given_names, imports)
 
     # Do the same thing for the solution code
     solution_code_state = IntermediateState(tree=ast.parse(solution_ast))
-    solution_code_state = getCanonicalForm(solution_code_state, given_names, imports)
     args = solution_code_state.tree.body[0].args.args
     args = {arg.arg: None for arg in args}
     given_code = ast.parse(solution_ast)
@@ -37,10 +38,15 @@ def compare_solutions(student_ast, solution_ast) -> str:
     given_names = [str(x) for x in inp]
     imports = getAllImportStatements(solution_code_state.tree) + getAllImportStatements(given_code)
     solution_code_state = getCanonicalForm(solution_code_state, given_names, imports)
+
     student_code_state.goal = solution_code_state
-    print(printFunction(student_code_state.tree))
+    print(printFunction(student_code_state.goal.tree))
+
     get_next_state(student_code_state)
-    return formatHints(student_code_state.change_vectors, 1)
+    # Doing individualize step here.
+    edit = map_edit(student_code_state.tree, original_tree, student_code_state.change_vectors)
+
+    return formatHints(edit, 2)
 
 
 # compare(".\\data\\isWeekendBroken.py", ".\\data\\isWeekend.py")
