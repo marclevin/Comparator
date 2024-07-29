@@ -969,7 +969,10 @@ def compareASTs(a, b, checkEquality=False):
             if type(a.value) is not type(b.value):
                 return -1 if type(a.value).__name__ < type(b.value).__name__ else 1
             else:
-                return cmp(a.value, b.value)
+                # We should drill down into the values to get the str value out
+                if type(a.value is ast.Constant and b.value is ast.Constant):
+                    return compareASTs(a.value, b.value, checkEquality=checkEquality)
+
         else:
             return 0  # Consider them equal if they lack values, though this should not happen
     # NameConstants are special
