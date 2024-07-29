@@ -14,6 +14,8 @@ def generatePathToId(a, id, globalId=None):
             return []
 
     for field in a._fields:
+        if not hasattr(a, field):
+            continue
         attr = getattr(a, field)
         if type(attr) == list:
             for i in range(len(attr)):

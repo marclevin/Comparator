@@ -20,8 +20,11 @@ def giveIds(a):
         a.global_id = uuid.uuid1()
         idCounter += 1
         for field in a._fields:
-            child = getattr(a, field)
-            if type(child) == list:
+            if hasattr(a, field):
+                child = getattr(a, field)
+            else:
+                continue
+            if type(child) is list:
                 for i in range(len(child)):
                     # Get rid of aliased items
                     if hasattr(child[i], "global_id"):
@@ -168,7 +171,7 @@ def stateDiff(s, funName):
 
 
 def getCanonicalForm(s, given_names=None, argTypes=None, imports=None):
-    # s.tree = deepcopy(s.tree) # no shallow copying! We need to leave the old tree alone
+    s.tree = deepcopy(s.tree)  # no shallow copying! We need to leave the old tree alone
 
     giveIds(s.tree)
     # s.orig_tree = deepcopy(s.tree)

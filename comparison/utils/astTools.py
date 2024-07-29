@@ -91,8 +91,11 @@ def applyToChildren(a, f):
     if a == None:
         return a
     for field in a._fields:
-        child = getattr(a, field)
-        if type(child) == list:
+        if hasattr(a, field):
+            child = getattr(a, field)
+        else:
+            continue
+        if type(child) is list:
             i = 0
             while i < len(child):
                 temp = f(child[i])
