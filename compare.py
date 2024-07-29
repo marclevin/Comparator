@@ -3,6 +3,7 @@
 import autopep8
 
 from comparison.canonicalize import getCanonicalForm
+from comparison.individualize import map_edit
 from comparison.path_construction.comparator import *
 from comparison.path_construction.state_creator import get_next_state
 from comparison.utils.generate_message import *
@@ -25,7 +26,7 @@ def compare_solutions(student_ast, solution_ast) -> str:
     given_names = [str(x) for x in inp]
     imports = getAllImportStatements(student_code_state.tree) + getAllImportStatements(given_code)
     student_code_state = getCanonicalForm(student_code_state, given_names, imports)
-
+    original_tree = ast.parse(student_ast)
     # Do the same thing for the solution code
     solution_code_state = student_code_state.goal
     args = solution_code_state.tree.body[0].args.args
@@ -37,15 +38,10 @@ def compare_solutions(student_ast, solution_ast) -> str:
     imports = getAllImportStatements(solution_code_state.tree) + getAllImportStatements(given_code)
     solution_code_state = getCanonicalForm(solution_code_state, given_names, imports)
 
-    print("\n", print_function(student_code_state.goal.tree))
-    print("\n", print_function(student_code_state.tree))
-
-    get_next_state(student_code_state)
+    get_next_state(student_code_state, original_tree)
     # Doing individualize step here.
-    # edit = map_edit(student_code_state.tree, original_tree, student_code_state.change_vectors)
-
-    # return formatHints(edit, 2)
-    return formatHints(student_code_state.change_vectors, 2)
+    edit = map_edit(student_code_state.tree, original_tree, student_code_state.change_vectors)
+    return formatHints(edit, 2)
 
 
 # compare(".\\data\\isWeekendBroken.py", ".\\data\\isWeekend.py")
@@ -68,7 +64,7 @@ def test_compare():
     solution_file = ".\\data\\twoSum.py"
     student_code = open(student_file, "r").read()
     solution_code = open(solution_file, "r").read()
-    print(compare_solutions(student_code, solution_code))
+    print("\n", compare_solutions(student_code, solution_code))
 
 
 def validate_student_attempts(student_attempts: List[str], goal_code: str) -> float:

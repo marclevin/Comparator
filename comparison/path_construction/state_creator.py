@@ -474,22 +474,22 @@ def is_valid_next_state(student_state, new_state, goal_state):
 
 
 # TODO: Fix this to use the new scoring system (desirability)
-def generate_states_in_path(student_state: CodeState, valid_combinations: list[tuple[list[ChangeVector], CodeState]]):
-    # Now we need to find the desirability of each state and take the best one
-    # We'll keep cycling here to find the whole path of states 'til we get to the correct solution
+def generate_states_in_path(student_state: CodeState, valid_combinations: list[tuple[list[ChangeVector], CodeState]],
+                            original_tree):
     best_score, best_state = -1, None
     ideal_changes = None
-    for (change_vector, candidate_state) in valid_combinations:
-        score = desirability(student_state, candidate_state, student_state.goal)
-        if score > best_score:
-            best_score = score
-            best_state = candidate_state
-            ideal_changes = change_vector
 
-    # (s.edit, s.next) = bestState
-    # if s.next.score != 1:
-    # 	validCombinations.remove(bestState)
-    # 	validCombinations = filterChanges(validCombinations, s.edit, s, s.next)
+    for (change_vector, candidate_state) in valid_combinations:
+        filtered_changes = [change for change in change_vector if
+                            compareASTs(change.oldSubtree, change.newSubtree, checkEquality=True) != 0]
+
+        if filtered_changes:
+            score = desirability(student_state, candidate_state, student_state.goal)
+            if score > best_score:
+                best_score = score
+                best_state = candidate_state
+                ideal_changes = filtered_changes
+
     student_state.change_vectors = ideal_changes
     student_state.next = best_state
 
@@ -503,7 +503,7 @@ def get_all_combinations(student_state: CodeState, changes: list[ChangeVector]):
     return all_combinations
 
 
-def get_next_state(student_state: CodeState):
+def get_next_state(student_state: CodeState, original_tree):
     """Generate the best next state for s, so that it will produce a desirable hint"""
     (student_state.distance_to_goal, changes) = distance(student_state,
                                                          student_state.goal)  # now get the actual changes
@@ -523,4 +523,4 @@ def get_next_state(student_state: CodeState):
         student_state.next = None
         return
 
-    generate_states_in_path(student_state, valid_combinations)
+    generate_states_in_path(student_state, valid_combinations, original_tree)
