@@ -1,0 +1,8 @@
+29 Jul 2024 15:08:59	ChangeVector	applyChange	mapEdit 2	Change old values don't match: 'twoSum' - 'twoSum' : [('name', 'Function Definition'), 0, ('body', 'Module')]
+def helper_g0(nums, target):
+    for v0_helper_g0 in range(len(nums)):
+        for v1_helper_g0 in range((v0_helper_g0 + 1), len(nums)):
+            if ((v0_helper_g0 != v1_helper_g0) and ((nums[v0_helper_g0] + nums[v1_helper_g0]) == target)):
+                return [v0_helper_g0, v1_helper_g0]
+    return []
+

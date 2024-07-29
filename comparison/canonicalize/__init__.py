@@ -144,8 +144,9 @@ def checkGlobalIds(a, l):
             if hasattr(a, t):
                 break
         else:  # only enter the else if none of the provided types are an attribute of a
-            log("canonicalize\tcheckGlobalIds\tNo global id: " + str(l) + "," + str(a.__dict__) + "," + printFunction(a,
-                                                                                                                      0),
+            log("canonicalize\tcheckGlobalIds\tNo global id: " + str(l) + "," + str(a.__dict__) + "," + print_function(
+                a,
+                0),
                 "bug")
     for f in ast.iter_child_nodes(a):
         checkGlobalIds(f, l + [type(a)])
@@ -219,7 +220,7 @@ def getCanonicalForm(s, given_names=None, argTypes=None, imports=None):
         for t in transformations:
             s.tree = t(s.tree)  # modify in place
             stateDiff(s, str(t).split()[1])
-    s.code = printFunction(s.tree)
+    s.code = print_function(s.tree)
     s.score = orig_score
     s.feedback = orig_feedback
     return s

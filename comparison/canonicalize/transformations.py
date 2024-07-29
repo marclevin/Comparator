@@ -18,7 +18,7 @@ def updateVariableNames(candidate_ast, var_map, scope_name, random_counter, impo
         anonymize_statement_names(candidate_ast, var_map, "_" + candidate_ast.name, imports)
     elif type(candidate_ast) == ast.arg:
         if candidate_ast.arg not in var_map and not (
-                builtInName(candidate_ast.arg) or importedName(candidate_ast.arg, imports)):
+                built_in_name(candidate_ast.arg) or imported_name(candidate_ast.arg, imports)):
             log("Can't assign to arg?", "bug")
         if candidate_ast.arg in var_map:
             if not hasattr(candidate_ast, "originalId"):
@@ -32,7 +32,7 @@ def updateVariableNames(candidate_ast, var_map, scope_name, random_counter, impo
             candidate_ast.arg = var_map[candidate_ast.arg]
     elif type(candidate_ast) == ast.Name:
         if candidate_ast.id not in var_map and not (
-                builtInName(candidate_ast.id) or importedName(candidate_ast.id, imports)):
+                built_in_name(candidate_ast.id) or imported_name(candidate_ast.id, imports)):
             var_map[candidate_ast.id] = "r" + str(random_counter[0]) + scope_name
             random_counter[0] += 1
         if candidate_ast.id in var_map:
@@ -58,8 +58,8 @@ def gatherLocalScope(a, globalMap, scopeName, imports, goBackwards=False):
     if type(a) == ast.FunctionDef:
         for param in a.args.args:
             if type(param) == ast.arg:
-                if not (builtInName(param.arg) or importedName(param.arg,
-                                                               imports)) and param.arg not in localMap and param.arg not in globalMap:
+                if not (built_in_name(param.arg) or imported_name(param.arg,
+                                                                  imports)) and param.arg not in localMap and param.arg not in globalMap:
                     localMap[param.arg] = "p" + str(paramCounter) + scopeName
                     paramCounter += 1
             else:
@@ -72,7 +72,7 @@ def gatherLocalScope(a, globalMap, scopeName, imports, goBackwards=False):
     while len(items) > 0:
         item = items[0]
         if type(item) in [ast.FunctionDef, ast.ClassDef]:
-            if not (builtInName(item.name) or importedName(item.name, imports)):
+            if not (built_in_name(item.name) or imported_name(item.name, imports)):
                 if item.name not in localMap and item.name not in globalMap:
                     localMap[item.name] = "helper_" + varLetter + str(localCounter) + scopeName
                     localCounter += 1
@@ -102,7 +102,7 @@ def gatherLocalScope(a, globalMap, scopeName, imports, goBackwards=False):
 
             for assn in assns:
                 if type(assn) == ast.Name:
-                    if not (builtInName(assn.id) or importedName(assn.id, imports)):
+                    if not (built_in_name(assn.id) or imported_name(assn.id, imports)):
                         if assn.id not in localMap and assn.id not in globalMap:
                             localMap[assn.id] = varLetter + str(localCounter) + scopeName
                             localCounter += 1
@@ -153,7 +153,7 @@ def propogateNameMetadata(a, namesToKeep, imports):
     elif not isinstance(a, ast.AST):
         return a
     if type(a) == ast.Name:
-        if (builtInName(a.id) or importedName(a.id, imports)):
+        if (built_in_name(a.id) or imported_name(a.id, imports)):
             pass
         elif a.id in namesToKeep:
             a.dontChangeName = True
@@ -163,7 +163,7 @@ def propogateNameMetadata(a, namesToKeep, imports):
             if not isAnonVariable(a.id):
                 a.dontChangeName = True  # it's a name we shouldn't mess with
     elif type(a) == ast.arg:
-        if (builtInName(a.arg) or importedName(a.arg, imports)):
+        if (built_in_name(a.arg) or imported_name(a.arg, imports)):
             pass
         elif a.arg in namesToKeep:
             a.dontChangeName = True
@@ -205,7 +205,7 @@ def individualizeVariables(a, variablePairs, idNum, imports):
         return
 
     if type(a) == ast.Name:
-        if a.id not in variablePairs and not (builtInName(a.id) or importedName(a.id, imports)):
+        if a.id not in variablePairs and not (built_in_name(a.id) or imported_name(a.id, imports)):
             name = "_var_" + a.id + "_" + str(idNum[0])
             variablePairs[a.id] = name
         if a.id in variablePairs:
@@ -1123,7 +1123,7 @@ def constantFolding(a):
                 allConstant = False
         if len(a.keywords) > 0:
             allConstant = False
-        if allConstant and (type(a.func) == ast.Name) and (a.func.id in builtInFunctions.keys()) and \
+        if allConstant and (type(a.func) == ast.Name) and (a.func.id in built_in_functions.keys()) and \
                 (a.func.id not in ["range", "raw_input", "input", "open", "randint", "random", "slice"]):
             try:
                 # Used to say apply, we're guessing.
@@ -1483,19 +1483,19 @@ def copyPropagation(a, liveVars=None, inLoop=False):
                                 names.append(elt.value.id)
                             else:
                                 log("transformations\tcopyPropagation\tFor target subscript not a name: " + str(
-                                    type(elt.value)) + "\t" + printFunction(elt.value), "bug")
+                                    type(elt.value)) + "\t" + print_function(elt.value), "bug")
                         else:
                             log("transformations\tcopyPropagation\tFor target not a name: " + str(
-                                type(elt)) + "\t" + printFunction(elt), "bug")
+                                type(elt)) + "\t" + print_function(elt), "bug")
                 elif type(a[i].target) == ast.Subscript:
                     if type(a[i].target.value) == ast.Name:
                         names.append(a[i].target.value.id)
                     else:
                         log("transformations\tcopyPropagation\tFor target subscript not a name: " + str(
-                            type(a[i].target.value)) + "\t" + printFunction(a[i].target.value), "bug")
+                            type(a[i].target.value)) + "\t" + print_function(a[i].target.value), "bug")
                 else:
                     log("transformations\tcopyPropagation\tFor target not a name: " + str(
-                        type(a[i].target)) + "\t" + printFunction(a[i].target), "bug")
+                        type(a[i].target)) + "\t" + print_function(a[i].target), "bug")
 
                 for name in names:
                     liveKeys = list(liveVars.keys())
@@ -1658,19 +1658,19 @@ def deadCodeRemoval(a, liveVars=None, keepPrints=True, inLoop=False):
                                 targetNames.append(elt.value.id)
                             else:
                                 log("transformations\tdeadCodeRemoval\tFor target subscript not a name: " + str(
-                                    type(elt.value)) + "\t" + printFunction(elt.value), "bug")
+                                    type(elt.value)) + "\t" + print_function(elt.value), "bug")
                         else:
                             log("transformations\tdeadCodeRemoval\tFor target not a name: " + str(
-                                type(elt)) + "\t" + printFunction(elt), "bug")
+                                type(elt)) + "\t" + print_function(elt), "bug")
                 elif type(a[i].target) == ast.Subscript:
                     if type(a[i].target.value) == ast.Name:
                         targetNames.append(a[i].target.value.id)
                     else:
                         log("transformations\tdeadCodeRemoval\tFor target subscript not a name: " + str(
-                            type(a[i].target.value)) + "\t" + printFunction(a[i].target.value), "bug")
+                            type(a[i].target.value)) + "\t" + print_function(a[i].target.value), "bug")
                 else:
                     log("transformations\tdeadCodeRemoval\tFor target not a name: " + str(
-                        type(a[i].target)) + "\t" + printFunction(a[i].target), "bug")
+                        type(a[i].target)) + "\t" + print_function(a[i].target), "bug")
 
                 # We need to make ALL variables in the loop live, since they update continuously
                 liveVars |= set(allVariableNamesUsed(stmt))
@@ -1723,7 +1723,7 @@ def deadCodeRemoval(a, liveVars=None, keepPrints=True, inLoop=False):
                     for var in assignedVars:
                         # UNLESS we have a weird variable assignment problem
                         if var.id[0] == "g" and hasattr(var, "originalId"):
-                            log("canonicalize\tdeadCodeRemoval\tWeird global variable: " + printFunction(a[i]), "bug")
+                            log("canonicalize\tdeadCodeRemoval\tWeird global variable: " + print_functionn(a[i]), "bug")
                             break
                     else:
                         if test.value == True:

@@ -276,7 +276,7 @@ def print_function(unit, indent=0):
     elif unit_type is ast.NameConstant:
         output_string += str(unit.value)
     elif unit_type is ast.Constant:
-        output_string += str(unit.value)
+        output_string += print_function(unit.value, indent)
     elif unit_type is ast.Attribute:
         output_string += print_function(unit.value, indent) + "." + str(unit.attr)
     elif unit_type is ast.Subscript:

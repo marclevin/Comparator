@@ -42,7 +42,7 @@ def imported_name(id, importList):
                         return True
         elif type(imp) == ast.ImportFrom:
             if hasattr(imp, "module"):
-                if imp.module in supportedLibraries:
+                if imp.module in supported_libraries:
                     libMap = libraryMap[imp.module]
                     for name in imp.names:
                         if hasattr(name, "asname") and name.asname != None:
@@ -753,7 +753,7 @@ def eventualType(a):
         else:  # Not op
             return bool
     elif type(a) == ast.Lambda:
-        return function
+        return None  # We don't know what the lambda will return
     elif type(a) == ast.IfExp:
         l = eventualType(a.body)
         r = eventualType(a.orelse)
