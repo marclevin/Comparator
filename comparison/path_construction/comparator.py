@@ -3,519 +3,506 @@ from comparison.structures.State import *
 from comparison.utils.astTools import *
 
 
-def matchLists(x, y):
+def match_lists(list_x, list_y):
     """For each line in x, determine which line it best maps to in y"""
-    x = [(x[i], i) for i in range(len(x))]
-    y = [(y[i], i) for i in range(len(y))]
+    list_x = [(list_x[i], i) for i in range(len(list_x))]
+    list_y = [(list_y[i], i) for i in range(len(list_y))]
     # First, separate out all the lines based on their types, as we only match between types
-    typeMap = {}
-    for i in range(len(x)):
-        t = type(x[i][0])
-        if t in typeMap:
+    type_map = {}
+    for i in range(len(list_x)):
+        candidate_type = type(list_x[i][0])
+        if candidate_type in type_map:
             pass
-        xSubset = list(filter(lambda tmp: type(tmp[0]) == t, x))
-        ySubset = list(filter(lambda tmp: type(tmp[0]) == t, y))
-        typeMap[t] = (xSubset, ySubset)
-    for j in range(len(y)):
-        t = type(y[j][0])
-        if t in typeMap:
+        x_subset = list(filter(lambda tmp: type(tmp[0]) is candidate_type, list_x))
+        y_subset = list(filter(lambda tmp: type(tmp[0]) is candidate_type, list_y))
+        type_map[candidate_type] = (x_subset, y_subset)
+    for j in range(len(list_y)):
+        candidate_type = type(list_y[j][0])
+        if candidate_type in type_map:
             pass
-        xSubset = list(filter(lambda tmp: type(tmp[0]) == t, x))
-        ySubset = list(filter(lambda tmp: type(tmp[0]) == t, y))
-        typeMap[t] = (xSubset, ySubset)
+        x_subset = list(filter(lambda tmp: type(tmp[0]) is candidate_type, list_x))
+        y_subset = list(filter(lambda tmp: type(tmp[0]) is candidate_type, list_y))
+        type_map[candidate_type] = (x_subset, y_subset)
 
-    mapSet = {}
-    for t in typeMap:
+    map_set = {}
+    for candidate_type in type_map:
         # For each type, find the optimal matching
-        (xSubset, ySubset) = typeMap[t]
+        (x_subset, y_subset) = type_map[candidate_type]
         # First, find exact matches and remove them
-        # Give preference to items on the same line- then we won't need to do an edit
+        # Give preference to items on the same line, then we won't need to do an edit
         i = 0
-        while i < len(xSubset):
+        while i < len(x_subset):
             j = 0
-            while j < len(ySubset):
-                if xSubset[i][1] == ySubset[j][1]:
+            while j < len(y_subset):
+                if x_subset[i][1] == y_subset[j][1]:
                     if (
-                            compareASTs(xSubset[i][0], ySubset[j][0], checkEquality=True)
+                            compareASTs(x_subset[i][0], y_subset[j][0], checkEquality=True)
                             == 0
                     ):
-                        mapSet[ySubset[j][1]] = xSubset[i][1]
-                        xSubset.pop(i)
-                        ySubset.pop(j)
+                        map_set[y_subset[j][1]] = x_subset[i][1]
+                        x_subset.pop(i)
+                        y_subset.pop(j)
                         break
                 j += 1
             else:
                 i += 1
         # Then look for matches anywhere
         i = 0
-        while i < len(xSubset):
+        while i < len(x_subset):
             j = 0
-            while j < len(ySubset):
-                if compareASTs(xSubset[i][0], ySubset[j][0], checkEquality=True) == 0:
-                    mapSet[ySubset[j][1]] = xSubset[i][1]
-                    xSubset.pop(i)
-                    ySubset.pop(j)
+            while j < len(y_subset):
+                if compareASTs(x_subset[i][0], y_subset[j][0], checkEquality=True) == 0:
+                    map_set[y_subset[j][1]] = x_subset[i][1]
+                    x_subset.pop(i)
+                    y_subset.pop(j)
                     break
                 j += 1
             else:
                 i += 1  # if we break, don't increment!
         # TODO - check for subsets/supersets in here?
         # Then, look for the 'best we can do' matches
-        distanceList = []
-        for i in range(len(xSubset)):  # Identify the best matches across all pairs
-            st1 = State()
-            st1.tree = xSubset[i][0]
-            for j in range(len(ySubset)):
-                st2 = State()
-                st2.tree = ySubset[j][0]
-                d, _ = distance(st1, st2)
-                d = int(d * 1000)
-                distanceList.append((d, xSubset[i][1], ySubset[j][1]))
+        distance_list = []
+        for i in range(len(x_subset)):  # Identify the best matches across all pairs
+            candidate_state = State()
+            candidate_state.tree = x_subset[i][0]
+            for j in range(len(y_subset)):
+                inner_candidate_state = State()
+                inner_candidate_state.tree = y_subset[j][0]
+                inner_distance, _ = distance(candidate_state, inner_candidate_state)
+                inner_distance = int(inner_distance * 1000)
+                distance_list.append((inner_distance, x_subset[i][1], y_subset[j][1]))
         # Compare first based on distance, then based on how close the lines are to each other
-        distanceList.sort(key=lambda x: (x[0], x[1] - x[2]))
-        l = min(len(xSubset), len(ySubset))
+        distance_list.sort(key=lambda x: (x[0], x[1] - x[2]))
+        line_distance = min(len(x_subset), len(y_subset))
         # Now pick the best pairs 'til we run out of them
-        while l > 0:
-            (d, xLine, yLine) = distanceList[0]
-            mapSet[yLine] = xLine
-            distanceList = list(
-                filter(lambda x: x[1] != xLine and x[2] != yLine, distanceList)
+        while line_distance > 0:
+            (inner_distance, xLine, yLine) = distance_list[0]
+            map_set[yLine] = xLine
+            distance_list = list(
+                filter(lambda pair: pair[1] != xLine and pair[2] != yLine, distance_list)
             )
-            l -= 1
+            line_distance -= 1
     # Now, look for matches across different types
-    leftoverY = list(filter(lambda tmp: tmp not in mapSet, range(len(y))))
-    leftoverX = list(filter(lambda tmp: tmp not in mapSet.values(), range(len(x))))
+    leftover_y = list(filter(lambda tmp: tmp not in map_set, range(len(list_y))))
+    leftover_x = list(filter(lambda tmp: tmp not in map_set.values(), range(len(list_x))))
     # First, look for exact line matches
     i = 0
-    while i < len(leftoverX):
-        line = leftoverX[i]
-        if line in leftoverY:
-            mapSet[line] = line
-            leftoverX.remove(line)
-            leftoverY.remove(line)
+    while i < len(leftover_x):
+        line = leftover_x[i]
+        if line in leftover_y:
+            map_set[line] = line
+            leftover_x.remove(line)
+            leftover_y.remove(line)
         else:
             i += 1
     # Then, just put the rest in place
-    for i in range(min(len(leftoverY), len(leftoverX))):  # map together all equal parts
-        mapSet[leftoverY[i]] = leftoverX[i]
-    if len(leftoverX) > len(leftoverY):  # if X greater, map all leftover x's to -1
-        mapSet[-1] = leftoverX[len(leftoverY):]
-    elif len(leftoverY) > len(leftoverX):  # if Y greater, map all leftover y's to -1
-        for i in range(len(leftoverX), len(leftoverY)):
-            mapSet[leftoverY[i]] = -1
+    for i in range(min(len(leftover_y), len(leftover_x))):  # map together all equal parts
+        map_set[leftover_y[i]] = leftover_x[i]
+    if len(leftover_x) > len(leftover_y):  # if X greater, map all leftover x's to -1
+        map_set[-1] = leftover_x[len(leftover_y):]
+    elif len(leftover_y) > len(leftover_x):  # if Y greater, map all leftover y's to -1
+        for i in range(len(leftover_x), len(leftover_y)):
+            map_set[leftover_y[i]] = -1
     # if equal, there are none left to map!
-    return mapSet
-
-
-def findKey(d, val):
-    for k in d:
-        if d[k] == val:
-            return k
-    return None
-
-
-def xOffset(line, deletedLines):
-    offset = 0
-    for l in deletedLines:
-        if l <= line:
-            offset += 1
-    return offset
-
-
-def yOffset(line, addedLines):
-    offset = 0
-    for l in addedLines:
-        if l <= line:
-            offset += 1
-    return offset
-
-
-def findSwap(startList, endList):
-    for i in range(len(startList)):
-        if startList[i] == endList[i]:
-            pass
-        for j in range(i + 1, len(startList)):
-            if startList[i] == endList[j] and endList[i] == startList[j]:
-                return SwapVector([-1], startList[i], startList[j])
-    return None
+    return map_set
 
 
 # Recursively generate all moves by working from the outside of the list inwards.
 # This should be optimal for lists of up to size four, and once you get to size five, your program is too
 # large and I don't care anymore.
-def generateMovePairs(startList, endList):
-    if len(startList) <= 1:
+def generate_move_pairs(start_list, end_list):
+    # Base case: If either list has 1 or 0 elements, no moves are needed.
+    if len(start_list) <= 1:
         return []
-    elif startList[0] == endList[0]:
-        return generateMovePairs(startList[1:], endList[1:])
-    elif startList[-1] == endList[-1]:
-        return generateMovePairs(startList[:-1], endList[:-1])
-    elif startList[0] == endList[-1] and startList[-1] == endList[0]:
-        # swap the two ends
-        return [("swap", startList[0], startList[-1])] + generateMovePairs(
-            startList[1:-1], endList[1:-1]
-        )
-    elif startList[0] == endList[-1]:
-        # move the smallest element from back to front
-        return [("move", startList[0])] + generateMovePairs(startList[1:], endList[:-1])
-    elif startList[-1] == endList[0]:
-        # move the largest element from front to back
-        return [("move", startList[-1])] + generateMovePairs(
-            startList[:-1], endList[1:]
-        )
-    else:
-        i = endList.index(startList[0])  # find the position in endList
-        return [("move", startList[0])] + generateMovePairs(
-            startList[1:], endList[:i] + endList[i + 1:]
-        )
+
+    # If the first elements match, no move is needed for the first element.
+    if start_list[0] == end_list[0]:
+        return generate_move_pairs(start_list[1:], end_list[1:])
+
+    # If the last elements match, no move is needed for the last element.
+    if start_list[-1] == end_list[-1]:
+        return generate_move_pairs(start_list[:-1], end_list[:-1])
+
+    # If the first element of start_list matches the last of end_list and vice versa, swap them.
+    if start_list[0] == end_list[-1] and start_list[-1] == end_list[0]:
+        return [("swap", start_list[0], start_list[-1])] + generate_move_pairs(start_list[1:-1], end_list[1:-1])
+
+    # If the first element of start_list is at the end of end_list, move it to the front.
+    if start_list[0] == end_list[-1]:
+        return [("move", start_list[0])] + generate_move_pairs(start_list[1:], end_list[:-1])
+
+    # If the last element of start_list is at the beginning of end_list, move it to the back.
+    if start_list[-1] == end_list[0]:
+        return [("move", start_list[-1])] + generate_move_pairs(start_list[:-1], end_list[1:])
+
+    # For other cases, find the position of the first element of start_list in end_list and move it.
+    i = end_list.index(start_list[0])
+    return [("move", start_list[0])] + generate_move_pairs(start_list[1:], end_list[:i] + end_list[i + 1:])
 
 
-def findMoveVectors(mapSet, x, y, add, delete):
+def find_move_vectors(map_set, list_x, list_y, added_lines, deleted_lines):
     """We'll find all the moved lines by recreating the mapSet from a tmpSet using actions"""
-    startList = list(range(len(x)))
-    endList = [mapSet[i] for i in range(len(y))]
-    # Remove deletes from startList and adds from endList
-    for line in delete:
-        startList.remove(line)
-    while -1 in endList:
-        endList.remove(-1)
-    if len(startList) != len(endList):
+    start_list = list(range(len(list_x)))
+    end_list = [map_set[i] for i in range(len(list_y))]
+    # Remove deletes from start_list and adds from end_list.
+    for line in deleted_lines:
+        start_list.remove(line)
+    while -1 in end_list:
+        end_list.remove(-1)
+    if len(start_list) != len(end_list):
         log(
             "diffAsts\tfindMovedLines\tUnequal lists: "
-            + str(len(startList))
+            + str(len(start_list))
             + ","
-            + str(len(endList)),
+            + str(len(end_list)),
             "bug",
         )
         return []
-    moveActions = []
-    if startList != endList:
-        movePairs = generateMovePairs(startList, endList)
-        for pair in movePairs:
+    move_actions = []
+    if start_list != end_list:
+        move_pairs = generate_move_pairs(start_list, end_list)
+        for pair in move_pairs:
             if pair[0] == "move":
-                moveActions.append(MoveVector([-1], pair[1], endList.index(pair[1])))
+                move_actions.append(MoveVector([-1], pair[1], end_list.index(pair[1])))
             elif pair[0] == "swap":
-                moveActions.append(SwapVector([-1], pair[1], pair[2]))
+                move_actions.append(SwapVector([-1], pair[1], pair[2]))
             else:
                 log("Missing movePair type: " + str(pair[0]), "bug")
-    # We need to make sure the indicies start at the appropriate numbers, since they're referring to the original tree
-    if len(delete) > 0:
-        for action in moveActions:
+    # We need to make sure the indices start at the appropriate numbers, since they're referring to the original tree
+    if len(deleted_lines) > 0:
+        for action in move_actions:
             if isinstance(action, MoveVector):
-                addToCount = 0
-                for deleteAction in delete:
+                add_to_count = 0
+                for deleteAction in deleted_lines:
                     if deleteAction <= action.newSubtree:
-                        addToCount += 1
-                action.newSubtree += addToCount
-    return moveActions
+                        add_to_count += 1
+                action.newSubtree += add_to_count
+    if len(added_lines) > 0:
+        for action in move_actions:
+            if isinstance(action, MoveVector):
+                add_to_count = 0
+                for addAction in added_lines:
+                    if addAction <= action.newSubtree:
+                        add_to_count += 1
+                action.newSubtree += add_to_count
+    return move_actions
 
 
-def diffLists(x, y, ignoreVariables=False):
-    mapSet = matchLists(x, y)
-    changeVectors = []
+def diff_lists(list_x, list_y):
+    map_set = match_lists(list_x, list_y)
+    change_vectors = []
 
     # First, get all the added and deleted lines
-    deletedLines = mapSet[-1] if -1 in mapSet else []
-    for line in sorted(deletedLines):
-        changeVectors.append(DeleteVector([line], x[line], None))
+    deleted_lines = map_set[-1] if -1 in map_set else []
+    for line in sorted(deleted_lines):
+        change_vectors.append(DeleteVector([line], list_x[line], None))
 
-    addedLines = list(filter(lambda tmp: mapSet[tmp] == -1, mapSet.keys()))
-    addedOffset = 0  # Because added lines don't start in the list, we need
+    added_lines = list(filter(lambda tmp: map_set[tmp] == -1, map_set.keys()))
+    added_offset = 0  # Because added lines don't start in the list, we need
     # to offset their positions for each new one that's added
-    for line in sorted(addedLines):
-        changeVectors.append(AddVector([line - addedOffset], None, y[line]))
-        addedOffset += 1
+    for line in sorted(added_lines):
+        change_vectors.append(AddVector([line - added_offset], None, list_y[line]))
+        added_offset += 1
 
     # Now, find all the required moves
-    changeVectors += findMoveVectors(mapSet, x, y, addedLines, deletedLines)
+    change_vectors += find_move_vectors(map_set, list_x, list_y, added_lines, deleted_lines)
 
     # Finally, for each pair of lines (which have already been moved appropriately,
     # find if they need a normal ChangeVector
-    for j in mapSet:
-        i = mapSet[j]
-        # Not a delete or an add
+    for j in map_set:
+        i = map_set[j]
+        # Not a delete move or an add move.
         if j != -1 and i != -1:
-            tempVectors = diff_asts(x[i], y[j])
-            for change in tempVectors:
+            temp_vectors = diff_asts(list_x[i], list_y[j])
+            for change in temp_vectors:
                 change.path.append(i)
-            changeVectors += tempVectors
-    return changeVectors
+            change_vectors += temp_vectors
+    return change_vectors
 
 
-def diff_asts(x, y, ignoreVariables=False):
+def diff_asts(ast_x, ast_y):
     """Find all change vectors between x and y"""
-    xAST = isinstance(x, ast.AST)
-    yAST = isinstance(y, ast.AST)
-    if xAST and yAST:
-        if type(x) != type(y):  # different node types
-            if occursIn(x, y):
-                return [SubVector([], x, y)]
-            elif occursIn(y, x):
-                return [SuperVector([], x, y)]
+    if isinstance(ast_x, ast.AST) and isinstance(ast_y, ast.AST):
+        if type(ast_x) is not type(ast_y):  # different node types
+            if occursIn(ast_x, ast_y):
+                return [SubVector([], ast_x, ast_y)]
+            elif occursIn(ast_y, ast_x):
+                return [SuperVector([], ast_x, ast_y)]
             else:
-                return [ChangeVector([], x, y)]
-        elif ignoreVariables and type(x) == type(y) == ast.Name:
-            if not builtInName(x.id) and not builtInName(y.id):
+                return [ChangeVector([], ast_x, ast_y)]
+        elif type(ast_x) is type(ast_y) is ast.Name:
+            # TODO look into this
+            if not built_in_name(ast_x.id) and not built_in_name(ast_y.id):
                 return []  # ignore the actual IDs
 
-        result = []
-        for field in x._fields:
+        found_differences = []
+        # For every field, like body, or value, etc.
+        for field in ast_x.__getattribute__("_fields"):
             try:
-                currentDiffs = diff_asts(getattr(x, field), getattr(y, field), ignoreVariables=ignoreVariables)
-                if currentDiffs != []:  # add the next step in the path
-                    for change in currentDiffs:
-                        change.path.append((field, astNames[type(x)]))
-                    result += currentDiffs
-            except AttributeError as e:
-                pass
-        return result
-    elif (not xAST) and (not yAST):
-        if type(x) == list and type(y) == list:
-            return diffLists(x, y, ignoreVariables=ignoreVariables)
-        elif x != y or type(x) != type(y):  # need the type check to distinguish ints from floats
-            return [ChangeVector([], x, y)]  # they're primitive, so just switch them
+                current_diffs = diff_asts(getattr(ast_x, field), getattr(ast_y, field))
+                if current_diffs:
+                    for change in current_diffs:
+                        change.path.append((field, astNames[type(ast_x)]))
+                    found_differences += current_diffs
+            except AttributeError:
+                setattr(ast_x, field, None)
+        return found_differences
+    elif not isinstance(ast_x, ast.AST) and not isinstance(ast_y, ast.AST):
+        if type(ast_x) is list and type(ast_y) is list:
+            return diff_lists(ast_x, ast_y)
+        elif ast_x is not ast_y or type(ast_x) is not type(ast_y):
+            # Type check.
+            return [ChangeVector([], ast_x, ast_y)]  # they're primitive, so just switch them
         else:  # equal values
             return []
     else:  # Two mismatched types
-        return [ChangeVector([], x, y)]
+        return [ChangeVector([], ast_x, ast_y)]
 
 
-def getWeight(a, countTokens=True):
+def sumWeight(bases):
+    return sum(map(lambda x: get_weight(x), bases))
+
+
+def get_weight(given_tree, count_tokens=True):
     """Get the size of the given tree"""
-    if a == None:
+    if given_tree is None:
         return 0
-    elif type(a) == list:
-        return sum(map(lambda x: getWeight(x, countTokens), a))
-    elif not isinstance(a, ast.AST):
+    elif type(given_tree) is list:
+        return sum(map(lambda token: get_weight(token, count_tokens), given_tree))
+    elif not isinstance(given_tree, ast.AST):
         return 1
     else:  # Otherwise, it's an AST node
-        if hasattr(a, "treeWeight"):
-            return a.treeWeight
+        if hasattr(given_tree, "treeWeight"):
+            return given_tree.treeWeight
         weight = 0
-        if type(a) in [ast.Module, ast.Interactive, ast.Suite]:
-            weight = getWeight(a.body, countTokens=countTokens)
-        elif type(a) == ast.Expression:
-            weight = getWeight(a.body, countTokens=countTokens)
-        elif type(a) == ast.FunctionDef:
+        if type(given_tree) in [ast.Module, ast.Interactive, ast.Suite]:
+            weight = get_weight(given_tree.body, count_tokens=count_tokens)
+        elif type(given_tree) is ast.Expression:
+            weight = get_weight(given_tree.body, count_tokens=count_tokens)
+        elif type(given_tree) is ast.FunctionDef:
             # add 1 for function name
-            weight = 1 + getWeight(a.args, countTokens=countTokens) + \
-                     getWeight(a.body, countTokens=countTokens) + \
-                     getWeight(a.decorator_list, countTokens=countTokens) + \
-                     getWeight(a.returns, countTokens=countTokens)
-        elif type(a) == ast.ClassDef:
+            weight = 1 + get_weight(given_tree.args, count_tokens=count_tokens) + \
+                     get_weight(given_tree.body, count_tokens=count_tokens) + \
+                     get_weight(given_tree.decorator_list, count_tokens=count_tokens) + \
+                     get_weight(given_tree.returns, count_tokens=count_tokens)
+        elif type(given_tree) is ast.ClassDef:
             # add 1 for class name
-            weight = 1 + sumWeight(a.bases, countTokens=countTokens) + \
-                     sumWeight(a.keywords, countTokens=countTokens) + \
-                     getWeight(a.body, countTokens=countTokens) + \
-                     getWeight(a.decorator_list, countTokens=countTokens)
-        elif type(a) in [ast.Return, ast.Yield, ast.Attribute, ast.Starred]:
+            weight = 1 + sumWeight(given_tree.bases) + \
+                     sumWeight(given_tree.keywords) + \
+                     get_weight(given_tree.body, count_tokens=count_tokens) + \
+                     get_weight(given_tree.decorator_list, count_tokens=count_tokens)
+        elif type(given_tree) in [ast.Return, ast.Yield, ast.Attribute, ast.Starred]:
             # add 1 for action name
-            weight = 1 + getWeight(a.value, countTokens=countTokens)
-        elif type(a) == ast.Delete:  # add 1 for del
-            weight = 1 + getWeight(a.targets, countTokens=countTokens)
-        elif type(a) == ast.Assign:  # add 1 for =
-            weight = 1 + getWeight(a.targets, countTokens=countTokens) + \
-                     getWeight(a.value, countTokens=countTokens)
-        elif type(a) == ast.AugAssign:
-            weight = getWeight(a.target, countTokens=countTokens) + \
-                     getWeight(a.op, countTokens=countTokens) + \
-                     getWeight(a.value, countTokens=countTokens)
-        elif type(a) == ast.For:  # add 1 for 'for' and 1 for 'in'
-            weight = 2 + getWeight(a.target, countTokens=countTokens) + \
-                     getWeight(a.iter, countTokens=countTokens) + \
-                     getWeight(a.body, countTokens=countTokens) + \
-                     getWeight(a.orelse, countTokens=countTokens)
-        elif type(a) in [ast.While, ast.If]:
+            weight = 1 + get_weight(given_tree.value, count_tokens=count_tokens)
+        elif type(given_tree) is ast.Delete:  # add 1 for del
+            weight = 1 + get_weight(given_tree.targets, count_tokens=count_tokens)
+        elif type(given_tree) is ast.Assign:  # add 1 for =
+            weight = 1 + get_weight(given_tree.targets, count_tokens=count_tokens) + \
+                     get_weight(given_tree.value, count_tokens=count_tokens)
+        elif type(given_tree) is ast.AugAssign:
+            weight = get_weight(given_tree.target, count_tokens=count_tokens) + \
+                     get_weight(given_tree.op, count_tokens=count_tokens) + \
+                     get_weight(given_tree.value, count_tokens=count_tokens)
+        elif type(given_tree) is ast.For:  # add 1 for 'for' and 1 for 'in'
+            weight = 2 + get_weight(given_tree.target, count_tokens=count_tokens) + \
+                     get_weight(given_tree.iter, count_tokens=count_tokens) + \
+                     get_weight(given_tree.body, count_tokens=count_tokens) + \
+                     get_weight(given_tree.orelse, count_tokens=count_tokens)
+        elif type(given_tree) in [ast.While, ast.If]:
             # add 1 for while/if
-            weight = 1 + getWeight(a.test, countTokens=countTokens) + \
-                     getWeight(a.body, countTokens=countTokens)
-            if len(a.orelse) > 0:  # add 1 for else
-                weight += 1 + getWeight(a.orelse, countTokens=countTokens)
-        elif type(a) == ast.With:  # add 1 for with
-            weight = 1 + getWeight(a.items, countTokens=countTokens) + \
-                     getWeight(a.body, countTokens=countTokens)
-        elif type(a) == ast.Raise:  # add 1 for raise
-            weight = 1 + getWeight(a.exc, countTokens=countTokens) + \
-                     getWeight(a.cause, countTokens=countTokens)
-        elif type(a) == ast.Try:  # add 1 for try
-            weight = 1 + getWeight(a.body, countTokens=countTokens) + \
-                     getWeight(a.handlers, countTokens=countTokens)
-            if len(a.orelse) > 0:  # add 1 for else
-                weight += 1 + getWeight(a.orelse, countTokens=countTokens)
-            if len(a.finalbody) > 0:  # add 1 for finally
-                weight += 1 + getWeight(a.finalbody, countTokens=countTokens)
-        elif type(a) == ast.Assert:  # add 1 for assert
-            weight = 1 + getWeight(a.test, countTokens=countTokens) + \
-                     getWeight(a.msg, countTokens=countTokens)
-        elif type(a) in [ast.Import, ast.Global]:  # add 1 for function name
-            weight = 1 + getWeight(a.names, countTokens=countTokens)
-        elif type(a) == ast.ImportFrom:  # add 3 for from module import
-            weight = 3 + getWeight(a.names, countTokens=countTokens)
-        elif type(a) in [ast.Expr, ast.Index]:
-            weight = getWeight(a.value, countTokens=countTokens)
+            weight = 1 + get_weight(given_tree.test, count_tokens=count_tokens) + \
+                     get_weight(given_tree.body, count_tokens=count_tokens)
+            if len(given_tree.orelse) > 0:  # add 1 for else
+                weight += 1 + get_weight(given_tree.orelse, count_tokens=count_tokens)
+        elif type(given_tree) is ast.With:  # add 1 for with
+            weight = 1 + get_weight(given_tree.items, count_tokens=count_tokens) + \
+                     get_weight(given_tree.body, count_tokens=count_tokens)
+        elif type(given_tree) is ast.Raise:  # add 1 for raise
+            weight = 1 + get_weight(given_tree.exc, count_tokens=count_tokens) + \
+                     get_weight(given_tree.cause, count_tokens=count_tokens)
+        elif type(given_tree) is ast.Try:  # add 1 for try
+            weight = 1 + get_weight(given_tree.body, count_tokens=count_tokens) + \
+                     get_weight(given_tree.handlers, count_tokens=count_tokens)
+            if len(given_tree.orelse) > 0:  # add 1 for else
+                weight += 1 + get_weight(given_tree.orelse, count_tokens=count_tokens)
+            if len(given_tree.finalbody) > 0:  # add 1 for finally
+                weight += 1 + get_weight(given_tree.finalbody, count_tokens=count_tokens)
+        elif type(given_tree) is ast.Assert:  # add 1 for assert
+            weight = 1 + get_weight(given_tree.test, count_tokens=count_tokens) + \
+                     get_weight(given_tree.msg, count_tokens=count_tokens)
+        elif type(given_tree) in [ast.Import, ast.Global]:  # add 1 for function name
+            weight = 1 + get_weight(given_tree.names, count_tokens=count_tokens)
+        elif type(given_tree) is ast.ImportFrom:  # add 3 for from module import
+            weight = 3 + get_weight(given_tree.names, count_tokens=count_tokens)
+        elif type(given_tree) in [ast.Expr, ast.Index]:
+            weight = get_weight(given_tree.value, count_tokens=count_tokens)
             if weight == 0:
                 weight = 1
-        elif type(a) == ast.BoolOp:  # add 1 for each op
-            weight = (len(a.values) - 1) + \
-                     getWeight(a.values, countTokens=countTokens)
-        elif type(a) == ast.BinOp:  # add 1 for op
-            weight = 1 + getWeight(a.left, countTokens=countTokens) + \
-                     getWeight(a.right, countTokens=countTokens)
-        elif type(a) == ast.UnaryOp:  # add 1 for operator
-            weight = 1 + getWeight(a.operand, countTokens=countTokens)
-        elif type(a) == ast.Lambda:  # add 1 for lambda
-            weight = 1 + getWeight(a.args, countTokens=countTokens) + \
-                     getWeight(a.body, countTokens=countTokens)
-        elif type(a) == ast.IfExp:  # add 2 for if and else
-            weight = 2 + getWeight(a.test, countTokens=countTokens) + \
-                     getWeight(a.body, countTokens=countTokens) + \
-                     getWeight(a.orelse, countTokens=countTokens)
-        elif type(a) == ast.Dict:  # return 1 if empty dictionary
-            weight = 1 + getWeight(a.keys, countTokens=countTokens) + \
-                     getWeight(a.values, countTokens=countTokens)
-        elif type(a) in [ast.Set, ast.List, ast.Tuple]:
-            weight = 1 + getWeight(a.elts, countTokens=countTokens)
-        elif type(a) in [ast.ListComp, ast.SetComp, ast.GeneratorExp]:
-            weight = 1 + getWeight(a.elt, countTokens=countTokens) + \
-                     getWeight(a.generators, countTokens=countTokens)
-        elif type(a) == ast.DictComp:
-            weight = 1 + getWeight(a.key, countTokens=countTokens) + \
-                     getWeight(a.value, countTokens=countTokens) + \
-                     getWeight(a.generators, countTokens=countTokens)
-        elif type(a) == ast.Compare:
-            weight = len(a.ops) + getWeight(a.left, countTokens=countTokens) + \
-                     getWeight(a.comparators, countTokens=countTokens)
-        elif type(a) == ast.Call:
-            functionWeight = getWeight(a.func, countTokens=countTokens)
-            functionWeight = functionWeight if functionWeight > 0 else 1
-            argsWeight = getWeight(a.args, countTokens=countTokens) + \
-                         getWeight(a.keywords, countTokens=countTokens)
-            argsWeight = argsWeight if argsWeight > 0 else 1
-            weight = functionWeight + argsWeight
-        elif type(a) == ast.Subscript:
-            valueWeight = getWeight(a.value, countTokens=countTokens)
-            valueWeight = valueWeight if valueWeight > 0 else 1
-            sliceWeight = getWeight(a.slice, countTokens=countTokens)
-            sliceWeight = sliceWeight if sliceWeight > 0 else 1
-            weight = valueWeight + sliceWeight
+        elif type(given_tree) is ast.BoolOp:  # add 1 for each op
+            weight = (len(given_tree.values) - 1) + \
+                     get_weight(given_tree.values, count_tokens=count_tokens)
+        elif type(given_tree) is ast.BinOp:  # add 1 for op
+            weight = 1 + get_weight(given_tree.left, count_tokens=count_tokens) + \
+                     get_weight(given_tree.right, count_tokens=count_tokens)
+        elif type(given_tree) is ast.UnaryOp:  # add 1 for operator
+            weight = 1 + get_weight(given_tree.operand, count_tokens=count_tokens)
+        elif type(given_tree) is ast.Lambda:  # add 1 for lambda
+            weight = 1 + get_weight(given_tree.args, count_tokens=count_tokens) + \
+                     get_weight(given_tree.body, count_tokens=count_tokens)
+        elif type(given_tree) is ast.IfExp:  # add 2 for if and else
+            weight = 2 + get_weight(given_tree.test, count_tokens=count_tokens) + \
+                     get_weight(given_tree.body, count_tokens=count_tokens) + \
+                     get_weight(given_tree.orelse, count_tokens=count_tokens)
+        elif type(given_tree) is ast.Dict:  # return 1 if empty dictionary
+            weight = 1 + get_weight(given_tree.keys, count_tokens=count_tokens) + \
+                     get_weight(given_tree.values, count_tokens=count_tokens)
+        elif type(given_tree) in [ast.Set, ast.List, ast.Tuple]:
+            weight = 1 + get_weight(given_tree.elts, count_tokens=count_tokens)
+        elif type(given_tree) in [ast.ListComp, ast.SetComp, ast.GeneratorExp]:
+            weight = 1 + get_weight(given_tree.elt, count_tokens=count_tokens) + \
+                     get_weight(given_tree.generators, count_tokens=count_tokens)
+        elif type(given_tree) is ast.DictComp:
+            weight = 1 + get_weight(given_tree.key, count_tokens=count_tokens) + \
+                     get_weight(given_tree.value, count_tokens=count_tokens) + \
+                     get_weight(given_tree.generators, count_tokens=count_tokens)
+        elif type(given_tree) is ast.Compare:
+            weight = len(given_tree.ops) + get_weight(given_tree.left, count_tokens=count_tokens) + \
+                     get_weight(given_tree.comparators, count_tokens=count_tokens)
+        elif type(given_tree) is ast.Call:
+            function_weight = get_weight(given_tree.func, count_tokens=count_tokens)
+            function_weight = function_weight if function_weight > 0 else 1
+            args_weight = get_weight(given_tree.args, count_tokens=count_tokens) + \
+                          get_weight(given_tree.keywords, count_tokens=count_tokens)
+            args_weight = args_weight if args_weight > 0 else 1
+            weight = function_weight + args_weight
+        elif type(given_tree) is ast.Subscript:
+            value_weight = get_weight(given_tree.value, count_tokens=count_tokens)
+            value_weight = value_weight if value_weight > 0 else 1
+            slice_weight = get_weight(given_tree.slice, count_tokens=count_tokens)
+            slice_weight = slice_weight if slice_weight > 0 else 1
+            weight = value_weight + slice_weight
 
-        elif type(a) == ast.Slice:
-            weight = getWeight(a.lower, countTokens=countTokens) + \
-                     getWeight(a.upper, countTokens=countTokens) + \
-                     getWeight(a.step, countTokens=countTokens)
+        elif type(given_tree) is ast.Slice:
+            weight = get_weight(given_tree.lower, count_tokens=count_tokens) + \
+                     get_weight(given_tree.upper, count_tokens=count_tokens) + \
+                     get_weight(given_tree.step, count_tokens=count_tokens)
             if weight == 0:
                 weight = 1
-        elif type(a) == ast.ExtSlice:
-            weight = getWeight(a.dims, countTokens=countTokens)
+        elif type(given_tree) is ast.ExtSlice:
+            weight = get_weight(given_tree.dims, count_tokens=count_tokens)
 
-        elif type(a) == ast.comprehension:  # add 2 for for and in
+        elif type(given_tree) is ast.comprehension:  # add 2 for for and in
             # and each of the if tokens
-            weight = 2 + len(a.ifs) + \
-                     getWeight(a.target, countTokens=countTokens) + \
-                     getWeight(a.iter, countTokens=countTokens) + \
-                     getWeight(a.ifs, countTokens=countTokens)
-        elif type(a) == ast.ExceptHandler:  # add 1 for except
-            weight = 1 + getWeight(a.type, countTokens=countTokens)
+            weight = 2 + len(given_tree.ifs) + \
+                     get_weight(given_tree.target, count_tokens=count_tokens) + \
+                     get_weight(given_tree.iter, count_tokens=count_tokens) + \
+                     get_weight(given_tree.ifs, count_tokens=count_tokens)
+        elif type(given_tree) is ast.ExceptHandler:  # add 1 for except
+            weight = 1 + get_weight(given_tree.type, count_tokens=count_tokens)
             # add 1 for as (if needed)
-            weight += (1 if a.name != None else 0) + \
-                      getWeight(a.name, countTokens=countTokens)
-            weight += getWeight(a.body, countTokens=countTokens)
-        elif type(a) == ast.arguments:
-            weight = getWeight(a.args, countTokens=countTokens) + \
-                     getWeight(a.vararg, countTokens=countTokens) + \
-                     getWeight(a.kwonlyargs, countTokens=countTokens) + \
-                     getWeight(a.kw_defaults, countTokens=countTokens) + \
-                     getWeight(a.kwarg, countTokens=countTokens) + \
-                     getWeight(a.posonlyargs, countTokens=countTokens)
+            weight += (1 if given_tree.name is not None else 0) + \
+                      get_weight(given_tree.name, count_tokens=count_tokens)
+            weight += get_weight(given_tree.body, count_tokens=count_tokens)
+        elif type(given_tree) is ast.arguments:
+            weight = get_weight(given_tree.args, count_tokens=count_tokens) + \
+                     get_weight(given_tree.vararg, count_tokens=count_tokens) + \
+                     get_weight(given_tree.kwonlyargs, count_tokens=count_tokens) + \
+                     get_weight(given_tree.kw_defaults, count_tokens=count_tokens) + \
+                     get_weight(given_tree.kwarg, count_tokens=count_tokens) + \
+                     get_weight(given_tree.posonlyargs, count_tokens=count_tokens)
 
-        elif type(a) == ast.arg:
-            weight = 1 + getWeight(a.annotation, countTokens=countTokens)
-        elif type(a) == ast.keyword:  # add 1 for identifier
-            weight = 1 + getWeight(a.value, countTokens=countTokens)
-        elif type(a) == ast.alias:  # 1 for name, 1 for as, 1 for asname
-            weight = 1 + (2 if a.asname != None else 0)
-        elif type(a) == ast.withitem:
-            weight = getWeight(a.context_expr, countTokens=countTokens) + \
-                     getWeight(a.optional_vars, countTokens=countTokens)
-        elif type(a) == ast.Str:
-            if countTokens:
+        elif type(given_tree) is ast.arg:
+            weight = 1 + get_weight(given_tree.annotation, count_tokens=count_tokens)
+        elif type(given_tree) is ast.keyword:  # add 1 for identifier
+            weight = 1 + get_weight(given_tree.value, count_tokens=count_tokens)
+        elif type(given_tree) is ast.alias:  # 1 for name, 1 for as, 1 for asname
+            weight = 1 + (2 if given_tree.asname is not None else 0)
+        elif type(given_tree) is ast.withitem:
+            weight = get_weight(given_tree.context_expr, count_tokens=count_tokens) + \
+                     get_weight(given_tree.optional_vars, count_tokens=count_tokens)
+        elif type(given_tree) is ast.Str:
+            if count_tokens:
                 weight = 1
-            elif len(a.s) >= 2 and a.s[0] == "~" and a.s[-1] == "~":
+            elif len(given_tree.s) >= 2 and given_tree.s[0] == "~" and given_tree.s[-1] == "~":
                 weight = 0
             else:
                 weight = 1
-        elif type(a) in [ast.Pass, ast.Break, ast.Continue,
-                         ast.Constant, ast.Name,
-                         ]:
+        elif type(given_tree) in [ast.Pass, ast.Break, ast.Continue,
+                                  ast.Constant, ast.Name,
+                                  ]:
             weight = 1
-        elif type(a) in [ast.And, ast.Or,
-                         ast.Add, ast.Sub, ast.Mult, ast.Div, ast.Mod, ast.Pow,
-                         ast.LShift, ast.RShift, ast.BitOr, ast.BitXor,
-                         ast.BitAnd, ast.FloorDiv,
-                         ast.Invert, ast.Not, ast.UAdd, ast.USub,
-                         ast.Eq, ast.NotEq, ast.Lt, ast.LtE, ast.Gt, ast.GtE,
-                         ast.Is, ast.IsNot, ast.In, ast.NotIn,
-                         ast.Load, ast.Store, ast.Del, ast.AugLoad,
-                         ast.AugStore, ast.Param]:
+        elif type(given_tree) in [ast.And, ast.Or,
+                                  ast.Add, ast.Sub, ast.Mult, ast.Div, ast.Mod, ast.Pow,
+                                  ast.LShift, ast.RShift, ast.BitOr, ast.BitXor,
+                                  ast.BitAnd, ast.FloorDiv,
+                                  ast.Invert, ast.Not, ast.UAdd, ast.USub,
+                                  ast.Eq, ast.NotEq, ast.Lt, ast.LtE, ast.Gt, ast.GtE,
+                                  ast.Is, ast.IsNot, ast.In, ast.NotIn,
+                                  ast.Load, ast.Store, ast.Del, ast.AugLoad,
+                                  ast.AugStore, ast.Param]:
             weight = 1
         else:
-            log("diffAsts\tgetWeight\tMissing type in diffAsts: " + str(type(a)), "bug")
+            log("diffAsts\tgetWeight\tMissing type in diffAsts: " + str(type(given_tree)), "bug")
             return 1
-        setattr(a, "treeWeight", weight)
+        setattr(given_tree, "treeWeight", weight)
         return weight
 
 
-def getChanges(s, t, ignoreVariables=False):
-    changes = diff_asts(s, t)
+def get_changes(student_code_state, candidate_code_state):
+    changes = diff_asts(student_code_state, candidate_code_state)
     for change in changes:
-        change.start = s  # WARNING: should maybe have a deepcopy here? It will alias s
+        change.start = student_code_state
     return changes
 
 
-def getChangesWeight(changes, countTokens=True):
+def get_changes_weight(changes, countTokens=True):
     weight = 0
     for change in changes:
         if isinstance(change, AddVector):
-            weight += getWeight(change.newSubtree, countTokens=countTokens)
+            weight += get_weight(change.newSubtree, count_tokens=countTokens)
         elif isinstance(change, DeleteVector):
-            weight += getWeight(change.oldSubtree, countTokens=countTokens)
+            weight += get_weight(change.oldSubtree, count_tokens=countTokens)
         elif isinstance(change, SwapVector):
             weight += 2  # only changing the positions
         elif isinstance(change, MoveVector):
             weight += 1  # only moving one item
         elif isinstance(change, SubVector):
-            weight += abs(getWeight(change.newSubtree, countTokens=countTokens) - \
-                          getWeight(change.oldSubtree, countTokens=countTokens))
+            weight += abs(get_weight(change.newSubtree, count_tokens=countTokens) - \
+                          get_weight(change.oldSubtree, count_tokens=countTokens))
         elif isinstance(change, SuperVector):
-            weight += abs(getWeight(change.oldSubtree, countTokens=countTokens) - \
-                          getWeight(change.newSubtree, countTokens=countTokens))
+            weight += abs(get_weight(change.oldSubtree, count_tokens=countTokens) - \
+                          get_weight(change.newSubtree, count_tokens=countTokens))
         else:
-            weight += max(getWeight(change.oldSubtree, countTokens=countTokens),
-                          getWeight(change.newSubtree, countTokens=countTokens))
+            weight += max(get_weight(change.oldSubtree, count_tokens=countTokens),
+                          get_weight(change.newSubtree, count_tokens=countTokens))
     return weight
 
 
-def distance(student_state: CodeState, candidate: State, givenChanges=None, forceReweight=False, ignoreVariables=False):
+def distance(student_state: State, candidate: State, given_changes=None, forceReweight=False,
+             ignoreVariables=False):
     """A method for comparing solution states, which returns a number between
         0 (identical solutions) and 1 (completely different)
   returns a tuple of (distance, changes)
   """
-    # First weigh the trees, to propogate metadata
-    if student_state == None or candidate == None:
+    # First weigh the trees, to propagate metadata
+    if student_state is None or candidate is None:
         return 1  # can't compare to a None state
     if forceReweight:
-        baseWeight = max(getWeight(student_state.tree), getWeight(candidate.tree))
+        base_weight = max(get_weight(student_state.tree), get_weight(candidate.tree))
     else:
         if not hasattr(student_state, "treeWeight"):
-            student_state.treeWeight = getWeight(student_state.tree)
+            student_state.treeWeight = get_weight(student_state.tree)
         if not hasattr(candidate, "treeWeight"):
-            candidate.treeWeight = getWeight(candidate.tree)
-        baseWeight = max(student_state.treeWeight, candidate.treeWeight)
+            candidate.treeWeight = get_weight(candidate.tree)
+        base_weight = max(student_state.treeWeight, candidate.treeWeight)
 
-    if givenChanges != None:
-        changes = givenChanges
+    # Check if equal
+    if student_state.tree is candidate.tree:
+        return 0, []
+    if given_changes is not None:
+        changes = given_changes
     else:
-        changes = getChanges(student_state.tree, candidate.tree, ignoreVariables=ignoreVariables)
+        changes = get_changes(student_state.tree, candidate.tree)
 
-    changeWeight = getChangesWeight(changes)
-    return (1.0 * changeWeight / baseWeight, changes)
+    change_weight = get_changes_weight(changes)
+    return 1.0 * change_weight / base_weight, changes

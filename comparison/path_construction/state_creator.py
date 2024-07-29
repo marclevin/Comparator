@@ -30,19 +30,20 @@ def filterChanges(combinations, changes, oldStart, newStart):
 
 
 # TODO: Change this to use the updated system.
-def desirability(s, n, g):
+def desirability(student_state: CodeState, candidate_state: IntermediateState, goal_state):
     """Scores the state n based on the four desirable properties. Returns a number
         between 0 (not desirable) and 1 (very desirable)."""
     # Original metric: 2 - 4 - 1 - 2
     score = 0
+    d = 0
     # First: has the state been visited before?
-    a = int(n.count > 0)
-    n.timesVisted = a
+    a = int(candidate_state.count > 0)
+    candidate_state.timesVisted = a
     score += 4 * a
 
     # Second: minimize the distance from current to next
-    b = 1 - distance(s, n)[0]
-    n.nearCurrent = b
+    b = 1 - distance(student_state, candidate_state)[0]
+    candidate_state.distance_to_original = b
     score += 2 * b
 
     # Third: maximize the performance on test cases
@@ -51,12 +52,10 @@ def desirability(s, n, g):
     # score += 1 * c
 
     # Forth: minimize the distance from the next state to the final state
-    # if n != g and not hasattr(n, "goalDist"):
-    #	n.goalDist = distance(n, g)[0]
-    # goalDist = n.goalDist if n != g else 0
-    # d = 1 - goalDist
-    # n.nearGoal = d
-    # score += 2 * d
+    if student_state is not goal_state:
+        d = 1 - distance(student_state, goal_state)[0]
+    candidate_state.distance_to_goal = d
+    score += 2 * d
 
     score /= 7.0
     return score
@@ -64,7 +63,7 @@ def desirability(s, n, g):
 
 def mapDifferences(start, end):
     d = {"start": {}}
-    allChanges = getChanges(start, end)
+    allChanges = get_changes(start, end)
     s = deepcopy(start)
     for change in allChanges:
         change.update(s, d)
@@ -120,7 +119,7 @@ def apply_change_vectors(student_state: CodeState, changes: List[ChangeVector]) 
     tup = update_change_vectors(changes, changes[0].start, student_state.tree)
     changes, newState = tup
     inter_state = IntermediateState(tree=newState)
-    inter_state.code = printFunction(inter_state.tree)
+    inter_state.code = print_function(inter_state.tree)
     return inter_state
 
 
@@ -213,7 +212,7 @@ def generateHelperDistributions(s, g, goals, states):
     for map in allMaps:
         tmpTree = deepcopy(g.tree)
         tmpTree = applyHelperMap(tmpTree, map)
-        tmpCode = printFunction(tmpTree)
+        tmpCode = print_function(tmpTree)
 
         matches = list(filter(lambda x: x.code == tmpCode, goals))
         if len(matches) > 0:
@@ -229,7 +228,7 @@ def generateHelperDistributions(s, g, goals, states):
             if tmpG.score != 1:
                 log("generateNextStates\tgenerateHelperDistributions\tBad helper remapping: " + str(map), "bug")
                 log(s.code, "bug")
-                log(printFunction(s.orig_tree), "bug")
+                log(print_function(s.orig_tree), "bug")
                 log(g.code, "bug")
                 log(tmpCode, "bug")
             allFuns.append(tmpG)
@@ -334,7 +333,7 @@ def generateVariableDistributions(s, g, goals, states):
     for map in allMaps:
         tmpTree = deepcopy(g.tree)
         tmpTree = applyVariableMap(tmpTree, map)
-        tmpCode = printFunction(tmpTree)
+        tmpCode = print_function(tmpTree)
 
         matches = list(filter(lambda x: x.code == tmpCode, goals))
         if len(matches) > 0:
@@ -350,7 +349,7 @@ def generateVariableDistributions(s, g, goals, states):
             if tmpG.score != 1:
                 log("generateNextStates\tgenerateVariablesDistributions\tBad variable remapping: " + str(map), "bug")
                 log(s.code, "bug")
-                log(printFunction(s.orig_tree), "bug")
+                log(print_function(s.orig_tree), "bug")
                 log(g.code, "bug")
                 log(tmpCode, "bug")
             allFuns.append(tmpG)
@@ -403,7 +402,7 @@ def optimize_goal(s: CodeState, changes: list[ChangeVector]):
                 if new_state is None:  # shouldn't happen
                     log("generateNextStates\toptimizeGoal\tBroken edit: " + str(new_changes), "bug")
                     continue
-                new_distance, _ = distance(s, new_state, givenChanges=new_changes)
+                new_distance, _ = distance(s, new_state, given_changes=new_changes)
 
                 all_changes.append((new_changes, new_state))  # just in case we need the final goal
 
@@ -421,12 +420,12 @@ def optimize_goal(s: CodeState, changes: list[ChangeVector]):
 def fastOptimizeGoal(s, changes, states, goals, includeSmallSets=False):
     # Only try out one, two, all but two, all but one
     fastChanges = fastPowerSet(changes, includeSmallSets)
-    currentGoal, currentDiff, currentEdits = s.goal, s.goalDist, changes
+    currentGoal, currentDiff, currentEdits = s.goal, s.goal_dist, changes
     for changeSet in fastChanges:
         if isStrictSubset(currentEdits, changeSet):    continue
         newState = apply_change_vectors(s, changeSet, states, goals)
         if newState == None:    continue
-        newDistance, _ = distance(s, newState, givenChanges=changeSet)
+        newDistance, _ = distance(s, newState, given_changes=changeSet)
         if newDistance <= currentDiff and newState.score == 1:
             # Just take the first one we find
             currentGoal, currentDiff, currentEdits = newState, newDistance, changeSet
@@ -434,7 +433,7 @@ def fastOptimizeGoal(s, changes, states, goals, includeSmallSets=False):
     if s.goal.code == currentGoal.code:
         return None
     else:
-        s.goal, s.goalDist = currentGoal, currentDiff
+        s.goal, s.goal_dist = currentGoal, currentDiff
         return currentEdits
 
 
@@ -464,11 +463,11 @@ def is_valid_next_state(student_state, new_state, goal_state):
     # so filter with diff first
     # Second: is diff(n, g) < diff(s, g)?
 
-    # if n.score != 1 and n != g:
-    # 	n.goal = g
-    # 	n.goalDist, _ = distance(n, g)
-    # 	if n.goalDist >= s.goalDist:
-    # 		return False
+    # We check if the distance is less than the current distance to the goal
+    # If it's not, we don't want to use it
+    new_distance, _ = distance(student_state, new_state)
+    if new_distance > student_state.distance_to_goal:
+        return False
 
     # If we pass all the checks, it's a valid state
     return True
@@ -478,7 +477,6 @@ def is_valid_next_state(student_state, new_state, goal_state):
 def generate_states_in_path(student_state: CodeState, valid_combinations: list[tuple[list[ChangeVector], CodeState]]):
     # Now we need to find the desirability of each state and take the best one
     # We'll keep cycling here to find the whole path of states 'til we get to the correct solution
-    original_state = student_state
     best_score, best_state = -1, None
     ideal_changes = None
     for (change_vector, candidate_state) in valid_combinations:
@@ -507,7 +505,8 @@ def get_all_combinations(student_state: CodeState, changes: list[ChangeVector]):
 
 def get_next_state(student_state: CodeState):
     """Generate the best next state for s, so that it will produce a desirable hint"""
-    (student_state.goalDist, changes) = distance(student_state, student_state.goal)  # now get the actual changes
+    (student_state.distance_to_goal, changes) = distance(student_state,
+                                                         student_state.goal)  # now get the actual changes
     all_combinations = get_all_combinations(student_state, changes)
     student_state.changesToGoal = len(changes)
 

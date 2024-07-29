@@ -89,7 +89,25 @@ def generative_ai_hint(student_solution, correct_solution, problem_description):
     problem_description = problem_description.read()
     edit = compare_internal(student_solution, correct_solution)
     click.echo(click.style(text='Generating a hint from the AI...', fg=fg_ast_hint))
-    short_hint, long_hint = generate_ai_hint(problem_description, student_solution, edit)
+    short_hint = generate_ai_hint(problem_description, student_solution, edit, correct_solution)
+    click.echo(click.style(text="Your hint is:", fg=fg_ast_hint))
+    click.echo(click.style(short_hint, fg='green'))
+
+
+def test_generative_ai_hint():
+    student_solution = open(
+        'C:\\Users\\marcl\\OneDrive\\Desktop\\University\\AST-Hints\\Comparator\\problems/p1/student_code.py', 'r')
+    correct_solution = open(
+        'C:\\Users\\marcl\\OneDrive\\Desktop\\University\\AST-Hints\\Comparator\\problems/p1/goal_code.py', 'r')
+    problem_description = open(
+        'C:\\Users\\marcl\\OneDrive\\Desktop\\University\\AST-Hints\\Comparator\\problems/p1/description.txt', 'r')
+
+    student_solution = student_solution.read()
+    correct_solution = correct_solution.read()
+    problem_description = problem_description.read()
+    edit = compare_internal(student_solution, correct_solution)
+    click.echo(click.style(text='Generating a hint from the AI...', fg=fg_ast_hint))
+    short_hint, long_hint = generate_ai_hint(problem_description, student_solution, edit, correct_solution)
     click.echo(click.style(text="Your hint is:", fg=fg_ast_hint))
     click.echo(click.style(short_hint, fg='green'))
     click.echo(click.style(long_hint, fg='green'))
