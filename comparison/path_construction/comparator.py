@@ -229,9 +229,9 @@ def diff_asts(ast_x, ast_y):
     """Find all change vectors between x and y"""
     if isinstance(ast_x, ast.AST) and isinstance(ast_y, ast.AST):
         if type(ast_x) is not type(ast_y):  # different node types
-            if occursIn(ast_x, ast_y):
+            if occurs_in(ast_x, ast_y):
                 return [SubVector([], ast_x, ast_y)]
-            elif occursIn(ast_y, ast_x):
+            elif occurs_in(ast_y, ast_x):
                 return [SuperVector([], ast_x, ast_y)]
             else:
                 return [ChangeVector([], ast_x, ast_y)]

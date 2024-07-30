@@ -234,26 +234,22 @@ class TestComparator(unittest.TestCase):
         self.assertIn("Move(2, 0)", result)
 
     # ast_diff tests
-    @patch('comparison.path_construction.comparator.occursIn')
     @patch('comparison.path_construction.comparator.built_in_name')
-    def test_diff_asts_identical(self, mock_built_in_name, mock_occurs_in):
+    def test_diff_asts_identical(self, mock_built_in_name):
         ast_x = ast.parse("a = 1")
         ast_y = ast.parse("a = 1")
         result = diff_asts(ast_x, ast_y)
         self.assertEqual(result, [])
 
-    @patch('comparison.path_construction.comparator.occursIn')
     @patch('comparison.path_construction.comparator.built_in_name')
-    def test_diff_asts_different_node_types(self, mock_built_in_name, mock_occurs_in):
+    def test_diff_asts_different_node_types(self, mock_built_in_name):
         ast_x = ast.parse("a = 1")
         ast_y = ast.parse("a = 'string'")
-        mock_occurs_in.return_value = False
         result = diff_asts(ast_x, ast_y)
         self.assertTrue(any(isinstance(change, ChangeVector) for change in result))
 
-    @patch('comparison.path_construction.comparator.occursIn')
     @patch('comparison.path_construction.comparator.built_in_name')
-    def test_diff_asts_different_field_values(self, mock_built_in_name, mock_occursIn):
+    def test_diff_asts_different_field_values(self, mock_built_in_name):
         ast_x = ast.parse("a = 1")
         ast_y = ast.parse("a = 2")
         result = diff_asts(ast_x, ast_y)

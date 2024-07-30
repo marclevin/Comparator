@@ -237,7 +237,7 @@ def replaceAst(a, old, new, shouldReplace):
     elif compareASTs(a, old, checkEquality=True) == 0:
         shouldReplace[0] = False
         return new
-    return applyToChildren(a, lambda x: replaceAst(x, old, new, shouldReplace))
+    return apply_to_children(a, lambda x: replaceAst(x, old, new, shouldReplace))
 
 
 def mapHelper(a, helper, idNum, imports):
@@ -257,7 +257,7 @@ def mapHelper(a, helper, idNum, imports):
             body[i] = mapHelper(body[i], helper, idNum, imports)  # deal with blocks first
         # While we still need to replace a function being called
         helperCount = 0
-        while countVariables(body[i], helper.name) > helperCount:
+        while count_variables(body[i], helper.name) > helperCount:
             callExpression = findHelperFunction(body[i], helper.name, [helperCount])
             if callExpression == None:
                 break
@@ -278,7 +278,7 @@ def mapHelper(a, helper, idNum, imports):
                 arg = methodArgs.args[j]
                 value = callExpression.args[j]
                 # If it only occurs once, and in the return statement..
-                if countVariables(methodLines, arg.arg) == 1 and countVariables(methodLines[-1], arg.arg) == 1:
+                if count_variables(methodLines, arg.arg) == 1 and count_variables(methodLines[-1], arg.arg) == 1:
                     var = ast.Name(arg.arg, ast.Load())
                     transferMetaData(arg, var)
                     methodLines[-1] = replaceAst(methodLines[-1], var, value, [True])
@@ -298,7 +298,7 @@ def mapHelper(a, helper, idNum, imports):
                 continue
 
             # Finally, carry over the final value into the correct position
-            if countOccurances(helper, ast.Return) == 1:
+            if count_occurrences(helper, ast.Return) == 1:
                 returnLine = [replaceAst(body[i], callExpression, methodLines[-1].value, [True])]
                 methodLines.pop(-1)
             else:
@@ -347,7 +347,7 @@ def mapVariable(a, varId, assn):
                     for elt in target.elts:
                         if type(elt) == ast.Name and elt.id == varId:
                             break
-        if countVariables(line, varId) > 0:
+        if count_variables(line, varId) > 0:
             a.body[i:i + 1] = [deepcopy(assn), line]
             break
     return a
@@ -367,8 +367,8 @@ def helperFolding(a, mainFun, imports):
             if item.name != mainFun:
                 # We only want non-recursive functions that have a single return which occurs at the end
                 # Also, we don't want any functions with parameters that are changed during the function
-                returnOccurs = countOccurances(item, ast.Return)
-                if countVariables(item, item.name) == 0 and returnOccurs <= 1 and type(item.body[-1]) == ast.Return:
+                returnOccurs = count_occurrences(item, ast.Return)
+                if count_variables(item, item.name) == 0 and returnOccurs <= 1 and type(item.body[-1]) == ast.Return:
                     allArgs = []
                     for arg in item.args.args:
                         allArgs.append(arg.arg)
@@ -393,10 +393,10 @@ def helperFolding(a, mainFun, imports):
                             used = False
                             for j in range(len(body)):
                                 if i != j and type(body[j]) == ast.FunctionDef:
-                                    if countVariables(body[j], item.name) > 0:
+                                    if count_variables(body[j], item.name) > 0:
                                         used = True
                                     mapHelper(body[j], item, globalCounter, imports)
-                                    if countVariables(body[j], item.name) > 0:
+                                    if count_variables(body[j], item.name) > 0:
                                         gone = False
                             if used and gone:
                                 body.pop(i)
@@ -408,12 +408,12 @@ def helperFolding(a, mainFun, imports):
                     for j in range(i + 1, len(body)):
                         line = body[j]
                         if type(line) == ast.FunctionDef:
-                            if countOccurances(line, ast.Global) > 0:  # TODO: improve this
+                            if count_occurrences(line, ast.Global) > 0:  # TODO: improve this
                                 break
                             if item.targets[0].id in getAllAssignedVarIds(line):
                                 break
                         else:  # if in scope
-                            if countVariables(line, item.targets[0].id) > 0:
+                            if count_variables(line, item.targets[0].id) > 0:
                                 break
                     else:
                         # Variable never appears again- we can map it!
@@ -566,7 +566,7 @@ def simplify(a):
         return simplify(assignVal)
     elif type(a) == ast.Compare and len(a.ops) > 1:
         return simplify(simplify_multicomp(a))
-    return applyToChildren(a, lambda x: simplify(x))
+    return apply_to_children(a, lambda x: simplify(x))
 
 
 def propogateMetadata(a, argTypes, variableMap, idNum):
@@ -706,7 +706,7 @@ def propogateMetadata(a, argTypes, variableMap, idNum):
             if key not in bodyMap or bodyMap[key] != variableMap[key] or \
                     key not in orelseMap or orelseMap[key] != variableMap[key]:
                 variableMap[key] = (None, variableMap[key][1])
-        if countOccurances(a.body, ast.Break) == 0:  # We will definitely enter the else!
+        if count_occurrences(a.body, ast.Break) == 0:  # We will definitely enter the else!
             for key in orelseMap:
                 # If we KNOW it will be this type
                 if key not in bodyMap or bodyMap[key] == orelseMap[key]:
@@ -813,7 +813,7 @@ def propogateMetadata(a, argTypes, variableMap, idNum):
         return ast.Load()
     elif type(a) == ast.AugStore:
         return ast.Store()
-    return applyToChildren(a, lambda x: propogateMetadata(x, argTypes, variableMap, idNum))
+    return apply_to_children(a, lambda x: propogateMetadata(x, argTypes, variableMap, idNum))
 
 
 ### SIMPLIFYING FUNCTIONS ###
@@ -1127,7 +1127,7 @@ def constantFolding(a):
                 (a.func.id not in ["range", "raw_input", "input", "open", "randint", "random", "slice"]):
             try:
                 # Used to say apply, we're guessing.
-                result = applyToChildren(eval(a.func.id), tmpArgs)
+                result = apply_to_children(eval(a.func.id), tmpArgs)
                 transferMetaData(a, astFormat(result))
                 return result
             except:
@@ -1170,7 +1170,7 @@ def constantFolding(a):
     elif t == ast.Name:
         return a
     else:  # All statements, ast.Lambda, ast.Dict, ast.Set, ast.Repr, ast.Attribute, ast.Subscript, etc.
-        return applyToChildren(a, applyTransferLambda)
+        return apply_to_children(a, applyTransferLambda)
 
 
 def isMutatingFunction(a):
@@ -1250,7 +1250,7 @@ def addPropTag(a, globalId):
     a.propagatedVariable = True
     if hasattr(a, "global_id"):
         a.variableGlobalId = globalId
-    return applyToChildren(a, lambda x: addPropTag(x, globalId))
+    return apply_to_children(a, lambda x: addPropTag(x, globalId))
 
 
 def propagateValues(a, liveVars):
@@ -1265,7 +1265,7 @@ def propagateValues(a, liveVars):
             val.loadedVariable = True
             if hasattr(a, "global_id"):
                 val.variableGlobalId = a.global_id
-            return applyToChildren(val, lambda x: addPropTag(x, a.global_id))
+            return apply_to_children(val, lambda x: addPropTag(x, a.global_id))
         else:
             return a
     elif type(a) == ast.Call:
@@ -1294,7 +1294,7 @@ def propagateValues(a, liveVars):
                 eventualType(liveVars[a.value.id]) in [int, float, complex, bytes, bool, type(None)]:
             # Don't move for the same reason as above
             return a
-    return applyToChildren(a, lambda x: propagateValues(x, liveVars))
+    return apply_to_children(a, lambda x: propagateValues(x, liveVars))
 
 
 def hasMutatingFunction(a):
@@ -1639,7 +1639,7 @@ def deadCodeRemoval(a, liveVars=None, keepPrints=True, inLoop=False):
             elif t == ast.For:
                 # If there is no use of break, there's no reason to use else with the loop,
                 # so move the lines outside and go over them separately
-                if len(stmt.orelse) > 0 and countOccurances(stmt, ast.Break) == 0:
+                if len(stmt.orelse) > 0 and count_occurrences(stmt, ast.Break) == 0:
                     lines = stmt.orelse
                     stmt.orelse = []
                     a[i:i + 1] = [stmt] + lines
@@ -1699,7 +1699,7 @@ def deadCodeRemoval(a, liveVars=None, keepPrints=True, inLoop=False):
             elif t == ast.While:
                 # If there is no use of break, there's no reason to use else with the loop,
                 # so move the lines outside and go over them separately
-                if len(stmt.orelse) > 0 and countOccurances(stmt, ast.Break) == 0:
+                if len(stmt.orelse) > 0 and count_occurrences(stmt, ast.Break) == 0:
                     lines = stmt.orelse
                     stmt.orelse = []
                     a[i:i + 1] = [stmt] + lines
@@ -2034,7 +2034,7 @@ def orderCommutativeOperations(a):
         return a
     # If branches can be commutative as long as their tests are disjoint
     if type(a) == ast.If:
-        a = applyToChildren(a, orderCommutativeOperations)
+        a = apply_to_children(a, orderCommutativeOperations)
         # If the else is (strictly) shorter than the body, switch them
         if len(a.orelse) != 0 and len(a.body) > len(a.orelse):
             newTest = ast.UnaryOp(ast.Not(addedNotOp=True), a.test)
@@ -2215,7 +2215,7 @@ def orderCommutativeOperations(a):
                 if not crashable:
                     a.args = sorted(a.args, key=functools.cmp_to_key(compareASTs))
                 return a
-    return applyToChildren(a, orderCommutativeOperations)
+    return apply_to_children(a, orderCommutativeOperations)
 
 
 def deMorganize(a):
@@ -2263,7 +2263,7 @@ def deMorganize(a):
             else:
                 log("Unknown NameConstant: " + str(oper.value), "bug")
 
-    return applyToChildren(a, deMorganize)
+    return apply_to_children(a, deMorganize)
 
 
 ##### CLEANUP FUNCTIONS #####
@@ -2298,7 +2298,7 @@ def cleanupEquals(a):
         else:
             return a
     else:
-        return applyToChildren(a, cleanupEquals)
+        return apply_to_children(a, cleanupEquals)
 
 
 def cleanupBoolOps(a):
@@ -2340,7 +2340,7 @@ def cleanupBoolOps(a):
             i += 1
         ### If reduced to one item, just return that item
         return a.values[0] if (len(a.values) == 1) else a
-    return applyToChildren(a, cleanupBoolOps)
+    return apply_to_children(a, cleanupBoolOps)
 
 
 def cleanupRanges(a):
@@ -2358,7 +2358,7 @@ def cleanupRanges(a):
                     # The start defaults to 0!
                     if type(a.args[0]) == ast.Num and a.args[0].n == 0:
                         a.args = a.args[1:]
-    return applyToChildren(a, cleanupRanges)
+    return apply_to_children(a, cleanupRanges)
 
 
 def cleanupSlices(a):
@@ -2378,7 +2378,7 @@ def cleanupSlices(a):
             # Step defaults to 1
             if a.slice.step != None and type(a.slice.step) == ast.Num and a.slice.step.n == 1:
                 a.slice.step = None
-    return applyToChildren(a, cleanupSlices)
+    return apply_to_children(a, cleanupSlices)
 
 
 def cleanupTypes(a):
@@ -2412,7 +2412,7 @@ def cleanupTypes(a):
                     (funName == "bool" and argType == bool) or \
                     (funName == "str" and argType == str):
                 return a.args[0]
-    return applyToChildren(a, cleanupTypes)
+    return apply_to_children(a, cleanupTypes)
 
 
 def turnPositive(a):
@@ -2543,7 +2543,7 @@ def cleanupNegations(a):
                 (a.args[0].left, a.args[0].right) = (a.args[0].right, a.args[0].left)
         return a
     else:
-        return applyToChildren(a, cleanupNegations)
+        return apply_to_children(a, cleanupNegations)
 
 
 ### CONDITIONAL TRANSFORMATIONS ###
@@ -2572,7 +2572,7 @@ def combineConditionals(a):
                 a.orelse = []
         return a
     else:
-        return applyToChildren(a, combineConditionals)
+        return apply_to_children(a, combineConditionals)
 
 
 def staticVars(l, vars):

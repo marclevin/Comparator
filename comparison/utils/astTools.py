@@ -9,6 +9,8 @@ from comparison.utils.tools import *
 def cmp(a, b):
     if type(a) is type(b) is complex:
         return (a.real > b.real) - (a.real < b.real)
+    if type(a) is not type(b):
+        return (str(type(a)) > str(type(b))) - (str(type(a)) < str(type(b)))
     return (a > b) - (a < b)
 
 
@@ -59,11 +61,6 @@ def imported_name(id, importList):
     return False
 
 
-def isConstant(x):
-    """Determine whether the provided AST is a constant"""
-    return (type(x) in [ast.Num, ast.Str, ast.Bytes, ast.NameConstant])
-
-
 def isIterableType(t):
     """Can the given type be iterated over"""
     return t in [dict, list, set, str, bytes, tuple]
@@ -71,12 +68,14 @@ def isIterableType(t):
 
 def isStatement(a):
     """Determine whether the given node is a statement (vs an expression)"""
-    return type(a) in [ast.Module, ast.Interactive, ast.Expression, ast.Suite,
-                       ast.FunctionDef, ast.ClassDef, ast.Return, ast.Delete,
-                       ast.Assign, ast.AugAssign, ast.For, ast.While,
-                       ast.If, ast.With, ast.Raise, ast.Try,
-                       ast.Assert, ast.Import, ast.ImportFrom, ast.Global,
-                       ast.Expr, ast.Pass, ast.Break, ast.Continue]
+    return type(a) in [
+        ast.Module, ast.Interactive, ast.Expression, ast.Suite,
+        ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Return,
+        ast.Delete, ast.Assign, ast.AugAssign, ast.AnnAssign, ast.For,
+        ast.AsyncFor, ast.While, ast.If, ast.With, ast.AsyncWith, ast.Raise,
+        ast.Try, ast.Assert, ast.Import, ast.ImportFrom, ast.Global,
+        ast.Nonlocal, ast.Expr, ast.Pass, ast.Break, ast.Continue, ast.Match
+    ]
 
 
 def codeLength(a):
@@ -86,75 +85,67 @@ def codeLength(a):
     return len(print_function(a))
 
 
-def applyToChildren(a, f):
-    """Apply the given function to all the children of a"""
-    if a == None:
-        return a
-    for field in a._fields:
-        if hasattr(a, field):
-            child = getattr(a, field)
-        else:
+def apply_to_children(node, func):
+    """Apply the given function to all the children of a node"""
+    if node is None:
+        return node
+    for field_name in node.__getattribute__("_fields"):
+        if not hasattr(node, field_name):
             continue
-        if type(child) is list:
-            i = 0
-            while i < len(child):
-                temp = f(child[i])
-                if type(temp) == list:
-                    child = child[:i] + temp + child[i + 1:]
-                    i += len(temp)
+        child_node = getattr(node, field_name)
+        if isinstance(child_node, list):
+            new_child_list = []
+            for item in child_node:
+                new_child = func(item)
+                if isinstance(new_child, list):
+                    new_child_list.extend(new_child)
                 else:
-                    child[i] = temp
-                    i += 1
+                    new_child_list.append(new_child)
+            setattr(node, field_name, new_child_list)
         else:
-            child = f(child)
-        setattr(a, field, child)
-    return a
+            setattr(node, field_name, func(child_node))
+    return node
 
 
-def occursIn(sub, super):
+def occurs_in(sub, super):
     """Does the first AST occur as a subtree of the second?"""
-    superStatementTypes = [ast.Module, ast.Interactive, ast.Suite,
-                           ast.FunctionDef, ast.ClassDef, ast.For,
-                           ast.While, ast.If, ast.With, ast.Try,
-                           ast.ExceptHandler]
-    if (not isinstance(super, ast.AST)):
+    if not isinstance(super, ast.AST):
         return False
-    if type(sub) == type(super) and compareASTs(sub, super, checkEquality=True) == 0:
+    if isinstance(sub, ast.Module) and isinstance(super, ast.Module):
+        return any(occurs_in(sub_node, super) for sub_node in sub.body)
+    if type(sub) is type(super) and compareASTs(sub, super, checkEquality=True) == 0:
         return True
     # we know that a statement can never occur in an expression
     # (or in a non-statement-holding statement), so cut the search off now to save time.
-    if isStatement(sub) and type(super) not in superStatementTypes:
+    if isStatement(sub) and not isStatement(super):
         return False
-    for child in ast.iter_child_nodes(super):
-        if occursIn(sub, child):
-            return True
-    return False
+    return any(occurs_in(sub, child) for child in ast.iter_child_nodes(super))
 
 
-def countOccurances(a, value):
+def count_occurrences(node, value):
     """How many instances of this node type appear in the AST?"""
-    if type(a) == list:
-        return sum([countOccurances(x, value) for x in a])
-    if not isinstance(a, ast.AST):
+    if type(node) is list:
+        return sum([count_occurrences(x, value) for x in node])
+    if not isinstance(node, ast.AST):
         return 0
 
     count = 0
-    for node in ast.walk(a):
+    for node in ast.walk(node):
         if isinstance(node, value):
             count += 1
     return count
 
 
-def countVariables(a, id):
+def count_variables(node, var_id):
     """Count the number of times the given variable appears in the AST"""
-    if type(a) == list:
-        return sum([countVariables(x, id) for x in a])
-    if not isinstance(a, ast.AST):
+    if type(node) is list:
+        return sum([count_variables(x, var_id) for x in node])
+    if not isinstance(node, ast.AST):
         return 0
 
     count = 0
-    for node in ast.walk(a):
-        if type(node) == ast.Name and node.id == id:
+    for node in ast.walk(node):
+        if type(node) is ast.Name and node.id == var_id:
             count += 1
     return count
 
@@ -1391,7 +1382,7 @@ def applyVariableMap(a, variableMap):
     elif type(a) in [ast.FunctionDef, ast.ClassDef]:
         if a.name in variableMap:
             a.name = variableMap[a.name]
-    return applyToChildren(a, lambda x: applyVariableMap(x, variableMap))
+    return apply_to_children(a, lambda x: applyVariableMap(x, variableMap))
 
 
 def applyHelperMap(a, helperMap):
@@ -1403,7 +1394,7 @@ def applyHelperMap(a, helperMap):
     elif type(a) == ast.FunctionDef:
         if a.name in helperMap:
             a.name = helperMap[a.name]
-    return applyToChildren(a, lambda x: applyHelperMap(x, helperMap))
+    return apply_to_children(a, lambda x: applyHelperMap(x, helperMap))
 
 
 def astFormat(x, gid=None):

@@ -1097,7 +1097,7 @@ def reduceToOneToken(oldVal, newVal, typeVector):
                 ]
         elif isSubvector:
             for i in range(len(newVal.body)):
-                if occursIn(oldVal, newVal.body[i]):
+                if occurs_in(oldVal, newVal.body[i]):
                     tmpBody = formatStatement(oldVal)
                     break
         newVal.body = tmpBody
@@ -1106,7 +1106,7 @@ def reduceToOneToken(oldVal, newVal, typeVector):
         if keepFirst:
             tmpBody = reduceToOneToken(oldVal.body, newVal.body, None)
         elif isSubvector:
-            if occursIn(oldVal, newVal.body):
+            if occurs_in(oldVal, newVal.body):
                 tmpBody = oldVal
         newVal.body = tmpBody
     elif type(newVal) in [ast.FunctionDef, ast.ClassDef]:
@@ -1126,12 +1126,12 @@ def reduceToOneToken(oldVal, newVal, typeVector):
                 ]
         elif isSubvector:
             for i in range(len(newVal.body)):
-                if occursIn(oldVal, newVal.body[i]):
+                if occurs_in(oldVal, newVal.body[i]):
                     tmpBody = formatStatement(oldVal)
                     break
             else:
                 for i in range(len(newVal.decorator_list)):
-                    if occursIn(oldVal, newVal.decorator_list[i]):
+                    if occurs_in(oldVal, newVal.decorator_list[i]):
                         tmpDecorators = formatStatement(oldVal)
                         break
         newVal.body = tmpBody
@@ -1142,7 +1142,7 @@ def reduceToOneToken(oldVal, newVal, typeVector):
         if keepFirst:
             tmpValue = reduceToOneToken(oldVal.value, newVal.value, None)
         elif isSubvector:
-            if occursIn(oldVal, newVal.value):
+            if occurs_in(oldVal, newVal.value):
                 tmpValue = oldVal
         newVal.value = tmpValue
     elif type(newVal) == ast.Delete:
@@ -1154,7 +1154,7 @@ def reduceToOneToken(oldVal, newVal, typeVector):
                 ]
         elif isSubvector:
             for i in range(len(newVal.targets)):
-                if occursIn(oldVal, newVal.targets[i]):
+                if occurs_in(oldVal, newVal.targets[i]):
                     tmpTargets = [oldVal]
                     break
         newVal.targets = tmpTargets
@@ -1164,7 +1164,7 @@ def reduceToOneToken(oldVal, newVal, typeVector):
         if keepFirst:
             tmpValue = reduceToOneToken(oldVal.value, newVal.value, None)
         elif isSubvector:
-            if occursIn(oldVal, newVal.value):
+            if occurs_in(oldVal, newVal.value):
                 tmpValue = oldVal
         newVal.value = tmpValue
     elif type(newVal) == ast.For:
@@ -1175,16 +1175,16 @@ def reduceToOneToken(oldVal, newVal, typeVector):
         if keepFirst:
             tmpIter = reduceToOneToken(oldVal.iter, newVal.iter, None)
         elif isSubvector:
-            if occursIn(oldVal, newVal.iter):
+            if occurs_in(oldVal, newVal.iter):
                 tmpIter = oldVal
             else:
                 for i in range(len(newVal.body)):
-                    if occursIn(oldVal, newVal.body[i]):
+                    if occurs_in(oldVal, newVal.body[i]):
                         tmpBody = formatStatement(oldVal)
                         break
                 else:
                     for i in range(len(newVal.orelse)):
-                        if occursIn(oldVal, newVal.orelse[i]):
+                        if occurs_in(oldVal, newVal.orelse[i]):
                             tmpOrelse = formatStatement(oldVal)
                             break
         newVal.iter = tmpIter
@@ -1197,16 +1197,16 @@ def reduceToOneToken(oldVal, newVal, typeVector):
         if keepFirst:
             tmpTest = reduceToOneToken(oldVal.test, newVal.test, None)
         elif isSubvector:
-            if occursIn(oldVal, newVal.test):
+            if occurs_in(oldVal, newVal.test):
                 tmpTest = oldVal
             else:
                 for i in range(len(newVal.body)):
-                    if occursIn(oldVal, newVal.body[i]):
+                    if occurs_in(oldVal, newVal.body[i]):
                         tmpBody = formatStatement(oldVal)
                         break
                 else:
                     for i in range(len(newVal.orelse)):
-                        if occursIn(oldVal, newVal.orelse[i]):
+                        if occurs_in(oldVal, newVal.orelse[i]):
                             tmpOrelse = formatStatement(oldVal)
                             break
         newVal.test = tmpTest
@@ -1230,12 +1230,12 @@ def reduceToOneToken(oldVal, newVal, typeVector):
                 ]
         elif isSubvector:
             for i in range(len(newVal.items)):
-                if occursIn(oldVal, newVal.items[i]):
+                if occurs_in(oldVal, newVal.items[i]):
                     tmpItems = formatStatement(oldVal)
                     break
             else:
                 for i in range(len(newVal.body)):
-                    if occursIn(oldVal, newVal.body[i]):
+                    if occurs_in(oldVal, newVal.body[i]):
                         tmpBody = formatStatement(oldVal)
                         break
         newVal.items = tmpItems
@@ -1249,9 +1249,9 @@ def reduceToOneToken(oldVal, newVal, typeVector):
             elif newVal.cause != None:
                 tmpCause = reduceToOneToken(oldVal.cause, newVal.cause, None)
         elif isSubvector:
-            if occursIn(oldVal, newVal.exc):
+            if occurs_in(oldVal, newVal.exc):
                 tmpExc = oldVal
-            elif occursIn(oldVal, newVal.cause):
+            elif occurs_in(oldVal, newVal.cause):
                 tmpCause = oldVal
         newVal.exc = tmpExc
         newVal.cause = tmpCause
@@ -1283,24 +1283,24 @@ def reduceToOneToken(oldVal, newVal, typeVector):
                 ]
         elif isSubvector:
             for i in range(len(newVal.body)):
-                if occursIn(oldVal, newVal.body[i]):
+                if occurs_in(oldVal, newVal.body[i]):
                     tmpBody = formatStatement(oldVal)
                     break
             else:
                 for i in range(len(newVal.handlers)):
-                    if occursIn(oldVal, newVal.handlers[i]):
+                    if occurs_in(oldVal, newVal.handlers[i]):
                         tmpHandlers = [
                             reduceToOneToken(oldVal, newVal.handlers[i], "sub")
                         ]
                         break
                 else:
                     for i in range(len(newVal.orelse)):
-                        if occursIn(oldVal, newVal.orelse[i]):
+                        if occurs_in(oldVal, newVal.orelse[i]):
                             tmpOrelse = formatStatement(oldVal)
                             break
                     else:
                         for i in range(len(newVal.finalbody)):
-                            if occursIn(oldVal, newVal.finalbody[i]):
+                            if occurs_in(oldVal, newVal.finalbody[i]):
                                 tmpFinalbody = formatStatement(oldVal)
                                 break
         newVal.body = tmpBody
@@ -1313,9 +1313,9 @@ def reduceToOneToken(oldVal, newVal, typeVector):
         if keepFirst:
             tmpTest = reduceToOneToken(oldVal.test, newVal.test, None)
         elif isSubvector:
-            if occursIn(oldVal, newVal.test):
+            if occurs_in(oldVal, newVal.test):
                 tmpTest = oldVal
-            elif occursIn(oldVal, newVal.msg):
+            elif occurs_in(oldVal, newVal.msg):
                 tmpMsg = oldVal
         newVal.test = tmpTest
         newVal.msg = tmpMsg
@@ -1345,7 +1345,7 @@ def reduceToOneToken(oldVal, newVal, typeVector):
                 ]
         elif isSubvector:
             for i in range(len(newVal.values)):
-                if occursIn(oldVal, newVal.values[i]):
+                if occurs_in(oldVal, newVal.values[i]):
                     if i == 0:
                         tmpValues = [oldVal, ast.Str("~right value~")]
                     elif i == len(newVal.values) - 1:
@@ -1365,9 +1365,9 @@ def reduceToOneToken(oldVal, newVal, typeVector):
         if keepFirst:
             tmpLeft = reduceToOneToken(oldVal.left, newVal.left, None)
         elif isSubvector:
-            if occursIn(oldVal, newVal.left):
+            if occurs_in(oldVal, newVal.left):
                 tmpLeft = oldVal
-            elif occursIn(oldVal, newVal.right):
+            elif occurs_in(oldVal, newVal.right):
                 tmpRight = oldVal
         newVal.left = tmpLeft
         newVal.right = tmpRight
@@ -1377,7 +1377,7 @@ def reduceToOneToken(oldVal, newVal, typeVector):
         if keepFirst:
             tmpOperand = reduceToOneToken(oldVal.operand, newVal.operand, None)
         elif isSubvector:
-            if occursIn(oldVal, newVal.operand):
+            if occurs_in(oldVal, newVal.operand):
                 tmpOperand = oldVal
         newVal.operand = tmpOperand
     elif type(newVal) == ast.Lambda:
@@ -1386,7 +1386,7 @@ def reduceToOneToken(oldVal, newVal, typeVector):
         if keepFirst:
             tmpBody = reduceToOneToken(oldVal.body, newVal.body, None)
         elif isSubvector:
-            if occursIn(oldVal, newVal.body):
+            if occurs_in(oldVal, newVal.body):
                 tmpBody = oldVal
         newVal.body = tmpBody
     elif type(newVal) == ast.IfExp:
@@ -1396,11 +1396,11 @@ def reduceToOneToken(oldVal, newVal, typeVector):
         if keepFirst:
             tmpBody = reduceToOneToken(oldVal.body, newVal.body, None)
         elif isSubvector:
-            if occursIn(oldVal, newVal.body):
+            if occurs_in(oldVal, newVal.body):
                 tmpBody = oldVal
-            elif occursIn(oldVal, newVal.test):
+            elif occurs_in(oldVal, newVal.test):
                 tmpTest = oldVal
-            elif occursIn(oldVal, newVal.orelse):
+            elif occurs_in(oldVal, newVal.orelse):
                 tmpOrelse = oldVal
         newVal.body = tmpBody
         newVal.test = tmpTest
@@ -1419,12 +1419,12 @@ def reduceToOneToken(oldVal, newVal, typeVector):
                 ]
         elif isSubvector:
             for i in range(len(newVal.keys)):
-                if occursIn(oldVal, newVal.keys[i]):
+                if occurs_in(oldVal, newVal.keys[i]):
                     tmpKeys = [oldVal]
                     break
             else:
                 for i in range(len(newVal.values)):
-                    if occursIn(oldVal, newVal.values[i]):
+                    if occurs_in(oldVal, newVal.values[i]):
                         tmpValues = [oldVal]
                         break
         newVal.keys = tmpKeys
@@ -1439,7 +1439,7 @@ def reduceToOneToken(oldVal, newVal, typeVector):
                 ]
         elif isSubvector:
             for i in range(len(newVal.elts)):
-                if occursIn(oldVal, newVal.elts[i]):
+                if occurs_in(oldVal, newVal.elts[i]):
                     tmpElts = [oldVal]
                     break
         newVal.elts = tmpElts
@@ -1457,11 +1457,11 @@ def reduceToOneToken(oldVal, newVal, typeVector):
         if keepFirst:
             tmpElt = reduceToOneToken(oldVal.elt, newVal.elt, None)
         elif isSubvector:
-            if occursIn(oldVal, newVal.elt):
+            if occurs_in(oldVal, newVal.elt):
                 tmpElt = oldVal
             else:
                 for i in range(len(newVal.generators)):
-                    if occursIn(oldVal, newVal.generators[i]):
+                    if occurs_in(oldVal, newVal.generators[i]):
                         tmpGenerators = [
                             reduceToOneToken(oldVal, newVal.generators[i], "sub")
                         ]
@@ -1479,13 +1479,13 @@ def reduceToOneToken(oldVal, newVal, typeVector):
         if keepFirst:
             tmpKey = reduceToOneToken(oldVal.key, newVal.key, None)
         elif isSubvector:
-            if occursIn(oldVal, newVal.key):
+            if occurs_in(oldVal, newVal.key):
                 tmpKey = oldVal
-            elif occursIn(oldVal, newVal.value):
+            elif occurs_in(oldVal, newVal.value):
                 tmpValue = oldVal
             else:
                 for i in range(len(newVal.generators)):
-                    if occursIn(oldVal, newVal.generators[i]):
+                    if occurs_in(oldVal, newVal.generators[i]):
                         tmpGenerators = [
                             reduceToOneToken(oldVal, newVal.generators[i], "sub")
                         ]
@@ -1499,7 +1499,7 @@ def reduceToOneToken(oldVal, newVal, typeVector):
             if newVal.value != None:
                 tmpValue = reduceToOneToken(oldVal.value, newVal.value, None)
         elif isSubvector:
-            if occursIn(oldVal, newVal.value):
+            if occurs_in(oldVal, newVal.value):
                 tmpValue = oldVal
         newVal.value = tmpValue
     elif type(newVal) == ast.Compare:
@@ -1510,11 +1510,11 @@ def reduceToOneToken(oldVal, newVal, typeVector):
         if keepFirst:
             tmpLeft = reduceToOneToken(oldVal.left, newVal.left, None)
         elif isSubvector:
-            if occursIn(oldVal, newVal.left):
+            if occurs_in(oldVal, newVal.left):
                 tmpLeft = oldVal
             else:
                 for i in range(len(newVal.comparators)):
-                    if occursIn(oldVal, newVal.comparators[i]):
+                    if occurs_in(oldVal, newVal.comparators[i]):
                         tmpComparators = [oldVal]
                         break
         newVal.left = tmpLeft
@@ -1527,11 +1527,11 @@ def reduceToOneToken(oldVal, newVal, typeVector):
         if keepFirst:
             tmpFunc = reduceToOneToken(oldVal.func, newVal.func, None)
         elif isSubvector:
-            if occursIn(oldVal, newVal.func):
+            if occurs_in(oldVal, newVal.func):
                 tmpFunc = oldVal
             else:
                 for i in range(len(newVal.args)):
-                    if occursIn(oldVal, newVal.args[i]):
+                    if occurs_in(oldVal, newVal.args[i]):
                         if len(newVal.args) == 1:
                             tmpArgs = [oldVal]
                         elif i == 0:
@@ -1547,7 +1547,7 @@ def reduceToOneToken(oldVal, newVal, typeVector):
                         break
                 else:
                     for i in range(len(newVal.keywords)):
-                        if occursIn(oldVal, newVal.keywords[i]):
+                        if occurs_in(oldVal, newVal.keywords[i]):
                             tmpKeywords = [oldVal]
                             break
         newVal.func = tmpFunc
@@ -1559,9 +1559,9 @@ def reduceToOneToken(oldVal, newVal, typeVector):
         if keepFirst:
             tmpValue = reduceToOneToken(oldVal.value, newVal.value, None)
         elif isSubvector:
-            if occursIn(oldVal, newVal.value):
+            if occurs_in(oldVal, newVal.value):
                 tmpValue = oldVal
-            elif occursIn(oldVal, newVal.slice):
+            elif occurs_in(oldVal, newVal.slice):
                 tmpSlice = reduceToOneToken(oldVal, newVal.slice, "sub")
         newVal.value = tmpValue
         newVal.slice = tmpSlice
@@ -1577,11 +1577,11 @@ def reduceToOneToken(oldVal, newVal, typeVector):
             elif newVal.step != None:
                 tmpStep = reduceToOneToken(oldVal.step, newVal.step, None)
         elif isSubvector:
-            if occursIn(oldVal, newVal.lower):
+            if occurs_in(oldVal, newVal.lower):
                 tmpLower = oldVal
-            elif occursIn(oldVal, newVal.upper):
+            elif occurs_in(oldVal, newVal.upper):
                 tmpUpper = oldVal
-            elif occursIn(oldVal, newVal.step):
+            elif occurs_in(oldVal, newVal.step):
                 tmpStep = oldVal
         newVal.lower = tmpLower
         newVal.upper = tmpUpper
@@ -1599,7 +1599,7 @@ def reduceToOneToken(oldVal, newVal, typeVector):
                 ]
         elif isSubvector:
             for i in range(len(newVal.dims)):
-                if occursIn(oldVal, newVal.dims[i]):
+                if occurs_in(oldVal, newVal.dims[i]):
                     tmpDims = [reduceToOneToken(oldVal, newVal.dims[i], "sub")]
                     break
         newVal.dims = tmpDims
@@ -1610,11 +1610,11 @@ def reduceToOneToken(oldVal, newVal, typeVector):
         if keepFirst:
             tmpIter = reduceToOneToken(oldVal.iter, newVal.iter, None)
         elif isSubvector:
-            if occursIn(oldVal, newVal.iter):
+            if occurs_in(oldVal, newVal.iter):
                 tmpIter = oldVal
             else:
                 for i in range(len(newVal.ifs)):
-                    if occursIn(oldVal, newVal.ifs[i]):
+                    if occurs_in(oldVal, newVal.ifs[i]):
                         tmpIfs = [oldVal]
                         break
         newVal.iter = tmpIter
@@ -1633,13 +1633,13 @@ def reduceToOneToken(oldVal, newVal, typeVector):
                     reduceToOneToken(getFirst(oldVal.body), newVal.body[0], None)
                 ]
         elif isSubvector:
-            if occursIn(oldVal, newVal.type):
+            if occurs_in(oldVal, newVal.type):
                 tmpType = oldVal
-            elif occursIn(oldVal, newVal.name):
+            elif occurs_in(oldVal, newVal.name):
                 tmpName = oldVal
             else:
                 for i in range(len(newVal.body)):
-                    if occursIn(oldVal, newVal.body[i]):
+                    if occurs_in(oldVal, newVal.body[i]):
                         tmpBody = formatStatement(oldVal)
                         break
         newVal.type = tmpType
