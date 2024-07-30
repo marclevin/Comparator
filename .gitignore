@@ -6,3 +6,5 @@ paper.pdf
 .env
 .idea
 *.log
+.coverage
+\htmlcov
