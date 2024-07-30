@@ -38,7 +38,7 @@ def compare_solutions(student_ast, solution_ast) -> str:
     imports = get_all_import_statements(solution_code_state.tree) + get_all_import_statements(given_code)
     solution_code_state = getCanonicalForm(solution_code_state, given_names, imports)
 
-    get_next_state(student_code_state, original_tree)
+    get_next_state(student_code_state)
     # Doing individualize step here.
     edit = map_edit(student_code_state.tree, original_tree, student_code_state.change_vectors)
     return formatHints(edit, 2)

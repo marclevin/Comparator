@@ -980,7 +980,6 @@ def deepcopy(node):
     if isinstance(node, (int, float, str, bool)):
         return node
     if not isinstance(node, ast.AST):
-        log("astTools\\tdeepcopy\\tNot an AST: " + str(type(node)), "bug")
         return copy.deepcopy(node)
 
     global_id = getattr(node, "global_id", None)

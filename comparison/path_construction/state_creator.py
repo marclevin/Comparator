@@ -474,8 +474,7 @@ def is_valid_next_state(student_state, new_state, goal_state):
 
 
 # TODO: Fix this to use the new scoring system (desirability)
-def generate_states_in_path(student_state: CodeState, valid_combinations: list[tuple[list[ChangeVector], CodeState]],
-                            original_tree):
+def generate_states_in_path(student_state: CodeState, valid_combinations: list[tuple[list[ChangeVector], CodeState]]):
     best_score, best_state = -1, None
     ideal_changes = None
 
@@ -503,7 +502,7 @@ def get_all_combinations(student_state: CodeState, changes: list[ChangeVector]):
     return all_combinations
 
 
-def get_next_state(student_state: CodeState, original_tree):
+def get_next_state(student_state: CodeState):
     """Generate the best next state for s, so that it will produce a desirable hint"""
     (student_state.distance_to_goal, changes) = distance(student_state,
                                                          student_state.goal)  # now get the actual changes
@@ -523,4 +522,4 @@ def get_next_state(student_state: CodeState, original_tree):
         student_state.next = None
         return
 
-    generate_states_in_path(student_state, valid_combinations, original_tree)
+    generate_states_in_path(student_state, valid_combinations)
