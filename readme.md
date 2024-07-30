@@ -7,7 +7,7 @@ The comparator is a tool that compares two ASTs.
 ## Hint Generator
 
 The hint generator is a tool that generates hints for a given AST, calling OpenAI's API for use of the GPT-3.5 model and
-the new GPT-4o-mini model.
+the GPT-4o-mini model.
 
 ## Command Line Interface
 
@@ -65,3 +65,25 @@ To develop the CLI, clone the repository and run the following commands in the r
    ```
    astHint --help
    ```
+
+### Testing
+
+This project uses `unittest` for testing. Tests are located in the `tests` directory.
+
+To run the tests, run the following command in the root directory:
+
+```
+python -m unittest discover tests
+```
+
+This project also uses `coverage` for code coverage. To run the tests and generate a coverage report, run the following
+command in the root directory:
+
+```
+coverage run -m unittest discover tests
+coverage report
+```
+
+
+
+

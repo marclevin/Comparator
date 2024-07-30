@@ -1,5 +1,7 @@
 # Testing file for comparison/comparator.py
 import ast
+import os
+import os.path
 # get_weight tests
 import unittest
 from unittest.mock import MagicMock, patch
@@ -14,9 +16,11 @@ from comparison.structures.State import CodeState, IntermediateState
 class TestComparator(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        with open("resources/goal_code.py", "r") as file:
+        project_root = os.path.dirname(os.path.abspath(__file__))
+        resource_path = os.path.join(project_root, "resources")
+        with open(resource_path + "/goal_code.py", "r") as file:
             goal_code = file.read()
-        with open("resources/student_code.py", "r") as file:
+        with open(resource_path + "/student_code.py", "r") as file:
             student_code = file.read()
         cls.student_code_state = CodeState(tree=ast.parse(student_code), goal=ast.parse(goal_code))
         cls.compareASTs = MagicMock()
