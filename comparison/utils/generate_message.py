@@ -1064,7 +1064,7 @@ def getFirst(a):
 
 
 def formatStatement(a):
-    return [a if isStatement(a) else ast.Expr(a)]
+    return [a if is_statement(a) else ast.Expr(a)]
 
 
 def formatStatementList(a, s):

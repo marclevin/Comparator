@@ -162,7 +162,7 @@ def generateHelperDistributions(s, g, goals, states):
     restricted_names = list(eval(s.problem.arguments).keys())
     sHelpers = gatherAllHelpers(s.tree, restricted_names)
     gHelpers = gatherAllHelpers(g.tree, restricted_names)
-    nonMappableHelpers = gatherAllFunctionNames(g.tree)
+    nonMappableHelpers = gather_all_function_names(g.tree)
     for pair in gHelpers:  # make sure to remove all matches, regardless of whether the second part matches!
         for item in nonMappableHelpers:
             if pair[0] == item[0]:
@@ -238,13 +238,13 @@ def generateHelperDistributions(s, g, goals, states):
 
 
 def generateVariableDistributions(s, g, goals, states):
-    sParameters = gatherAllParameters(s.tree)
-    gParameters = gatherAllParameters(g.tree, keep_orig=False)
+    sParameters = gather_all_parameters(s.tree)
+    gParameters = gather_all_parameters(g.tree, keep_orig=False)
     restricted_names = list(eval(s.problem.arguments).keys()) + getAllImports(s.tree) + getAllImports(g.tree)
     sHelpers = gatherAllHelpers(s.tree, restricted_names)
     gHelpers = gatherAllHelpers(g.tree, restricted_names)
-    sVariables = gatherAllVariables(s.tree)
-    gVariables = gatherAllVariables(g.tree, keep_orig=False)
+    sVariables = gather_all_variables(s.tree)
+    gVariables = gather_all_variables(g.tree, keep_orig=False)
     # First, just make extra sure none of the restricted names are included
     for name in restricted_names:
         for item in sVariables:
@@ -265,7 +265,7 @@ def generateVariableDistributions(s, g, goals, states):
             if pair[0] == item[0]:
                 gVariables.remove(item)
                 break
-    nonMappableVariables = gatherAllNames(g.tree, keep_orig=False)
+    nonMappableVariables = gather_all_names(g.tree, keep_orig=False)
     for pair in gVariables | gParameters | gHelpers:  # make sure to remove all matches, regardless of whether the second part matches!
         for item in nonMappableVariables:
             if pair[0] == item[0]:

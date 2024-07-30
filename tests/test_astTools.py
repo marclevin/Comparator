@@ -3,10 +3,11 @@ import ast
 # get_weight tests
 import unittest
 
-from comparison.utils.astTools import compareASTs, cmp, apply_to_children, occurs_in, count_occurrences
+from comparison.utils.astTools import compareASTs, cmp, apply_to_children, occurs_in, count_occurrences, \
+    gather_all_names, gather_all_variables, gather_all_parameters, gather_all_function_names
 
 
-class TestComparator(unittest.TestCase):
+class TestAstTools(unittest.TestCase):
     # compareASTs tests
 
     def test_compareASTs_return_zero_when_both_none(self):
@@ -147,3 +148,132 @@ class TestComparator(unittest.TestCase):
     def test_count_occurrences_value_not_present(self):
         node = ast.parse("a = 1\nb = 2")
         self.assertEqual(count_occurrences(node, ast.If), 0)
+
+    # count_variables tests
+    def test_count_variables_no_variables(self):
+        node = ast.parse("1 + 1")
+        self.assertEqual(count_occurrences(node, ast.Name), 0)
+
+    def test_count_variables_single_variable(self):
+        node = ast.parse("a = 1")
+        self.assertEqual(count_occurrences(node, ast.Name), 1)
+
+    def test_count_variables_multiple_variables(self):
+        node = ast.parse("a = 1\nb = 2")
+        self.assertEqual(count_occurrences(node, ast.Name), 2)
+
+    def test_count_variables_nested_variables(self):
+        node = ast.parse("a = 1\nb = a")
+        self.assertEqual(count_occurrences(node, ast.Name), 3)
+
+    def test_count_variables_no_variables_in_expression(self):
+        node = ast.parse("1 + 1")
+        self.assertEqual(count_occurrences(node, ast.Name), 0)
+
+    # gather_all_names tests
+    def test_gather_all_names_not_ast_node(self):
+        self.assertEqual(gather_all_names("not_ast"), set())
+
+    def test_gather_all_names_list_of_ast_nodes(self):
+        nodes = [ast.parse("a = 1"), ast.parse("b = 2")]
+        self.assertEqual(gather_all_names(nodes), {("a", None), ("b", None)})
+
+    def test_gather_all_names_ast_node_with_names(self):
+        node = ast.parse("a = 1\nb = 2")
+        self.assertEqual(gather_all_names(node), {("a", None), ("b", None)})
+
+    def test_gather_all_names_ast_node_with_originalId(self):
+        node = ast.parse("a = 1\nb = 2")
+        for n in ast.walk(node):
+            if isinstance(n, ast.Name):
+                n.originalId = f"orig_{n.id}"
+        self.assertEqual(gather_all_names(node), {("a", "orig_a"), ("b", "orig_b")})
+
+    def test_gather_all_names_ast_node_with_originalId_keep_orig_false(self):
+        node = ast.parse("a = 1\nb = 2")
+        for n in ast.walk(node):
+            if isinstance(n, ast.Name):
+                n.originalId = f"orig_{n.id}"
+        self.assertEqual(gather_all_names(node, keep_orig=False), {("a", None), ("b", None)})
+
+    # gather_all_variables tests
+    def test_gather_all_variables_not_ast_node(self):
+        self.assertEqual(gather_all_variables("not_ast"), set())
+
+    def test_gather_all_variables_list_of_ast_nodes(self):
+        nodes = [ast.parse("a = 1"), ast.parse("b = 2")]
+        self.assertEqual(gather_all_variables(nodes), {("a", None), ("b", None)})
+
+    def test_gather_all_variables_ast_node_with_names_and_args(self):
+        node = ast.parse("def func(a):\n    b = 2")
+        self.assertEqual(gather_all_variables(node), {("a", None), ("b", None)})
+
+    def test_gather_all_variables_ast_node_with_originalId(self):
+        node = ast.parse("a = 1\nb = 2")
+        for n in ast.walk(node):
+            if isinstance(n, ast.Name):
+                n.originalId = f"orig_{n.id}"
+        self.assertEqual(gather_all_variables(node), {("a", "orig_a"), ("b", "orig_b")})
+
+    def test_gather_all_variables_ast_node_with_originalId_keep_orig_false(self):
+        node = ast.parse("a = 1\nb = 2")
+        for n in ast.walk(node):
+            if isinstance(n, ast.Name):
+                n.originalId = f"orig_{n.id}"
+        self.assertEqual(gather_all_variables(node, keep_orig=False), {("a", None), ("b", None)})
+
+    def test_gather_all_variables_ast_node_with_builtin_names(self):
+        node = ast.parse("def func(len):\n    pass")
+        self.assertEqual(gather_all_variables(node), set())
+
+    def test_gather_all_variables_ast_node_with_dontChangeName(self):
+        node = ast.parse("a = 1\nb = 2")
+        for n in ast.walk(node):
+            if isinstance(n, ast.Name) and n.id == "a":
+                n.dontChangeName = True
+        self.assertEqual(gather_all_variables(node), {("b", None)})
+
+    # gather_all_parameters tests
+    def test_gather_all_parameters_not_ast_node(self):
+        self.assertEqual(gather_all_parameters("not_ast"), set())
+
+    def test_gather_all_parameters_list_of_ast_nodes(self):
+        nodes = [ast.parse("def func(a): pass"), ast.parse("def func(b): pass")]
+        self.assertEqual(gather_all_parameters(nodes), {("a", None), ("b", None)})
+
+    def test_gather_all_parameters_ast_node_with_parameters(self):
+        node = ast.parse("def func(a, b): pass")
+        self.assertEqual(gather_all_parameters(node), {("a", None), ("b", None)})
+
+    def test_gather_all_parameters_ast_node_with_originalId(self):
+        node = ast.parse("def func(a, b): pass")
+        for n in ast.walk(node):
+            if isinstance(n, ast.arg):
+                n.originalId = f"orig_{n.arg}"
+        self.assertEqual(gather_all_parameters(node), {("a", "orig_a"), ("b", "orig_b")})
+
+    def test_gather_all_parameters_ast_node_with_originalId_keep_orig_false(self):
+        node = ast.parse("def func(a, b): pass")
+        for n in ast.walk(node):
+            if isinstance(n, ast.arg):
+                n.originalId = f"orig_{n.arg}"
+        self.assertEqual(gather_all_parameters(node, keep_orig=False), {("a", None), ("b", None)})
+
+    # gather_all_function tests
+    def test_gather_all_helpers_not_ast_module(self):
+        self.assertEqual(gather_all_function_names("not_ast"), set())
+
+    def test_gather_all_helpers_ast_module_no_functions(self):
+        node = ast.parse("a = 1")
+        self.assertEqual(gather_all_function_names(node), set())
+
+    def test_gather_all_helpers_ast_module_with_functions(self):
+        node = ast.parse("def func1(): pass\ndef func2(): pass")
+        self.assertEqual(gather_all_function_names(node), {("func1", None), ("func2", None)})
+
+    def test_gather_all_helpers_ast_module_with_originalId(self):
+        node = ast.parse("def func1(): pass\ndef func2(): pass")
+        for n in ast.walk(node):
+            if isinstance(n, ast.FunctionDef):
+                n.originalId = f"orig_{n.name}"
+        self.assertEqual(gather_all_function_names(node), {("func1", "orig_func1"), ("func2", "orig_func2")})

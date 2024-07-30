@@ -1924,7 +1924,7 @@ def crashesOn(a):
     elif type(a) == ast.Compare:
         if len(a.ops) != len(a.comparators):
             return [a]
-        elif type(a.ops[0]) in [ast.In, ast.NotIn] and not isIterableType(eventualType(a.comparators[0])):
+        elif type(a.ops[0]) in [ast.In, ast.NotIn] and not is_iterable_type(eventualType(a.comparators[0])):
             return [a]
         elif type(a.ops[0]) in [ast.Lt, ast.LtE, ast.Gt, ast.GtE]:
             # In Python3, you can't compare different types. BOOOOOO!!

@@ -574,7 +574,7 @@ def movedLineAfterSpecialFunction(cv, startingTree, startingPath, orig):
 
 
 def augAssignSpecialFunction(cv, orig):
-    if (not isinstance(cv, DeleteVector)) and (not isStatement(cv.oldSubtree)) and \
+    if (not isinstance(cv, DeleteVector)) and (not is_statement(cv.oldSubtree)) and \
             (childHasTag(cv.oldSubtree, "augAssignVal") or childHasTag(cv.oldSubtree, "augAssignBinOp")):
         # First, create the oldTree and newTree in full
         cvCopy = cv.deepcopy()

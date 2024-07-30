@@ -61,14 +61,14 @@ def imported_name(id, importList):
     return False
 
 
-def isIterableType(t):
+def is_iterable_type(node):
     """Can the given type be iterated over"""
-    return t in [dict, list, set, str, bytes, tuple]
+    return node in [dict, list, set, str, bytes, tuple]
 
 
-def isStatement(a):
+def is_statement(node):
     """Determine whether the given node is a statement (vs an expression)"""
-    return type(a) in [
+    return type(node) in [
         ast.Module, ast.Interactive, ast.Expression, ast.Suite,
         ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Return,
         ast.Delete, ast.Assign, ast.AugAssign, ast.AnnAssign, ast.For,
@@ -117,7 +117,7 @@ def occurs_in(sub, super):
         return True
     # we know that a statement can never occur in an expression
     # (or in a non-statement-holding statement), so cut the search off now to save time.
-    if isStatement(sub) and not isStatement(super):
+    if is_statement(sub) and not is_statement(super):
         return False
     return any(occurs_in(sub, child) for child in ast.iter_child_nodes(super))
 
@@ -150,78 +150,63 @@ def count_variables(node, var_id):
     return count
 
 
-def gatherAllNames(a, keep_orig=True):
+def gather_all_names(node, keep_orig=True):
     """Gather all names in the tree (variable or otherwise).
         Names are returned along with their original names
         (which are used in variable mapping)"""
-    if type(a) == list:
-        allIds = set()
-        for line in a:
-            allIds |= gatherAllNames(line)
-        return allIds
-    if not isinstance(a, ast.AST):
+    if isinstance(node, list):
+        return {name for line in node for name in gather_all_names(line, keep_orig)}
+
+    if not isinstance(node, ast.AST):
         return set()
 
-    allIds = set()
-    for node in ast.walk(a):
-        if type(node) == ast.Name:
-            origName = node.originalId if (keep_orig and hasattr(node, "originalId")) else None
-            allIds |= set([(node.id, origName)])
-    return allIds
+    return {
+        (inner_node.id, inner_node.originalId if (keep_orig and hasattr(inner_node, "originalId")) else None)
+        for inner_node in ast.walk(node) if isinstance(inner_node, ast.Name)
+    }
 
 
-def gatherAllVariables(a, keep_orig=True):
+def gather_all_variables(node, keep_orig=True):
     """Gather all variable names in the tree. Names are returned along
         with their original names (which are used in variable mapping)"""
-    if type(a) == list:
-        allIds = set()
-        for line in a:
-            allIds |= gatherAllVariables(line)
-        return allIds
-    if not isinstance(a, ast.AST):
+    if isinstance(node, list):
+        return {var for line in node for var in gather_all_variables(line, keep_orig)}
+
+    if not isinstance(node, ast.AST):
         return set()
 
-    allIds = set()
-    for node in ast.walk(a):
-        if type(node) == ast.Name or type(node) == ast.arg:
-            currentId = node.id if type(node) == ast.Name else node.arg
-            # Only take variables
-            if not (built_in_name(currentId) or hasattr(node, "dontChangeName")):
-                origName = node.originalId if (keep_orig and hasattr(node, "originalId")) else None
-                if (currentId, origName) not in allIds:
-                    for pair in allIds:
-                        if pair[0] == currentId:
-                            if pair[1] == None:
-                                allIds -= {pair}
-                                allIds |= {(currentId, origName)}
-                            elif origName == None:
-                                pass
-                            else:
-                                log("astTools\tgatherAllVariables\tConflicting originalIds? " + pair[0] + " : " + pair[
-                                    1] + " , " + origName + "\n" + print_function(a), "bug")
-                            break
-                    else:
-                        allIds |= {(currentId, origName)}
-    return allIds
+    all_ids = set()
+    for n in ast.walk(node):
+        if isinstance(n, (ast.Name, ast.arg)):
+            current_id = n.id if isinstance(n, ast.Name) else n.arg
+            if not (built_in_name(current_id) or hasattr(n, "dontChangeName")):
+                orig_name = n.originalId if (keep_orig and hasattr(n, "originalId")) else None
+                existing = next((pair for pair in all_ids if pair[0] == current_id), None)
+                if existing:
+                    if existing[1] is None:
+                        all_ids.remove(existing)
+                        all_ids.add((current_id, orig_name))
+                    elif orig_name is not None:
+                        log(f"astTools\\tgatherAllVariables\\tConflicting originalIds? {existing[0]} : {existing[1]} , {orig_name}\n{print_function(node)}",
+                            "bug")
+                else:
+                    all_ids.add((current_id, orig_name))
+    return all_ids
 
 
-def gatherAllParameters(a, keep_orig=True):
+def gather_all_parameters(node, keep_orig=True):
     """Gather all parameters in the tree. Names are returned along
         with their original names (which are used in variable mapping)"""
-    if type(a) == list:
-        allIds = set()
-        for line in a:
-            allIds |= gatherAllVariables(line)
-        return allIds
-    if not isinstance(a, ast.AST):
+    if isinstance(node, list):
+        return {param for line in node for param in gather_all_parameters(line, keep_orig)}
+
+    if not isinstance(node, ast.AST):
         return set()
 
-    allIds = set()
-    for node in ast.walk(a):
-        if type(node) == ast.arg:
-            origName = node.originalId if (keep_orig and hasattr(node, "originalId")) else None
-            allIds |= set([(node.arg, origName)])
-    return allIds
+    return {
+        (inner_node.arg, inner_node.originalId if (keep_orig and hasattr(inner_node, "originalId")) else None)
+        for inner_node in ast.walk(node) if isinstance(inner_node, ast.arg)
+    }
 
 
 def gatherAllHelpers(a, restricted_names):
@@ -237,16 +222,15 @@ def gatherAllHelpers(a, restricted_names):
     return helpers
 
 
-def gatherAllFunctionNames(a):
+def gather_all_function_names(node):
     """Gather all helper function names in the tree that have been anonymized"""
-    if type(a) != ast.Module:
+    if not isinstance(node, ast.Module):
         return set()
-    helpers = set()
-    for item in a.body:
-        if type(item) == ast.FunctionDef:
-            origName = item.originalId if hasattr(item, "originalId") else None
-            helpers |= set([(item.name, origName)])
-    return helpers
+
+    return {
+        (item.name, item.originalId if hasattr(item, "originalId") else None)
+        for item in node.body if isinstance(item, ast.FunctionDef)
+    }
 
 
 def gatherAssignedVars(targets):
@@ -562,7 +546,7 @@ def couldCrash(a):
             for x in a.target.elts:
                 if type(x) != ast.Name:
                     return True
-        elif isIterableType(eventualType(a.iter)):
+        elif is_iterable_type(eventualType(a.iter)):
             return True
     elif type(a) == ast.Import:
         for name in a.names:
@@ -612,7 +596,7 @@ def couldCrash(a):
         if len(a.ops) != len(a.comparators):
             return True
         elif type(a.ops[0]) in [ast.In, ast.NotIn]:
-            if not isIterableType(eventualType(a.comparators[0])):
+            if not is_iterable_type(eventualType(a.comparators[0])):
                 return True
             elif eventualType(a.comparators[0]) in [str, bytes] and eventualType(a.left) not in [str, bytes]:
                 return True
@@ -718,9 +702,9 @@ def eventualType(a):
         r = eventualType(a.right)
         # It is possible to add/multiply sequences
         if type(a.op) in [ast.Add, ast.Mult]:
-            if isIterableType(l):
+            if is_iterable_type(l):
                 return l
-            elif isIterableType(r):
+            elif is_iterable_type(r):
                 return r
             elif l == float or r == float:
                 return float
