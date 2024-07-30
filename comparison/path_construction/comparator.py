@@ -189,6 +189,11 @@ def find_move_vectors(map_set, list_x, list_y, added_lines, deleted_lines):
 
 
 def diff_lists(list_x, list_y):
+    if len(list_x) == 0 and len(list_y) == 0:
+        return []
+    # Check identical lists
+    if list_x == list_y:
+        return []
     map_set = match_lists(list_x, list_y)
     change_vectors = []
 
