@@ -34,20 +34,20 @@ def built_in_name(name_id):
 
 def imported_name(id, importList):
     for imp in importList:
-        if type(imp) == ast.Import:
+        if type(imp) is ast.Import:
             for name in imp.names:
-                if hasattr(name, "asname") and name.asname != None:
+                if hasattr(name, "asname") and name.asname is not None:
                     if id == name.asname:
                         return True
                 else:
                     if id == name.name:
                         return True
-        elif type(imp) == ast.ImportFrom:
+        elif type(imp) is ast.ImportFrom:
             if hasattr(imp, "module"):
                 if imp.module in supported_libraries:
-                    libMap = libraryMap[imp.module]
+                    lib_map = libraryMap[imp.module]
                     for name in imp.names:
-                        if hasattr(name, "asname") and name.asname != None:
+                        if hasattr(name, "asname") and name.asname is not None:
                             if id == name.asname:
                                 return True
                         else:
@@ -78,11 +78,11 @@ def is_statement(node):
     ]
 
 
-def codeLength(a):
+def code_length(node):
     """Returns the number of characters in this AST"""
-    if type(a) == list:
-        return sum([codeLength(x) for x in a])
-    return len(print_function(a))
+    if type(node) is list:
+        return sum([code_length(inner_node) for inner_node in node])
+    return len(print_function(node))
 
 
 def apply_to_children(node, func):
@@ -107,19 +107,19 @@ def apply_to_children(node, func):
     return node
 
 
-def occurs_in(sub, super):
+def occurs_in(sub, parent):
     """Does the first AST occur as a subtree of the second?"""
-    if not isinstance(super, ast.AST):
+    if not isinstance(parent, ast.AST):
         return False
-    if isinstance(sub, ast.Module) and isinstance(super, ast.Module):
-        return any(occurs_in(sub_node, super) for sub_node in sub.body)
-    if type(sub) is type(super) and compareASTs(sub, super, checkEquality=True) == 0:
+    if isinstance(sub, ast.Module) and isinstance(parent, ast.Module):
+        return any(occurs_in(sub_node, parent) for sub_node in sub.body)
+    if type(sub) is type(parent) and compare_trees(sub, parent, check_equality=True) == 0:
         return True
     # we know that a statement can never occur in an expression
     # (or in a non-statement-holding statement), so cut the search off now to save time.
-    if is_statement(sub) and not is_statement(super):
+    if is_statement(sub) and not is_statement(parent):
         return False
-    return any(occurs_in(sub, child) for child in ast.iter_child_nodes(super))
+    return any(occurs_in(sub, child) for child in ast.iter_child_nodes(parent))
 
 
 def count_occurrences(node, value):
@@ -187,7 +187,7 @@ def gather_all_variables(node, keep_orig=True):
                         all_ids.remove(existing)
                         all_ids.add((current_id, orig_name))
                     elif orig_name is not None:
-                        log(f"astTools\\tgatherAllVariables\\tConflicting originalIds? {existing[0]} : {existing[1]} , {orig_name}\n{print_function(node)}",
+                        log(f"astTools\\gatherAllVariables\\tConflicting originalIds? {existing[0]} : {existing[1]} , {orig_name}\n{print_function(node)}",
                             "bug")
                 else:
                     all_ids.add((current_id, orig_name))
@@ -209,17 +209,16 @@ def gather_all_parameters(node, keep_orig=True):
     }
 
 
-def gatherAllHelpers(a, restricted_names):
+def gather_all_helpers(node, restricted_names):
     """Gather all helper function names in the tree that have been anonymized"""
-    if type(a) != ast.Module:
+    if not isinstance(node, ast.Module):
         return set()
-    helpers = set()
-    for item in a.body:
-        if type(item) == ast.FunctionDef:
-            if not hasattr(item, "dontChangeName") and item.name not in restricted_names:  # this got anonymized
-                origName = item.originalId if hasattr(item, "originalId") else None
-                helpers |= set([(item.name, origName)])
-    return helpers
+
+    return {
+        (item.name, item.originalId if hasattr(item, "originalId") else None)
+        for item in node.body if
+        isinstance(item, ast.FunctionDef) and not hasattr(item, "dontChangeName") and item.name not in restricted_names
+    }
 
 
 def gather_all_function_names(node):
@@ -233,113 +232,105 @@ def gather_all_function_names(node):
     }
 
 
-def gatherAssignedVars(targets):
+def gather_assigned_vars(nodes):
     """Take a list of assigned variables and extract the names/subscripts/attributes"""
-    if type(targets) != list:
-        targets = [targets]
-    newTargets = []
-    for target in targets:
-        if type(target) in [ast.Tuple, ast.List]:
-            newTargets += gatherAssignedVars(target.elts)
-        elif type(target) in [ast.Name, ast.Subscript, ast.Attribute]:
-            newTargets.append(target)
+    if not isinstance(nodes, list):
+        nodes = [nodes]
+
+    new_targets = []
+    for node in nodes:
+        if isinstance(node, (ast.Tuple, ast.List)):
+            new_targets.extend(gather_assigned_vars(node.elts))
+        elif isinstance(node, (ast.Name, ast.Subscript, ast.Attribute)):
+            new_targets.append(node)
         else:
-            log("astTools\tgatherAssignedVars\tWeird Assign Type: " + str(type(target)), "bug")
-    return newTargets
+            raise TypeError(f"Unknown target type: {type(node)}")
+    return new_targets
 
 
-def gatherAssignedVarIds(targets):
+def gather_assigned_var_ids(targets):
     """Just get the ids of Names"""
-    vars = gatherAssignedVars(targets)
-    return [y.id for y in filter(lambda x: type(x) == ast.Name, vars)]
+    nodes = gather_assigned_vars(targets)
+    return [y.id for y in filter(lambda inner_node: type(inner_node) is ast.Name, nodes)]
 
 
-def getAllAssignedVarIds(a):
-    if not isinstance(a, ast.AST):
+def get_all_assigned_var_ids(node):
+    if not isinstance(node, ast.AST):
         return []
     ids = []
-    for child in ast.walk(a):
-        if type(child) == ast.Assign:
-            ids += gatherAssignedVarIds(child.targets)
-        elif type(child) == ast.AugAssign:
-            ids += gatherAssignedVarIds([child.target])
-        elif type(child) == ast.For:
-            ids += gatherAssignedVarIds([child.target])
+    for child in ast.walk(node):
+        if type(child) is ast.Assign:
+            ids += gather_assigned_var_ids(child.targets)
+        elif type(child) is ast.AugAssign:
+            ids += gather_assigned_var_ids([child.target])
+        elif type(child) is ast.For:
+            ids += gather_assigned_var_ids([child.target])
     return ids
 
 
-def getAllAssignedVars(a):
-    if not isinstance(a, ast.AST):
+def get_all_assigned_vars(node):
+    if not isinstance(node, ast.AST):
         return []
-    vars = []
-    for child in ast.walk(a):
-        if type(child) == ast.Assign:
-            vars += gatherAssignedVars(child.targets)
-        elif type(child) == ast.AugAssign:
-            vars += gatherAssignedVars([child.target])
-        elif type(child) == ast.For:
-            vars += gatherAssignedVars([child.target])
-    return vars
+    nodes = []
+    for child in ast.walk(node):
+        if type(child) is ast.Assign:
+            nodes += gather_assigned_vars(child.targets)
+        elif type(child) is ast.AugAssign:
+            nodes += gather_assigned_vars([child.target])
+        elif type(child) is ast.For:
+            nodes += gather_assigned_vars([child.target])
+    return nodes
 
 
-def getAllFunctions(a):
-    """Collects all the functions in the given module"""
-    if not isinstance(a, ast.AST):
-        return []
-    functions = []
-    for child in ast.walk(a):
-        if type(child) == ast.FunctionDef:
-            functions.append(child.name)
-    return functions
-
-
-def getAllImports(a):
+def get_all_imports(a):
     """Gather all imported module names"""
     if not isinstance(a, ast.AST):
         return []
     imports = []
     for child in ast.walk(a):
-        if type(child) == ast.Import:
+        if type(child) is ast.Import:
             for alias in child.names:
                 if alias.name in supported_libraries:
-                    imports.append(alias.asname if alias.asname != None else alias.name)
+                    imports.append(alias.asname if alias.asname is not None else alias.name)
                 else:
-                    log("astTools\tgetAllImports\tUnknown library: " + alias.name, "bug")
-        elif type(child) == ast.ImportFrom:
+                    raise Exception(
+                        f"Unsupported import name: {alias.name}. Supported libraries are {supported_libraries}")
+        elif type(child) is ast.ImportFrom:
             if child.module in supported_libraries:
                 for alias in child.names:  # these are all functions
                     if alias.name in libraryMap[child.module]:
-                        imports.append(alias.asname if alias.asname != None else alias.name)
+                        imports.append(alias.asname if alias.asname is not None else alias.name)
                     else:
-                        log("astTools\tgetAllImports\tUnknown import from name: " + \
-                            child.module + "," + alias.name, "bug")
+                        raise Exception(
+                            f"Unsupported import name: {alias.name}. Supported functions are {libraryMap[child.module]}")
             else:
-                log("astTools\tgetAllImports\tUnknown library: " + child.module, "bug")
+                raise Exception(
+                    f"Unsupported import module: {child.module}. Supported libraries are {supported_libraries}")
     return imports
 
 
-def getAllImportStatements(a):
-    if not isinstance(a, ast.AST):
+def get_all_import_statements(node):
+    if not isinstance(node, ast.AST):
         return []
     imports = []
-    for child in ast.walk(a):
-        if type(child) == ast.Import:
+    for child in ast.walk(node):
+        if type(child) is ast.Import:
             imports.append(child)
-        elif type(child) == ast.ImportFrom:
+        elif type(child) is ast.ImportFrom:
             imports.append(child)
     return imports
 
 
-def getAllGlobalNames(a):
+def get_all_global_names(node):
     # Finds all names that can be accessed at the global level in the AST
-    if type(a) != ast.Module:
+    if type(node) is not ast.Module:
         return []
     names = []
-    for obj in a.body:
+    for obj in node.body:
         if type(obj) in [ast.FunctionDef, ast.ClassDef]:
             names.append(obj.name)
         elif type(obj) in [ast.Assign, ast.AugAssign]:
-            targets = obj.targets if type(obj) == ast.Assign else [obj.target]
+            targets = obj.targets if type(obj) is ast.Assign else [obj.target]
             for target in obj.targets:
                 if type(target) == ast.Name:
                     names.append(target.id)
@@ -349,132 +340,133 @@ def getAllGlobalNames(a):
                             names.append(elt.id)
         elif type(obj) in [ast.Import, ast.ImportFrom]:
             for module in obj.names:
-                names.append(module.asname if module.asname != None else module.name)
+                names.append(module.asname if module.asname is not None else module.name)
     return names
 
 
-def doBinaryOp(op, l, r):
+def do_binary_op(operation, left, right):
     """Perform the given AST binary operation on the values"""
-    top = type(op)
-    if top == ast.Add:
-        return l + r
-    elif top == ast.Sub:
-        return l - r
-    elif top == ast.Mult:
-        return l * r
-    elif top == ast.Div:
+    top = type(operation)
+    if top is ast.Add:
+        return left + right
+    elif top is ast.Sub:
+        return left - right
+    elif top is ast.Mult:
+        return left * right
+    elif top is ast.Div:
         # Don't bother if this will be a really long float- it won't work properly!
         # Also, in Python 3 this is floating division, so perform it accordingly.
-        val = 1.0 * l / r
+        val = 1.0 * left / right
         if (val * 1e10 % 1.0) != 0:
             raise Exception("Repeating Float")
         return val
-    elif top == ast.Mod:
-        return l % r
-    elif top == ast.Pow:
-        return l ** r
-    elif top == ast.LShift:
-        return l << r
-    elif top == ast.RShift:
-        return l >> r
-    elif top == ast.BitOr:
-        return l | r
-    elif top == ast.BitXor:
-        return l ^ r
-    elif top == ast.BitAnd:
-        return l & r
-    elif top == ast.FloorDiv:
-        return l // r
+    elif top is ast.Mod:
+        return left % right
+    elif top is ast.Pow:
+        return left ** right
+    elif top is ast.LShift:
+        return left << right
+    elif top is ast.RShift:
+        return left >> right
+    elif top is ast.BitOr:
+        return left | right
+    elif top is ast.BitXor:
+        return left ^ right
+    elif top is ast.BitAnd:
+        return left & right
+    elif top is ast.FloorDiv:
+        return left // right
 
 
-def doUnaryOp(op, val):
+def do_unary_op(operation, val):
     """Perform the given AST unary operation on the value"""
-    top = type(op)
-    if top == ast.Invert:
+    top = type(operation)
+    if top is ast.Invert:
         return ~ val
-    elif top == ast.Not:
+    elif top is ast.Not:
         return not val
-    elif top == ast.UAdd:
+    elif top is ast.UAdd:
         return val
-    elif top == ast.USub:
+    elif top is ast.USub:
         return -val
 
 
-def doCompare(op, left, right):
+def do_compare(operation, left, right):
     """Perform the given AST comparison on the values"""
-    top = type(op)
-    if top == ast.Eq:
+    top = type(operation)
+    if top is ast.Eq:
         return left == right
-    elif top == ast.NotEq:
+    elif top is ast.NotEq:
         return left != right
-    elif top == ast.Lt:
+    elif top is ast.Lt:
         return left < right
-    elif top == ast.LtE:
+    elif top is ast.LtE:
         return left <= right
-    elif top == ast.Gt:
+    elif top is ast.Gt:
         return left > right
-    elif top == ast.GtE:
+    elif top is ast.GtE:
         return left >= right
-    elif top == ast.Is:
+    elif top is ast.Is:
         return left is right
-    elif top == ast.IsNot:
+    elif top is ast.IsNot:
         return left is not right
-    elif top == ast.In:
+    elif top is ast.In:
         return left in right
-    elif top == ast.NotIn:
+    elif top is ast.NotIn:
         return left not in right
 
 
 def num_negate(op):
     top = type(op)
+    new_op = None
     neg = not op.num_negated if hasattr(op, "num_negated") else True
     if top == ast.Add:
-        newOp = ast.Sub()
+        new_op = ast.Sub()
     elif top == ast.Sub:
-        newOp = ast.Add()
+        new_op = ast.Add()
     elif top in [ast.Mult, ast.Div, ast.Mod, ast.Pow, ast.LShift,
                  ast.RShift, ast.BitOr, ast.BitXor, ast.BitAnd, ast.FloorDiv]:
         return None  # can't negate this
     elif top in [ast.Num, ast.Name]:
         # this is a normal value, so put a - in front of it
-        newOp = ast.UnaryOp(ast.USub(addedNeg=True), op)
+        new_op = ast.UnaryOp(ast.USub(addedNeg=True), op)
     else:
-        log("astTools\tnum_negate\tUnusual type: " + str(top), "bug")
-    transferMetaData(op, newOp)
-    newOp.num_negated = neg
-    return newOp
+        raise Exception("Unknown operator type")
+    transferMetaData(op, new_op)
+    new_op.num_negated = neg
+    return new_op
 
 
 def negate(op):
     """Return the negation of the provided operator"""
-    if op == None:
+    if op is None:
         return None
     top = type(op)
     neg = not op.negated if hasattr(op, "negated") else True
     if top == ast.And:
-        newOp = ast.Or()
+        new_op = ast.Or()
     elif top == ast.Or:
-        newOp = ast.And()
+        new_op = ast.And()
     elif top == ast.Eq:
-        newOp = ast.NotEq()
+        new_op = ast.NotEq()
     elif top == ast.NotEq:
-        newOp = ast.Eq()
+        new_op = ast.Eq()
     elif top == ast.Lt:
-        newOp = ast.GtE()
+        new_op = ast.GtE()
     elif top == ast.GtE:
-        newOp = ast.Lt()
+        new_op = ast.Lt()
     elif top == ast.Gt:
-        newOp = ast.LtE()
+        new_op = ast.LtE()
     elif top == ast.LtE:
-        newOp = ast.Gt()
+        new_op = ast.Gt()
     elif top == ast.Is:
-        newOp = ast.IsNot()
+        new_op = ast.IsNot()
     elif top == ast.IsNot:
-        newOp = ast.Is()
+        new_op = ast.Is()
     elif top == ast.In:
-        newOp = ast.NotIn()
+        new_op = ast.NotIn()
     elif top == ast.NotIn:
-        newOp = ast.In()
+        new_op = ast.In()
     elif top == ast.NameConstant and op.value in [True, False]:
         op.value = not op.value
         op.negated = neg
@@ -486,779 +478,651 @@ def negate(op):
             return op
         else:
             values = []
-            allOperands = [op.left] + op.comparators
+            all_operands = [op.left] + op.comparators
             for i in range(len(op.ops)):
-                values.append(ast.Compare(allOperands[i], [negate(op.ops[i])],
-                                          [allOperands[i + 1]], multiCompPart=True))
-            newOp = ast.BoolOp(ast.Or(multiCompOp=True), values, multiComp=True)
+                values.append(ast.Compare(all_operands[i], [negate(op.ops[i])],
+                                          [all_operands[i + 1]], multiCompPart=True))
+            new_op = ast.BoolOp(ast.Or(multiCompOp=True), values, multiComp=True)
     elif top == ast.UnaryOp and type(op.op) == ast.Not and \
-            eventualType(op.operand) == bool:  # this can mess things up type-wise
+            eventual_type(op.operand) == bool:  # this can mess things up type-wise
         return op.operand
     else:
         # this is a normal value, so put a not around it
-        newOp = ast.UnaryOp(ast.Not(addedNot=True), op)
-    transferMetaData(op, newOp)
-    newOp.negated = neg
-    return newOp
+        new_op = ast.UnaryOp(ast.Not(addedNot=True), op)
+    transferMetaData(op, new_op)
+    new_op.negated = neg
+    return new_op
 
 
-def couldCrash(a):
+def could_crash(node):
     """Determines whether the given AST could possibly crash"""
-    typeCrashes = True  # toggle based on whether you care about potential crashes caused by types
-    if not isinstance(a, ast.AST):
+    type_crashes = True  # toggle based on whether you care about potential crashes caused by types
+    if not isinstance(node, ast.AST):
         return False
 
-    if type(a) == ast.Try:
-        for handler in a.handlers:
-            for child in ast.iter_child_nodes(handler):
-                if couldCrash(child):
-                    return True
-        for other in a.orelse:
-            for child in ast.iter_child_nodes(other):
-                if couldCrash(child):
-                    return True
-        for line in a.finalbody:
-            for child in ast.iter_child_nodes(line):
-                if couldCrash(child):
-                    return True
+    if isinstance(node, ast.Try):
+        for part in (node.handlers, node.orelse, node.finalbody):
+            for item in part:
+                for child in ast.iter_child_nodes(item):
+                    if could_crash(child):
+                        return True
         return False
 
-    # If any child could crash, this can crash
-    for child in ast.iter_child_nodes(a):
-        if couldCrash(child):
+    for child in ast.iter_child_nodes(node):
+        if could_crash(child):
             return True
 
-    if type(a) == ast.FunctionDef:
-        argNames = []
-        for arg in a.args.args:
-            if arg.arg in argNames:  # conflicting arg names!
+    if isinstance(node, ast.FunctionDef):
+        arg_names = set()
+        for arg in node.args.args:
+            if arg.arg in arg_names:
                 return True
-            else:
-                argNames.append(arg.arg)
-    if type(a) == ast.Assign:
-        for target in a.targets:
-            if type(target) != ast.Name:  # can crash if it's a tuple and we can't unpack the value
+            arg_names.add(arg.arg)
+    elif isinstance(node, ast.Assign):
+        for target in node.targets:
+            if not isinstance(target, ast.Name):
                 return True
-    elif type(a) in [ast.For, ast.comprehension]:  # check if the target or iter will break things
-        if type(a.target) not in [ast.Name, ast.Tuple, ast.List]:
+    elif isinstance(node, (ast.For, ast.comprehension)):
+        if not isinstance(node.target, (ast.Name, ast.Tuple, ast.List)):
             return True
-        elif type(a.target) in [ast.Tuple, ast.List]:
-            for x in a.target.elts:
-                if type(x) != ast.Name:
+        if isinstance(node.target, (ast.Tuple, ast.List)):
+            for elt in node.target.elts:
+                if not isinstance(elt, ast.Name):
                     return True
-        elif is_iterable_type(eventualType(a.iter)):
+        if is_iterable_type(eventual_type(node.iter)):
             return True
-    elif type(a) == ast.Import:
-        for name in a.names:
+    elif isinstance(node, ast.Import):
+        for name in node.names:
             if name not in supported_libraries:
                 return True
-    elif type(a) == ast.ImportFrom:
-        if a.module not in supported_libraries:
+    elif isinstance(node, ast.ImportFrom):
+        if node.module not in supported_libraries or node.level is not None:
             return True
-        if a.level != None:
-            return True
-        for name in a.names:
-            if name not in libraryMap[a.module]:
+        for name in node.names:
+            if name not in libraryMap[node.module]:
                 return True
-    elif type(a) == ast.BinOp:
-        l = eventualType(a.left)
-        r = eventualType(a.right)
-        if type(a.op) == ast.Add:
+    elif isinstance(node, ast.BinOp):
+        l, r = eventual_type(node.left), eventual_type(node.right)
+        if isinstance(node.op, ast.Add):
             if not ((l == r == str) or (l in [int, float] and r in [int, float])):
-                return typeCrashes
-        elif type(a.op) == ast.Mult:
-            if not ((l == str and r == int) or (l == int and r == str) or \
-                    (l in [int, float] and r in [int, float])):
-                return typeCrashes
-        elif type(a.op) in [ast.Sub, ast.LShift, ast.RShift, ast.BitOr, ast.BitXor, ast.BitAnd]:
+                return type_crashes
+        elif isinstance(node.op, ast.Mult):
+            if not ((l == str and r == int) or (l == int and r == str) or (l in [int, float] and r in [int, float])):
+                return type_crashes
+        elif isinstance(node.op, (ast.Sub, ast.LShift, ast.RShift, ast.BitOr, ast.BitXor, ast.BitAnd)):
             if not (l in [int, float] and r in [int, float]):
-                return typeCrashes
-        elif type(a.op) == ast.Pow:
-            if not ((l in [int, float] and r == int) or \
-                    (l in [int, float] and type(a.right) == ast.Num and \
-                     type(a.right.n) != complex and \
-                     (a.right.n >= 1 or a.right.n == 0 or a.right.n <= -1))):
+                return type_crashes
+        elif isinstance(node.op, ast.Pow):
+            if not ((l in [int, float] and r == int) or (l in [int, float] and isinstance(node.right, ast.Num) and
+                                                         not isinstance(node.right.n, complex) and (
+                                                                 node.right.n >= 1 or node.right.n == 0 or node.right.n <= -1))):
                 return True
         else:  # ast.Div, ast.FloorDiv, ast.Mod
-            if type(a.right) == ast.Num and a.right.n != 0:
+            if isinstance(node.right, ast.Num) and node.right.n != 0:
                 if l not in [int, float]:
-                    return typeCrashes
+                    return type_crashes
             else:
                 return True  # Divide by zero error
-    elif type(a) == ast.UnaryOp:
-        if type(a.op) in [ast.UAdd, ast.USub]:
-            if eventualType(a.operand) not in [int, float]:
-                return typeCrashes
-        elif type(a.op) == ast.Invert:
-            if eventualType(a.operand) != int:
-                return typeCrashes
-    elif type(a) == ast.Compare:
-        if len(a.ops) != len(a.comparators):
+    elif isinstance(node, ast.UnaryOp):
+        if isinstance(node.op, (ast.UAdd, ast.USub)):
+            if eventual_type(node.operand) not in [int, float]:
+                return type_crashes
+        elif isinstance(node.op, ast.Invert):
+            if eventual_type(node.operand) != int:
+                return type_crashes
+    elif isinstance(node, ast.Compare):
+        if len(node.ops) != len(node.comparators):
             return True
-        elif type(a.ops[0]) in [ast.In, ast.NotIn]:
-            if not is_iterable_type(eventualType(a.comparators[0])):
+        if isinstance(node.ops[0], (ast.In, ast.NotIn)):
+            if not is_iterable_type(eventual_type(node.comparators[0])):
                 return True
-            elif eventualType(a.comparators[0]) in [str, bytes] and eventualType(a.left) not in [str, bytes]:
+            if eventual_type(node.comparators[0]) in [str, bytes] and eventual_type(node.left) not in [str, bytes]:
                 return True
-        elif type(a.ops[0]) in [ast.Lt, ast.LtE, ast.Gt, ast.GtE]:
-            # In Python3, you can't compare different types. BOOOOOO!!
-            firstType = eventualType(a.left)
-            if firstType == None:
+        elif isinstance(node.ops[0], (ast.Lt, ast.LtE, ast.Gt, ast.GtE)):
+            first_type = eventual_type(node.left)
+            if first_type is None:
                 return True
-            for comp in a.comparators:
-                if eventualType(comp) != firstType:
+            for comp in node.comparators:
+                if eventual_type(comp) != first_type:
                     return True
-    elif type(a) == ast.Call:
-        env = []  # TODO: what if the environments aren't imported?
-        # First, gather up the needed variables
-        if type(a.func) == ast.Name:
-            funName = a.func.id
-            if funName not in builtInSafeFunctions:
+    elif isinstance(node, ast.Call):
+        if isinstance(node.func, ast.Name):
+            funct_name = node.func.id
+            if funct_name not in builtInSafeFunctions:
                 return True
-            funDict = built_in_functions
-        elif type(a.func) == ast.Attribute:
-            if type(a.func.value) == a.Name and \
-                    (not hasattr(a.func.value, "varID")) and \
-                    a.func.value.id in supported_libraries:
-                funName = a.func.attr
-                if funName not in safeLibraryMap(a.func.value.id):
+            funct_dict = built_in_functions
+        elif isinstance(node.func, ast.Attribute):
+            if isinstance(node.func.value, ast.Name) and not hasattr(node.func.value,
+                                                                     "varID") and node.func.value.id in supported_libraries:
+                funct_name = node.func.attr
+                if funct_name not in safeLibraryMap(node.func.value.id):
                     return True
-                funDict = libraryMap[a.func.value.id]
-            elif eventualType(a.func.value) == str:
-                funName = a.func.attr
-                if funName not in safeStringFunctions:
+                funct_dict = libraryMap[node.func.value.id]
+            elif eventual_type(node.func.value) == str:
+                funct_name = node.func.attr
+                if funct_name not in safeStringFunctions:
                     return True
-                funDict = builtInStringFunctions
-            else:  # list and dict are definitely crashable
+                funct_dict = builtInStringFunctions
+            else:
                 return True
         else:
             return True
 
-        if funName in ["max", "min"]:
-            return False  # Special functions that have infinite args
+        if funct_name in ["max", "min"]:
+            return False
 
-        # First, load up the arg types
-        argTypes = []
-        for i in range(len(a.args)):
-            eventual = eventualType(a.args[i])
-            if (eventual == None and typeCrashes):
-                return True
-            argTypes.append(eventual)
+        arg_types = [eventual_type(arg) for arg in node.args]
+        if any(arg is None and type_crashes for arg in arg_types):
+            return True
 
-        if funDict[funName] != None:
-            for argSet in funDict[funName]:  # the given possibilities of arg types
-                if len(argSet) != len(argTypes):
+        if funct_dict[funct_name] is not None:
+            for argSet in funct_dict[funct_name]:
+                if len(argSet) != len(arg_types):
                     continue
-                if not typeCrashes:  # If we don't care about types, stop now
+                if not type_crashes:
                     return False
-
-                for i in range(len(argSet)):
-                    if not (argSet[i] == argTypes[i] or issubclass(argTypes[i], argSet[i])):
-                        break
-                else:  # if all types matched
+                if all(argSet[i] == arg_types[i] or issubclass(arg_types[i], argSet[i]) for i in range(len(argSet))):
                     return False
-            return True  # Didn't fit any of the options
-    elif type(a) == ast.Subscript:  # can only get an index from a string or list
-        return eventualType(a.value) not in [str, list, tuple]
-    elif type(a) == ast.Name:
-        # If it's an undefined variable, it might crash
-        if hasattr(a, "randomVar"):
             return True
-    elif type(a) == ast.Slice:
-        if a.lower != None and eventualType(a.lower) != int:
+    elif isinstance(node, ast.Subscript):
+        return eventual_type(node.value) not in [str, list, tuple]
+    elif isinstance(node, ast.Name):
+        if hasattr(node, "randomVar"):
             return True
-        if a.upper != None and eventualType(a.upper) != int:
+    elif isinstance(node, ast.Slice):
+        if node.lower is not None and eventual_type(node.lower) != int:
             return True
-        if a.step != None and eventualType(a.step) != int:
+        if node.upper is not None and eventual_type(node.upper) != int:
             return True
-    elif type(a) in [ast.Raise, ast.Assert, ast.Pass, ast.Break, \
-                     ast.Continue, ast.Yield, ast.Attribute, ast.ExtSlice, ast.Index, \
-                     ast.Starred]:
-        # All of these cases can definitely crash.
+        if node.step is not None and eventual_type(node.step) != int:
+            return True
+    elif isinstance(node, (
+            ast.Raise, ast.Assert, ast.Pass, ast.Break, ast.Continue, ast.Yield, ast.Attribute, ast.ExtSlice, ast.Index,
+            ast.Starred)):
         return True
+
     return False
 
 
-def eventualType(a):
+def eventual_type(node):
     """Get the type the expression will eventually be, if possible
         The expression might also crash! But we don't care about that here,
         we'll deal with it elsewhere.
         Returning 'None' means that we cannot say at the moment"""
-    if type(a) in builtInTypes:
-        return type(a)
-    if not isinstance(a, ast.AST):
+    if type(node) in builtInTypes:
+        return type(node)
+    if not isinstance(node, ast.AST):
         return None
 
-    elif type(a) == ast.BoolOp:
-        # In Python, it's the type of all the values in it
-        # this may work differently in other languages
-        t = eventualType(a.values[0])
-        for i in range(1, len(a.values)):
-            if eventualType(a.values[i]) != t:
+    if isinstance(node, ast.BoolOp):
+        target = eventual_type(node.values[0])
+        for value in node.values[1:]:
+            if eventual_type(value) != target:
                 return None
-        return t
-    elif type(a) == ast.BinOp:
-        l = eventualType(a.left)
-        r = eventualType(a.right)
-        # It is possible to add/multiply sequences
-        if type(a.op) in [ast.Add, ast.Mult]:
-            if is_iterable_type(l):
-                return l
-            elif is_iterable_type(r):
-                return r
-            elif l == float or r == float:
+        return target
+
+    if isinstance(node, ast.BinOp):
+        left = eventual_type(node.left)
+        right = eventual_type(node.right)
+        if isinstance(node.op, (ast.Add, ast.Mult)):
+            if is_iterable_type(left):
+                return left
+            if is_iterable_type(right):
+                return right
+            if left == float or right == float:
                 return float
-            elif l == int and r == int:
+            if left == int and right == int:
                 return int
             return None
-        elif type(a.op) == ast.Div:
-            return float  # always a float now
-        # For others, check if we know whether it's a float or an int
-        elif type(a.op) in [ast.FloorDiv, ast.LShift, ast.RShift, ast.BitOr,
-                            ast.BitAnd, ast.BitXor]:
-            return int
-        elif float in [l, r]:
+        if isinstance(node.op, ast.Div):
             return float
-        elif l == int and r == int:
+        if isinstance(node.op, (ast.FloorDiv, ast.LShift, ast.RShift, ast.BitOr, ast.BitAnd, ast.BitXor)):
             return int
-        else:
-            return None  # Otherwise, it could be a float- we don't know
-    elif type(a) == ast.UnaryOp:
-        if type(a.op) == ast.Invert:
+        if float in [left, right]:
+            return float
+        if left == int and right == int:
             return int
-        elif type(a.op) in [ast.UAdd, ast.USub]:
-            return eventualType(a.operand)
-        else:  # Not op
-            return bool
-    elif type(a) == ast.Lambda:
-        return None  # We don't know what the lambda will return
-    elif type(a) == ast.IfExp:
-        l = eventualType(a.body)
-        r = eventualType(a.orelse)
-        if l == r:
-            return l
-        else:
-            return None
-    elif type(a) in [ast.Dict, ast.DictComp]:
-        return dict
-    elif type(a) in [ast.Set, ast.SetComp]:
-        return set
-    elif type(a) in [ast.List, ast.ListComp]:
-        return list
-    elif type(a) == ast.GeneratorExp:
-        return None  # can't represent a generator
-    elif type(a) == ast.Yield:
-        return None  # we don't know
-    elif type(a) == ast.Compare:
+        return None
+
+    if isinstance(node, ast.UnaryOp):
+        if isinstance(node.op, ast.Invert):
+            return int
+        if isinstance(node.op, (ast.UAdd, ast.USub)):
+            return eventual_type(node.operand)
         return bool
-    elif type(a) == ast.Call:
-        # Go through our different sets of known functions to see if we know the type
-        argTypes = [eventualType(x) for x in a.args]
-        if type(a.func) == ast.Name:
-            funDict = built_in_functions
-            funName = a.func.id
-        elif type(a.func) == ast.Attribute:
-            # TODO: get a better solution than this
-            funName = a.func.attr
-            if type(a.func.value) == ast.Name and \
-                    (not hasattr(a.func.value, "varID")) and \
-                    a.func.value.id in supported_libraries:
-                funDict = libraryDictMap[a.func.value.id]
-                if a.func.value.id in ["string", "str", "list", "dict"] and len(argTypes) > 0:
-                    argTypes.pop(0)  # get rid of the first string arg
-            elif eventualType(a.func.value) == str:
-                funDict = builtInStringFunctions
-            elif eventualType(a.func.value) == list:
-                funDict = builtInListFunctions
-            elif eventualType(a.func.value) == dict:
-                funDict = builtInDictFunctions
+
+    if isinstance(node, ast.Lambda):
+        return None
+
+    if isinstance(node, ast.IfExp):
+        left = eventual_type(node.body)
+        right = eventual_type(node.orelse)
+        return left if left == right else None
+
+    if isinstance(node, (ast.Dict, ast.DictComp)):
+        return dict
+
+    if isinstance(node, (ast.Set, ast.SetComp)):
+        return set
+
+    if isinstance(node, (ast.List, ast.ListComp)):
+        return list
+
+    if isinstance(node, ast.GeneratorExp):
+        return None
+
+    if isinstance(node, ast.Yield):
+        return None
+
+    if isinstance(node, ast.Compare):
+        return bool
+
+    if isinstance(node, ast.Call):
+        arg_types = [eventual_type(inner_node) for inner_node in node.args]
+        if isinstance(node.func, ast.Name):
+            funct_dict = built_in_functions
+            funct_name = node.func.id
+        elif isinstance(node.func, ast.Attribute):
+            funct_name = node.func.attr
+            if isinstance(node.func.value, ast.Name) and not hasattr(node.func.value,
+                                                                     "varID") and node.func.value.id in supported_libraries:
+                funct_dict = libraryDictMap[node.func.value.id]
+                if node.func.value.id in ["string", "str", "list", "dict"] and len(arg_types) > 0:
+                    arg_types.pop(0)
+            elif eventual_type(node.func.value) == str:
+                funct_dict = builtInStringFunctions
+            elif eventual_type(node.func.value) == list:
+                funct_dict = builtInListFunctions
+            elif eventual_type(node.func.value) == dict:
+                funct_dict = builtInDictFunctions
             else:
                 return None
         else:
             return None
 
-        if funName in ["max", "min"]:
-            # If all args are the same type, that's our type
-            uniqueTypes = set(argTypes)
-            if len(uniqueTypes) == 1:
-                return uniqueTypes.pop()
-            return None
+        if funct_name in ["max", "min"]:
+            unique_types = set(arg_types)
+            return unique_types.pop() if len(unique_types) == 1 else None
 
-        if funName in funDict and funDict[funName] != None:
-            possibleTypes = []
-            for argSet in funDict[funName]:
-                if len(argSet) == len(argTypes):
-                    # All types must match!
+        if funct_name in funct_dict and funct_dict[funct_name] is not None:
+            possible_types = []
+            for argSet in funct_dict[funct_name]:
+                if len(argSet) == len(arg_types):
                     for i in range(len(argSet)):
-                        if argSet[i] == None or argTypes[i] == None:  # We don't know, but that's okay
+                        if argSet[i] is None or arg_types[i] is None:
                             continue
-                        if not (argSet[i] == argTypes[i] or (issubclass(argTypes[i], argSet[i]))):
+                        if not (argSet[i] == arg_types[i] or (issubclass(arg_types[i], argSet[i]))):
                             break
                     else:
-                        possibleTypes.append(funDict[funName][argSet])
-            possibleTypes = set(possibleTypes)
-            if len(possibleTypes) == 1:  # If there's only one possibility, that's our type!
-                return possibleTypes.pop()
+                        possible_types.append(funct_dict[funct_name][argSet])
+            possible_types = set(possible_types)
+            if len(possible_types) == 1:
+                return possible_types.pop()
         return None
-    elif type(a) in [ast.Str, ast.Bytes]:
-        if containsTokenStepString(a):
+
+    if isinstance(node, (ast.Str, ast.Bytes)):
+        if contains_token_step_string(node):
             return None
         return str
-    elif type(a) == ast.Num:
-        return type(a.n)
-    elif type(a) == ast.Attribute:
-        return None  # we have no way of knowing
-    elif type(a) == ast.Subscript:
-        # We're slicing the object, so the type will stay the same
-        t = eventualType(a.value)
-        if t == None:
+
+    if isinstance(node, ast.Num):
+        return type(node.n)
+
+    if isinstance(node, ast.Attribute):
+        return None
+
+    if isinstance(node, ast.Subscript):
+        t = eventual_type(node.value)
+        if t is None:
             return None
-        elif t == str:
-            return str  # indexing a string
-        elif t in [list, tuple]:
-            if type(a.slice) == ast.Slice:
+        if t == str:
+            return str
+        if t in [list, tuple]:
+            if isinstance(node.slice, ast.Slice):
                 return t
-            # Otherwise, we need the types of the elements
-            if type(a.value) in [ast.List, ast.Tuple]:
-                if len(a.value.elts) == 0:
-                    return None  # We don't know
+            if isinstance(node.value, (ast.List, ast.Tuple)):
+                if len(node.value.elts) == 0:
+                    return None
                 else:
-                    eltType = eventualType(a.value.elts[0])
-                    for elt in a.value.elts:
-                        if eventualType(elt) != eltType:
-                            return None  # Disagreement!
+                    eltType = eventual_type(node.value.elts[0])
+                    for elt in node.value.elts:
+                        if eventual_type(elt) != eltType:
+                            return None
                     return eltType
-        elif t in [dict, int]:
+        if t in [dict, int]:
             return None
-        else:
-            log("astTools\teventualType\tUnknown type in subscript: " + str(t), "bug")
-        return None  # We can't know for now...
-    elif type(a) == ast.NameConstant:
-        if a.value == True or a.value == False:
+        raise Exception("Unknown type in Subscript")
+
+    if isinstance(node, ast.NameConstant):
+        if node.value in [True, False]:
             return bool
-        elif a.value == None:
+        if node.value is None:
             return type(None)
         return None
-    elif type(a) == ast.Name:
-        if hasattr(a, "type"):  # If it's a variable we categorized
-            return a.type
+
+    if isinstance(node, ast.Constant):
+        return type(node.value)
+
+    if isinstance(node, ast.Name):
+        if hasattr(node, "type"):
+            return node.type
         return None
-    elif type(a) == ast.Tuple:
+
+    if isinstance(node, ast.Tuple):
         return tuple
-    elif type(a) == ast.Starred:
-        return None  # too complicated
-    else:
-        log("astTools\teventualType\tUnimplemented type " + str(type(a)), "bug")
+
+    if isinstance(node, ast.Starred):
         return None
 
+    raise Exception("Unknown type in eventual_type, " + str(type(node)), " not implemented yet")
 
-def depthOfAST(a):
+
+def depth_of_ast(node):
     """Determine the depth of the AST"""
-    if not isinstance(a, ast.AST):
+    if not isinstance(node, ast.AST):
         return 0
-    m = 0
-    for child in ast.iter_child_nodes(a):
-        tmp = depthOfAST(child)
-        if tmp > m:
-            m = tmp
-    return m + 1
+    current_deepest = 0
+    for child in ast.iter_child_nodes(node):
+        candidate_node_depth = depth_of_ast(child)
+        if candidate_node_depth > current_deepest:
+            current_deepest = candidate_node_depth
+    return current_deepest + 1
 
 
-def compareASTs(a, b, checkEquality=False):
+def compare_trees(node_a, node_b, check_equality=False):
     """A comparison function for ASTs"""
-    # None before others
-    if a == b is None:
+    if node_a == node_b is None:
         return 0
-    elif a is None or b is None:
-        return -1 if a is None else 1
+    elif node_a is None or node_b is None:
+        return -1 if node_a is None else 1
 
-    if type(a) is type(b) is list:
-        if len(a) != len(b):
-            return len(a) - len(b)
-        for i in range(len(a)):
-            r = compareASTs(a[i], b[i], checkEquality=checkEquality)
-            if r != 0:
-                return r
+    if isinstance(node_a, list) and isinstance(node_b, list):
+        if len(node_a) != len(node_b):
+            return len(node_a) - len(node_b)
+        for i in range(len(node_a)):
+            result = compare_trees(node_a[i], node_b[i], check_equality=check_equality)
+            if result != 0:
+                return result
         return 0
 
-    # AST before primitive
-    if (not isinstance(a, ast.AST)) and (not isinstance(b, ast.AST)):
-        if type(a) is not type(b):
+    if not isinstance(node_a, ast.AST) and not isinstance(node_b, ast.AST):
+        if type(node_a) is not type(node_b):
             builtins = [bool, int, float, str, bytes, complex]
-            if type(a) not in builtins or type(b) not in builtins:
-                log("MISSING BUILT-IN TYPE: " + str(type(a)) + "," + str(type(b)), "bug")
-            return builtins.index(type(a)) - builtins.index(type(b))
-        return cmp(a, b)
-    elif (not isinstance(a, ast.AST)) or (not isinstance(b, ast.AST)):
-        return -1 if isinstance(a, ast.AST) else 1
+            if type(node_a) not in builtins or type(node_b) not in builtins:
+                log("MISSING BUILT-IN TYPE: " + str(type(node_a)) + "," + str(type(node_b)), "bug")
+            return builtins.index(type(node_a)) - builtins.index(type(node_b))
+        return cmp(node_a, node_b)
+    elif not isinstance(node_a, ast.AST) or not isinstance(node_b, ast.AST):
+        return -1 if isinstance(node_a, ast.AST) else 1
 
-    # Order by differing types
-    if type(a) is not type(b):
-        # Here is a brief ordering of types that we care about
+    if type(node_a) is not type(node_b):
         important_types = [ast.Load, ast.Store, ast.Del, ast.AugLoad, ast.AugStore, ast.Param]
-        if type(a) in important_types and type(b) in important_types:
+        if type(node_a) in important_types and type(node_b) in important_types:
             return 0
-        elif type(a) in important_types or type(b) in important_types:
-            return -1 if type(a) in important_types else 1
+        elif type(node_a) in important_types or type(node_b) in important_types:
+            return -1 if type(node_a) in important_types else 1
 
         types = [ast.Module, ast.Interactive, ast.Expression, ast.Suite,
-
                  ast.Break, ast.Continue, ast.Pass, ast.Global,
                  ast.Expr, ast.Assign, ast.AugAssign, ast.Return,
                  ast.Assert, ast.Delete, ast.If, ast.For, ast.While,
                  ast.With, ast.Import, ast.ImportFrom, ast.Raise,
-                 ast.Try, ast.FunctionDef,
-                 ast.ClassDef,
-
+                 ast.Try, ast.FunctionDef, ast.ClassDef,
                  ast.BinOp, ast.BoolOp, ast.Compare, ast.UnaryOp,
                  ast.DictComp, ast.ListComp, ast.SetComp, ast.GeneratorExp,
                  ast.Yield, ast.Lambda, ast.IfExp, ast.Call, ast.Subscript,
                  ast.Attribute, ast.Dict, ast.List, ast.Tuple,
                  ast.Set, ast.Name, ast.Str, ast.Bytes, ast.Num,
                  ast.NameConstant, ast.Starred, ast.Constant,
-
                  ast.Ellipsis, ast.Index, ast.Slice, ast.ExtSlice,
-
                  ast.And, ast.Or, ast.Add, ast.Sub, ast.Mult, ast.Div,
                  ast.Mod, ast.Pow, ast.LShift, ast.RShift, ast.BitOr,
                  ast.BitXor, ast.BitAnd, ast.FloorDiv, ast.Invert, ast.Not,
                  ast.UAdd, ast.USub, ast.Eq, ast.NotEq, ast.Lt, ast.LtE,
                  ast.Gt, ast.GtE, ast.Is, ast.IsNot, ast.In, ast.NotIn,
-
                  ast.alias, ast.keyword, ast.arguments, ast.arg, ast.comprehension,
-                 ast.ExceptHandler, ast.withitem
-                 ]
-        if (type(a) not in types) or (type(b) not in types):
-            log("astTools\tcompareASTs\tmissing type:" + str(type(a)) + "," + str(type(b)), "bug")
+                 ast.ExceptHandler, ast.withitem]
+        if type(node_a) not in types or type(node_b) not in types:
+            log("astTools\tcompareASTs\tmissing type:" + str(type(node_a)) + "," + str(type(node_b)), "bug")
             return 0
-        return types.index(type(a)) - types.index(type(b))
-    # Then, more complex expressions- but don't bother with this if we're just checking equality
-    if not checkEquality:
-        ad = depthOfAST(a)
-        bd = depthOfAST(b)
-        if ad != bd:
-            return bd - ad
+        return types.index(type(node_a)) - types.index(type(node_b))
 
-    # Add this case after handling ast.NameConstant
-    if type(a) is ast.Constant:
-        # Compare the values of the Constant nodes
-        if hasattr(a, 'value') and hasattr(b, 'value'):
-            # Handle comparison for simple types directly
-            if type(a.value) is not type(b.value):
-                return -1 if type(a.value).__name__ < type(b.value).__name__ else 1
+    if not check_equality:
+        depth_a = depth_of_ast(node_a)
+        depth_b = depth_of_ast(node_b)
+        if depth_a != depth_b:
+            return depth_b - depth_a
+
+    if isinstance(node_a, ast.Constant):
+        if hasattr(node_a, 'value') and hasattr(node_b, 'value'):
+            if type(node_a.value) is not type(node_b.value):
+                return -1 if type(node_a.value).__name__ < type(node_b.value).__name__ else 1
             else:
-                # We should drill down into the values to get the str value out
-                if type(a.value is ast.Constant and b.value is ast.Constant):
-                    return compareASTs(a.value, b.value, checkEquality=checkEquality)
-
+                if isinstance(node_a.value, ast.Constant) and isinstance(node_b.value, ast.Constant):
+                    return compare_trees(node_a.value, node_b.value, check_equality=check_equality)
         else:
-            return 0  # Consider them equal if they lack values, though this should not happen
-    # NameConstants are special
-    if type(a) == ast.NameConstant:
-        if a.value == None or b.value == None:
-            return 1 if a.value != None else (0 if b.value == None else -1)  # short and works
+            return 0
 
-        if a.value in [True, False] or b.value in [True, False]:
-            return 1 if a.value not in [True, False] else (cmp(a.value, b.value) if b.value in [True, False] else -1)
+    if isinstance(node_a, ast.NameConstant):
+        if node_a.value is None or node_b.value is None:
+            return 1 if node_a.value is not None else (0 if node_b.value is None else -1)
+        if node_a.value in [True, False] or node_b.value in [True, False]:
+            return 1 if node_a.value not in [True, False] else (
+                cmp(node_a.value, node_b.value) if node_b.value in [True, False] else -1)
 
-    if type(a) == ast.Name:
-        return cmp(a.id, b.id)
+    if isinstance(node_a, ast.Name):
+        return cmp(node_a.id, node_b.id)
 
-    # Operations and attributes are all ok
-    elif type(a) in [ast.And, ast.Or, ast.Add, ast.Sub, ast.Mult, ast.Div,
-                     ast.Mod, ast.Pow, ast.LShift, ast.RShift, ast.BitOr,
-                     ast.BitXor, ast.BitAnd, ast.FloorDiv, ast.Invert,
-                     ast.Not, ast.UAdd, ast.USub, ast.Eq, ast.NotEq, ast.Lt,
-                     ast.LtE, ast.Gt, ast.GtE, ast.Is, ast.IsNot, ast.In,
-                     ast.NotIn, ast.Load, ast.Store, ast.Del, ast.AugLoad,
-                     ast.AugStore, ast.Param, ast.Ellipsis, ast.Pass,
-                     ast.Break, ast.Continue
-                     ]:
+    if isinstance(node_a, (ast.And, ast.Or, ast.Add, ast.Sub, ast.Mult, ast.Div,
+                           ast.Mod, ast.Pow, ast.LShift, ast.RShift, ast.BitOr,
+                           ast.BitXor, ast.BitAnd, ast.FloorDiv, ast.Invert,
+                           ast.Not, ast.UAdd, ast.USub, ast.Eq, ast.NotEq, ast.Lt,
+                           ast.LtE, ast.Gt, ast.GtE, ast.Is, ast.IsNot, ast.In,
+                           ast.NotIn, ast.Load, ast.Store, ast.Del, ast.AugLoad,
+                           ast.AugStore, ast.Param, ast.Ellipsis, ast.Pass,
+                           ast.Break, ast.Continue)):
         return 0
 
-    # Now compare based on the attributes in the identical types
-    attrMap = {ast.Module: ["body"], ast.Interactive: ["body"],
-               ast.Expression: ["body"], ast.Suite: ["body"],
+    attr_map = {
+        ast.Module: ["body"], ast.Interactive: ["body"], ast.Expression: ["body"], ast.Suite: ["body"],
+        ast.FunctionDef: ["name", "args", "body", "decorator_list", "returns"],
+        ast.ClassDef: ["name", "bases", "keywords", "body", "decorator_list"],
+        ast.Return: ["value"], ast.Delete: ["targets"], ast.Assign: ["targets", "value"],
+        ast.AugAssign: ["target", "op", "value"], ast.For: ["target", "iter", "body", "orelse"],
+        ast.While: ["test", "body", "orelse"], ast.If: ["test", "body", "orelse"],
+        ast.With: ["items", "body"], ast.Raise: ["exc", "cause"], ast.Try: ["body", "handlers", "orelse", "finalbody"],
+        ast.Assert: ["test", "msg"], ast.Import: ["names"], ast.ImportFrom: ["module", "names", "level"],
+        ast.Global: ["names"], ast.Expr: ["value"], ast.BoolOp: ["op", "values"], ast.BinOp: ["left", "op", "right"],
+        ast.UnaryOp: ["op", "operand"], ast.Lambda: ["args", "body"], ast.IfExp: ["test", "body", "orelse"],
+        ast.Dict: ["keys", "values"], ast.Set: ["elts"], ast.ListComp: ["elt", "generators"],
+        ast.SetComp: ["elt", "generators"], ast.DictComp: ["key", "value", "generators"],
+        ast.GeneratorExp: ["elt", "generators"], ast.Yield: ["value"], ast.Compare: ["left", "ops", "comparators"],
+        ast.Call: ["func", "args", "keywords"], ast.Num: ["n"], ast.Str: ["s"], ast.Bytes: ["s"],
+        ast.NameConstant: ["value"], ast.Constant: ["value"], ast.Attribute: ["value", "attr"],
+        ast.Subscript: ["value", "slice"], ast.List: ["elts"], ast.Tuple: ["elts"], ast.Starred: ["value"],
+        ast.Slice: ["lower", "upper", "step"], ast.ExtSlice: ["dims"], ast.Index: ["value"],
+        ast.comprehension: ["target", "iter", "ifs"], ast.ExceptHandler: ["type", "name", "body"],
+        ast.arguments: ["posonlyargs", "args", "vararg", "kwonlyargs", "kw_defaults", "kwarg", "defaults"],
+        ast.arg: ["arg", "annotation"], ast.keyword: ["arg", "value"], ast.alias: ["name", "asname"],
+        ast.withitem: ["context_expr", "optional_vars"]
+    }
 
-               ast.FunctionDef: ["name", "args", "body", "decorator_list", "returns"],
-               ast.ClassDef: ["name", "bases", "keywords", "body", "decorator_list"],
-               ast.Return: ["value"],
-               ast.Delete: ["targets"],
-               ast.Assign: ["targets", "value"],
-               ast.AugAssign: ["target", "op", "value"],
-               ast.For: ["target", "iter", "body", "orelse"],
-               ast.While: ["test", "body", "orelse"],
-               ast.If: ["test", "body", "orelse"],
-               ast.With: ["items", "body"],
-               ast.Raise: ["exc", "cause"],
-               ast.Try: ["body", "handlers", "orelse", "finalbody"],
-               ast.Assert: ["test", "msg"],
-               ast.Import: ["names"],
-               ast.ImportFrom: ["module", "names", "level"],
-               ast.Global: ["names"],
-               ast.Expr: ["value"],
+    for attr in attr_map[type(node_a)]:
+        result = compare_trees(getattr(node_a, attr), getattr(node_b, attr), check_equality=check_equality)
+        if result != 0:
+            return result
 
-               ast.BoolOp: ["op", "values"],
-               ast.BinOp: ["left", "op", "right"],
-               ast.UnaryOp: ["op", "operand"],
-               ast.Lambda: ["args", "body"],
-               ast.IfExp: ["test", "body", "orelse"],
-               ast.Dict: ["keys", "values"],
-               ast.Set: ["elts"],
-               ast.ListComp: ["elt", "generators"],
-               ast.SetComp: ["elt", "generators"],
-               ast.DictComp: ["key", "value", "generators"],
-               ast.GeneratorExp: ["elt", "generators"],
-               ast.Yield: ["value"],
-               ast.Compare: ["left", "ops", "comparators"],
-               ast.Call: ["func", "args", "keywords"],
-               ast.Num: ["n"],
-               ast.Str: ["s"],
-               ast.Bytes: ["s"],
-               ast.NameConstant: ["value"],
-               ast.Constant: ["value"],
-               ast.Attribute: ["value", "attr"],
-               ast.Subscript: ["value", "slice"],
-               ast.List: ["elts"],
-               ast.Tuple: ["elts"],
-               ast.Starred: ["value"],
-
-               ast.Slice: ["lower", "upper", "step"],
-               ast.ExtSlice: ["dims"],
-               ast.Index: ["value"],
-
-               ast.comprehension: ["target", "iter", "ifs"],
-               ast.ExceptHandler: ["type", "name", "body"],
-               ast.arguments: ["posonlyargs", "args", "vararg", "kwonlyargs", "kw_defaults", "kwarg", "defaults"],
-               ast.arg: ["arg", "annotation"],
-               ast.keyword: ["arg", "value"],
-               ast.alias: ["name", "asname"],
-               ast.withitem: ["context_expr", "optional_vars"]}
-
-    for attr in attrMap[type(a)]:
-        r = compareASTs(getattr(a, attr), getattr(b, attr), checkEquality=checkEquality)
-        if r != 0:
-            return r
-    # If all attributes are identical, they're equal
     return 0
 
 
-def deepcopyList(l):
+def deepcopy_list(target_list):
     """Deepcopy of a list"""
-    if l == None:
+    if target_list is None:
         return None
-    if isinstance(l, ast.AST):
-        return deepcopy(l)
-    if type(l) != list:
-        log("astTools\tdeepcopyList\tNot a list: " + str(type(l)), "bug")
-        return copy.deepcopy(l)
+    if isinstance(target_list, ast.AST):
+        return deepcopy(target_list)
+    if type(target_list) is not list:
+        raise TypeError("Expected a list, got " + str(type(target_list)))
+    new_list = []
+    # At this point we know it's a list
+    target_list = list(target_list)
+    for line in target_list:
+        new_list.append(deepcopy(line))
+    return new_list
 
-    newList = []
-    for line in l:
-        newList.append(deepcopy(line))
-    return newList
 
-
-def deepcopy(a):
+def deepcopy(node):
     """Let's try to keep this as quick as possible"""
-    if a == None:
+    if node is None:
         return None
-    if type(a) == list:
-        return deepcopyList(a)
-    elif type(a) in [int, float, str, bool]:
-        return a
-    if not isinstance(a, ast.AST):
-        log("astTools\tdeepcopy\tNot an AST: " + str(type(a)), "bug")
-        return copy.deepcopy(a)
+    if isinstance(node, list):
+        return deepcopy_list(node)
+    if isinstance(node, (int, float, str, bool)):
+        return node
+    if not isinstance(node, ast.AST):
+        log("astTools\\tdeepcopy\\tNot an AST: " + str(type(node)), "bug")
+        return copy.deepcopy(node)
 
-    g = a.global_id if hasattr(a, "global_id") else None
+    global_id = getattr(node, "global_id", None)
     cp = None
-    # Objects without lineno, col_offset
-    if type(a) in [ast.And, ast.Or, ast.Add, ast.Sub, ast.Mult, ast.Div,
-                   ast.Mod, ast.Pow, ast.LShift, ast.RShift, ast.BitOr,
-                   ast.BitXor, ast.BitAnd, ast.FloorDiv, ast.Invert,
-                   ast.Not, ast.UAdd, ast.USub, ast.Eq, ast.NotEq, ast.Lt,
-                   ast.LtE, ast.Gt, ast.GtE, ast.Is, ast.IsNot, ast.In,
-                   ast.NotIn, ast.Load, ast.Store, ast.Del, ast.AugLoad,
-                   ast.AugStore, ast.Param
-                   ]:
-        return a
-    elif type(a) == ast.Module:
-        cp = ast.Module(deepcopyList(a.body))
-    elif type(a) == ast.Interactive:
-        cp = ast.Interactive(deepcopyList(a.body))
-    elif type(a) == ast.Expression:
-        cp = ast.Expression(deepcopy(a.body))
-    elif type(a) == ast.Suite:
-        cp = ast.Suite(deepcopyList(a.body))
 
-    elif type(a) == ast.FunctionDef:
-        cp = ast.FunctionDef(a.name, deepcopy(a.args), deepcopyList(a.body),
-                             deepcopyList(a.decorator_list), deepcopy(a.returns))
-    elif type(a) == ast.ClassDef:
-        cp = ast.ClassDef(a.name, deepcopyList(a.bases), deepcopyList(a.keywords), deepcopyList(a.body),
-                          deepcopyList(a.decorator_list))
-    elif type(a) == ast.Return:
-        cp = ast.Return(deepcopy(a.value))
-    elif type(a) == ast.Delete:
-        cp = ast.Delete(deepcopyList(a.targets))
-    elif type(a) == ast.Assign:
-        cp = ast.Assign(deepcopyList(a.targets), deepcopy(a.value))
-    elif type(a) == ast.AugAssign:
-        cp = ast.AugAssign(deepcopy(a.target), deepcopy(a.op),
-                           deepcopy(a.value))
-    elif type(a) == ast.For:
-        cp = ast.For(deepcopy(a.target), deepcopy(a.iter),
-                     deepcopyList(a.body), deepcopyList(a.orelse))
-    elif type(a) == ast.While:
-        cp = ast.While(deepcopy(a.test), deepcopyList(a.body),
-                       deepcopyList(a.orelse))
-    elif type(a) == ast.If:
-        cp = ast.If(deepcopy(a.test), deepcopyList(a.body),
-                    deepcopyList(a.orelse))
-    elif type(a) == ast.With:
-        cp = ast.With(deepcopyList(a.items), deepcopyList(a.body))
-    elif type(a) == ast.Raise:
-        cp = ast.Raise(deepcopy(a.exc), deepcopy(a.cause))
-    elif type(a) == ast.Try:
-        cp = ast.Try(deepcopyList(a.body), deepcopyList(a.handlers),
-                     deepcopyList(a.orelse), deepcopyList(a.finalbody))
-    elif type(a) == ast.Assert:
-        cp = ast.Assert(deepcopy(a.test), deepcopy(a.msg))
-    elif type(a) == ast.Import:
-        cp = ast.Import(deepcopyList(a.names))
-    elif type(a) == ast.ImportFrom:
-        cp = ast.ImportFrom(a.module, deepcopyList(a.names), a.level)
-    elif type(a) == ast.Global:
-        cp = ast.Global(a.names[:])
-    elif type(a) == ast.Expr:
-        cp = ast.Expr(deepcopy(a.value))
-    elif type(a) == ast.Pass:
+    if isinstance(node, (ast.And, ast.Or, ast.Add, ast.Sub, ast.Mult, ast.Div,
+                         ast.Mod, ast.Pow, ast.LShift, ast.RShift, ast.BitOr,
+                         ast.BitXor, ast.BitAnd, ast.FloorDiv, ast.Invert,
+                         ast.Not, ast.UAdd, ast.USub, ast.Eq, ast.NotEq, ast.Lt,
+                         ast.LtE, ast.Gt, ast.GtE, ast.Is, ast.IsNot, ast.In,
+                         ast.NotIn, ast.Load, ast.Store, ast.Del, ast.AugLoad,
+                         ast.AugStore, ast.Param)):
+        return node
+
+    if isinstance(node, ast.Module):
+        cp = ast.Module(deepcopy_list(node.body))
+    elif isinstance(node, ast.Interactive):
+        cp = ast.Interactive(deepcopy_list(node.body))
+    elif isinstance(node, ast.Expression):
+        cp = ast.Expression(deepcopy(node.body))
+    elif isinstance(node, ast.Suite):
+        cp = ast.Suite(deepcopy_list(node.body))
+    elif isinstance(node, ast.FunctionDef):
+        cp = ast.FunctionDef(node.name, deepcopy(node.args), deepcopy_list(node.body),
+                             deepcopy_list(node.decorator_list), deepcopy(node.returns))
+    elif isinstance(node, ast.ClassDef):
+        cp = ast.ClassDef(node.name, deepcopy_list(node.bases), deepcopy_list(node.keywords),
+                          deepcopy_list(node.body), deepcopy_list(node.decorator_list))
+    elif isinstance(node, ast.Return):
+        cp = ast.Return(deepcopy(node.value))
+    elif isinstance(node, ast.Delete):
+        cp = ast.Delete(deepcopy_list(node.targets))
+    elif isinstance(node, ast.Assign):
+        cp = ast.Assign(deepcopy_list(node.targets), deepcopy(node.value))
+    elif isinstance(node, ast.AugAssign):
+        cp = ast.AugAssign(deepcopy(node.target), deepcopy(node.op), deepcopy(node.value))
+    elif isinstance(node, ast.For):
+        cp = ast.For(deepcopy(node.target), deepcopy(node.iter), deepcopy_list(node.body), deepcopy_list(node.orelse))
+    elif isinstance(node, ast.While):
+        cp = ast.While(deepcopy(node.test), deepcopy_list(node.body), deepcopy_list(node.orelse))
+    elif isinstance(node, ast.If):
+        cp = ast.If(deepcopy(node.test), deepcopy_list(node.body), deepcopy_list(node.orelse))
+    elif isinstance(node, ast.With):
+        cp = ast.With(deepcopy_list(node.items), deepcopy_list(node.body))
+    elif isinstance(node, ast.Raise):
+        cp = ast.Raise(deepcopy(node.exc), deepcopy(node.cause))
+    elif isinstance(node, ast.Try):
+        cp = ast.Try(deepcopy_list(node.body), deepcopy_list(node.handlers), deepcopy_list(node.orelse),
+                     deepcopy_list(node.finalbody))
+    elif isinstance(node, ast.Assert):
+        cp = ast.Assert(deepcopy(node.test), deepcopy(node.msg))
+    elif isinstance(node, ast.Import):
+        cp = ast.Import(deepcopy_list(node.names))
+    elif isinstance(node, ast.ImportFrom):
+        cp = ast.ImportFrom(node.module, deepcopy_list(node.names), node.level)
+    elif isinstance(node, ast.Global):
+        cp = ast.Global(node.names[:])
+    elif isinstance(node, ast.Expr):
+        cp = ast.Expr(deepcopy(node.value))
+    elif isinstance(node, ast.Pass):
         cp = ast.Pass()
-    elif type(a) == ast.Break:
+    elif isinstance(node, ast.Break):
         cp = ast.Break()
-    elif type(a) == ast.Continue:
+    elif isinstance(node, ast.Continue):
         cp = ast.Continue()
-
-    elif type(a) == ast.BoolOp:
-        cp = ast.BoolOp(a.op, deepcopyList(a.values))
-    elif type(a) == ast.BinOp:
-        cp = ast.BinOp(deepcopy(a.left), a.op, deepcopy(a.right))
-    elif type(a) == ast.UnaryOp:
-        cp = ast.UnaryOp(a.op, deepcopy(a.operand))
-    elif type(a) == ast.Lambda:
-        cp = ast.Lambda(deepcopy(a.args), deepcopy(a.body))
-    elif type(a) == ast.IfExp:
-        cp = ast.IfExp(deepcopy(a.test), deepcopy(a.body), deepcopy(a.orelse))
-    elif type(a) == ast.Dict:
-        cp = ast.Dict(deepcopyList(a.keys), deepcopyList(a.values))
-    elif type(a) == ast.Set:
-        cp = ast.Set(deepcopyList(a.elts))
-    elif type(a) == ast.ListComp:
-        cp = ast.ListComp(deepcopy(a.elt), deepcopyList(a.generators))
-    elif type(a) == ast.SetComp:
-        cp = ast.SetComp(deepcopy(a.elt), deepcopyList(a.generators))
-    elif type(a) == ast.DictComp:
-        cp = ast.DictComp(deepcopy(a.key), deepcopy(a.value),
-                          deepcopyList(a.generators))
-    elif type(a) == ast.GeneratorExp:
-        cp = ast.GeneratorExp(deepcopy(a.elt), deepcopyList(a.generators))
-    elif type(a) == ast.Yield:
-        cp = ast.Yield(deepcopy(a.value))
-    elif type(a) == ast.Compare:
-        cp = ast.Compare(deepcopy(a.left), a.ops[:],
-                         deepcopyList(a.comparators))
-    elif type(a) == ast.Call:
-        cp = ast.Call(deepcopy(a.func), deepcopyList(a.args), deepcopyList(a.keywords))
-    elif type(a) == ast.Num:
-        cp = ast.Num(a.n)
-    elif type(a) == ast.Str:
-        cp = ast.Str(a.s)
-    elif type(a) == ast.Bytes:
-        cp = ast.Bytes(a.s)
-    elif type(a) == ast.NameConstant:
-        cp = ast.NameConstant(a.value)
-    elif type(a) == ast.Attribute:
-        cp = ast.Attribute(deepcopy(a.value), a.attr, a.ctx)
-    elif type(a) == ast.Subscript:
-        cp = ast.Subscript(deepcopy(a.value), deepcopy(a.slice), a.ctx)
-    elif type(a) == ast.Name:
-        cp = ast.Name(a.id, a.ctx)
-    elif type(a) == ast.List:
-        cp = ast.List(deepcopyList(a.elts), a.ctx)
-    elif type(a) == ast.Tuple:
-        cp = ast.Tuple(deepcopyList(a.elts), a.ctx)
-    elif type(a) == ast.Starred:
-        cp = ast.Starred(deepcopy(a.value), a.ctx)
-
-    elif type(a) == ast.Slice:
-        cp = ast.Slice(deepcopy(a.lower), deepcopy(a.upper), deepcopy(a.step))
-    elif type(a) == ast.ExtSlice:
-        cp = ast.ExtSlice(deepcopyList(a.dims))
-    elif type(a) == ast.Index:
-        cp = ast.Index(deepcopy(a.value))
-
-    elif type(a) == ast.comprehension:
-        cp = ast.comprehension(deepcopy(a.target), deepcopy(a.iter),
-                               deepcopyList(a.ifs))
-    elif type(a) == ast.ExceptHandler:
-        cp = ast.ExceptHandler(deepcopy(a.type), a.name, deepcopyList(a.body))
-    elif type(a) == ast.arguments:
-        cp = ast.arguments(deepcopyList(a.posonlyargs), deepcopy(a.args),
-                           deepcopyList(a.vararg), deepcopyList(a.kwonlyargs),
-                           deepcopy(a.kw_defaults), deepcopyList(a.kwarg), deepcopyList(a.defaults))
-    elif type(a) == ast.arg:
-        cp = ast.arg(a.arg, deepcopy(a.annotation))
-    elif type(a) == ast.keyword:
-        cp = ast.keyword(a.arg, deepcopy(a.value))
-    elif type(a) == ast.alias:
-        cp = ast.alias(a.name, a.asname)
-    elif type(a) == ast.withitem:
-        cp = ast.withitem(deepcopy(a.context_expr), deepcopy(a.optional_vars))
-    elif type(a) == ast.Constant:
-        cp = ast.Constant(a.value, a.kind)
+    elif isinstance(node, ast.BoolOp):
+        cp = ast.BoolOp(node.op, deepcopy_list(node.values))
+    elif isinstance(node, ast.BinOp):
+        cp = ast.BinOp(deepcopy(node.left), node.op, deepcopy(node.right))
+    elif isinstance(node, ast.UnaryOp):
+        cp = ast.UnaryOp(node.op, deepcopy(node.operand))
+    elif isinstance(node, ast.Lambda):
+        cp = ast.Lambda(deepcopy(node.args), deepcopy(node.body))
+    elif isinstance(node, ast.IfExp):
+        cp = ast.IfExp(deepcopy(node.test), deepcopy(node.body), deepcopy(node.orelse))
+    elif isinstance(node, ast.Dict):
+        cp = ast.Dict(deepcopy_list(node.keys), deepcopy_list(node.values))
+    elif isinstance(node, ast.Set):
+        cp = ast.Set(deepcopy_list(node.elts))
+    elif isinstance(node, ast.ListComp):
+        cp = ast.ListComp(deepcopy(node.elt), deepcopy_list(node.generators))
+    elif isinstance(node, ast.SetComp):
+        cp = ast.SetComp(deepcopy(node.elt), deepcopy_list(node.generators))
+    elif isinstance(node, ast.DictComp):
+        cp = ast.DictComp(deepcopy(node.key), deepcopy(node.value), deepcopy_list(node.generators))
+    elif isinstance(node, ast.GeneratorExp):
+        cp = ast.GeneratorExp(deepcopy(node.elt), deepcopy_list(node.generators))
+    elif isinstance(node, ast.Yield):
+        cp = ast.Yield(deepcopy(node.value))
+    elif isinstance(node, ast.Compare):
+        cp = ast.Compare(deepcopy(node.left), node.ops[:], deepcopy_list(node.comparators))
+    elif isinstance(node, ast.Call):
+        cp = ast.Call(deepcopy(node.func), deepcopy_list(node.args), deepcopy_list(node.keywords))
+    elif isinstance(node, ast.Num):
+        cp = ast.Num(node.n)
+    elif isinstance(node, ast.Str):
+        cp = ast.Str(node.s)
+    elif isinstance(node, ast.Bytes):
+        cp = ast.Bytes(node.s)
+    elif isinstance(node, ast.NameConstant):
+        cp = ast.NameConstant(node.value)
+    elif isinstance(node, ast.Attribute):
+        cp = ast.Attribute(deepcopy(node.value), node.attr, node.ctx)
+    elif isinstance(node, ast.Subscript):
+        cp = ast.Subscript(deepcopy(node.value), deepcopy(node.slice), node.ctx)
+    elif isinstance(node, ast.Name):
+        cp = ast.Name(node.id, node.ctx)
+    elif isinstance(node, ast.List):
+        cp = ast.List(deepcopy_list(node.elts), node.ctx)
+    elif isinstance(node, ast.Tuple):
+        cp = ast.Tuple(deepcopy_list(node.elts), node.ctx)
+    elif isinstance(node, ast.Starred):
+        cp = ast.Starred(deepcopy(node.value), node.ctx)
+    elif isinstance(node, ast.Slice):
+        cp = ast.Slice(deepcopy(node.lower), deepcopy(node.upper), deepcopy(node.step))
+    elif isinstance(node, ast.ExtSlice):
+        cp = ast.ExtSlice(deepcopy_list(node.dims))
+    elif isinstance(node, ast.Index):
+        cp = ast.Index(deepcopy(node.value))
+    elif isinstance(node, ast.comprehension):
+        cp = ast.comprehension(deepcopy(node.target), deepcopy(node.iter), deepcopy_list(node.ifs))
+    elif isinstance(node, ast.ExceptHandler):
+        cp = ast.ExceptHandler(deepcopy(node.type), node.name, deepcopy_list(node.body))
+    elif isinstance(node, ast.arguments):
+        cp = ast.arguments(deepcopy_list(node.posonlyargs), deepcopy(node.args), deepcopy_list(node.vararg),
+                           deepcopy_list(node.kwonlyargs), deepcopy(node.kw_defaults), deepcopy_list(node.kwarg),
+                           deepcopy_list(node.defaults))
+    elif isinstance(node, ast.arg):
+        cp = ast.arg(node.arg, deepcopy(node.annotation))
+    elif isinstance(node, ast.keyword):
+        cp = ast.keyword(node.arg, deepcopy(node.value))
+    elif isinstance(node, ast.alias):
+        cp = ast.alias(node.name, node.asname)
+    elif isinstance(node, ast.withitem):
+        cp = ast.withitem(deepcopy(node.context_expr), deepcopy(node.optional_vars))
+    elif isinstance(node, ast.Constant):
+        cp = ast.Constant(node.value, node.kind)
     else:
-        log("astTools\tdeepcopy\tNot implemented: " + str(type(a)), "bug")
-        cp = copy.deepcopy(a)
+        raise TypeError("Unknown type in deepcopy: " + str(type(node)))
 
-    transferMetaData(a, cp)
+    transferMetaData(node, cp)
     return cp
-
-
-def exportToJson(a):
-    """Export the ast to json format"""
-    if a == None:
-        return "null"
-    elif type(a) in [int, float]:
-        return str(a)
-    elif type(a) == str:
-        return '"' + a + '"'
-    elif not isinstance(a, ast.AST):
-        log("astTools\texportToJson\tMissing type: " + str(type(a)), "bug")
-
-    s = "{\n"
-    if type(a) in astNames:
-        s += '"' + astNames[type(a)] + '": {\n'
-        for field in a._fields:
-            s += '"' + field + '": '
-            value = getattr(a, field)
-            if type(value) == list:
-                s += "["
-                for item in value:
-                    s += exportToJson(item) + ", "
-                if len(value) > 0:
-                    s = s[:-2]
-                s += "]"
-            else:
-                s += exportToJson(value)
-            s += ", "
-        if len(a._fields) > 0:
-            s = s[:-2]
-        s += "}"
-    else:
-        log("astTools\texportToJson\tMissing AST type: " + str(type(a)), "bug")
-    s += "}"
-    return s
 
 
 ### ITAP/Canonicalization Functions ###
@@ -1286,26 +1150,6 @@ def isAnonVariable(s):
     return len(preUnderscore) > 1 and \
         preUnderscore[0] in ["g", "p", "v", "r", "n", "z"] and \
         preUnderscore[1:].isdigit()
-
-
-def isDefault(a):
-    """Our programs have a default setting of return 42, so we should detect that"""
-    if type(a) == ast.Module and len(a.body) == 1:
-        a = a.body[0]
-    else:
-        return False
-
-    if type(a) != ast.FunctionDef:
-        return False
-
-    if len(a.body) == 0:
-        return True
-    elif len(a.body) == 1:
-        if type(a.body[0]) == ast.Return:
-            if a.body[0].value == None or \
-                    type(a.body[0].value) == ast.Num and a.body[0].value.n == 42:
-                return True
-    return False
 
 
 def transferMetaData(a, b):
@@ -1346,7 +1190,7 @@ def removePropertyFromAll(a, prop):
                 delattr(node, prop)
 
 
-def containsTokenStepString(a):
+def contains_token_step_string(a):
     """This is used to keep token-level hint chaining from breaking."""
     if not isinstance(a, ast.AST):
         return False
@@ -1422,19 +1266,6 @@ def astFormat(x, gid=None):
     else:
         log("astTools\tastFormat\t" + str(type(x)) + "," + str(x), "bug")
         return None
-
-
-def basicFormat(x):
-    """Given an AST, turn it into its value if it's constant; otherwise, leave it alone"""
-    if type(x) == ast.Num:
-        return x.n
-    elif type(x) == ast.NameConstant:
-        return x.value
-    elif type(x) == ast.Str:
-        return x.s
-    elif type(x) == ast.Bytes:
-        return x.s
-    return x  # Do not change if it's not a constant!
 
 
 def structureTree(a):

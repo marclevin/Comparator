@@ -243,14 +243,14 @@ def getSubtreeContext(super, sub):
         attr = getattr(super, field)
         if type(attr) == list:
             for i in range(len(attr)):
-                if compareASTs(attr[i], sub, checkEquality=True) == 0:
+                if compare_trees(attr[i], sub, check_equality=True) == 0:
                     return (attr, i, attr[i])
                 else:
                     tmp = getSubtreeContext(attr[i], sub)
                     if tmp != None:
                         return tmp
         else:
-            if compareASTs(attr, sub, checkEquality=True) == 0:
+            if compare_trees(attr, sub, check_equality=True) == 0:
                 return (super, field, attr)
             else:
                 tmp = getSubtreeContext(attr, sub)
@@ -603,26 +603,26 @@ def augAssignSpecialFunction(cv, orig):
             if type(newSpot) == type(spot):
                 # Don't do special things when they aren't needed
                 if type(newSpot) == ast.Assign:
-                    if compareASTs(newSpot.targets, spot.targets, checkEquality=True) == 0:
+                    if compare_trees(newSpot.targets, spot.targets, check_equality=True) == 0:
                         # If the two have the same targets and are both binary operations with the target as the left value...
                         # just change the value
                         if type(newSpot.value) == type(spot.value) == ast.BinOp:
-                            if compareASTs(spot.targets[0], spot.value.left, checkEquality=True) == 0 and \
-                                    compareASTs(newSpot.targets[0], newSpot.value.left, checkEquality=True) == 0:
+                            if compare_trees(spot.targets[0], spot.value.left, check_equality=True) == 0 and \
+                                    compare_trees(newSpot.targets[0], newSpot.value.left, check_equality=True) == 0:
                                 # we just want to change the values
                                 return ChangeVector([("right", "Binary Operation"), ("value", "Assign")] + newCv.path,
                                                     spot.value.right, newSpot.value.right, newCv.start)
-                    elif compareASTs(newSpot.value, spot.value, checkEquality=True) == 0:
+                    elif compare_trees(newSpot.value, spot.value, check_equality=True) == 0:
                         return cv
                     else:
                         log("Assign", "bug")
                 elif type(newSpot) == ast.AugAssign:
                     diffCount = 0
-                    if compareASTs(newSpot.op, spot.op, checkEquality=True) != 0:
+                    if compare_trees(newSpot.op, spot.op, check_equality=True) != 0:
                         diffCount += 1
-                    if compareASTs(newSpot.target, spot.target, checkEquality=True) != 0:
+                    if compare_trees(newSpot.target, spot.target, check_equality=True) != 0:
                         diffCount += 1
-                    if compareASTs(newSpot.value, spot.value, checkEquality=True) != 0:
+                    if compare_trees(newSpot.value, spot.value, check_equality=True) != 0:
                         diffCount += 1
                     if diffCount == 1:
                         return cv
@@ -775,7 +775,7 @@ def conditionalSpecialFunction(cv, orig):
             treeStmts.append(newTest)
         iToKeep = -1
         for i in range(len(treeStmts)):
-            if compareASTs(treeStmts[i], cv.newSubtree, checkEquality=True) == 0:
+            if compare_trees(treeStmts[i], cv.newSubtree, check_equality=True) == 0:
                 iToKeep = i
                 break
         newCV = []
@@ -1078,8 +1078,8 @@ def map_edit(canon, orig, edit, name_map=None):
                     edit[count:count + 1] = new_changes
                     continue  # don't increment count
         elif cv.isReplaceVector() and type(cv.oldSubtree) is ast.Compare and type(
-                cv.newSubtree) is ast.BoolOp and compareASTs(simplify_multicomp(cv.oldSubtree), cv.newSubtree,
-                                                             checkEquality=True) == 0:
+                cv.newSubtree) is ast.BoolOp and compare_trees(simplify_multicomp(cv.oldSubtree), cv.newSubtree,
+                                                               check_equality=True) == 0:
             # This isn't actually changing anything! Get rid of it.
             del edit[count]
             continue
@@ -1096,7 +1096,7 @@ def map_edit(canon, orig, edit, name_map=None):
     # In case any of our edits have gotten cancelled out, delete them.
     i = 0
     while i < len(edit):
-        if compareASTs(edit[i].oldSubtree, edit[i].newSubtree, checkEquality=True) == 0:
+        if compare_trees(edit[i].oldSubtree, edit[i].newSubtree, check_equality=True) == 0:
             edit.pop(i)
         else:
             i += 1

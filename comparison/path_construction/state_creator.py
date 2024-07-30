@@ -160,8 +160,8 @@ def chooseGoal(s, goals, states):
 
 def generateHelperDistributions(s, g, goals, states):
     restricted_names = list(eval(s.problem.arguments).keys())
-    sHelpers = gatherAllHelpers(s.tree, restricted_names)
-    gHelpers = gatherAllHelpers(g.tree, restricted_names)
+    sHelpers = gather_all_helpers(s.tree, restricted_names)
+    gHelpers = gather_all_helpers(g.tree, restricted_names)
     nonMappableHelpers = gather_all_function_names(g.tree)
     for pair in gHelpers:  # make sure to remove all matches, regardless of whether the second part matches!
         for item in nonMappableHelpers:
@@ -240,9 +240,9 @@ def generateHelperDistributions(s, g, goals, states):
 def generateVariableDistributions(s, g, goals, states):
     sParameters = gather_all_parameters(s.tree)
     gParameters = gather_all_parameters(g.tree, keep_orig=False)
-    restricted_names = list(eval(s.problem.arguments).keys()) + getAllImports(s.tree) + getAllImports(g.tree)
-    sHelpers = gatherAllHelpers(s.tree, restricted_names)
-    gHelpers = gatherAllHelpers(g.tree, restricted_names)
+    restricted_names = list(eval(s.problem.arguments).keys()) + get_all_imports(s.tree) + get_all_imports(g.tree)
+    sHelpers = gather_all_helpers(s.tree, restricted_names)
+    gHelpers = gather_all_helpers(g.tree, restricted_names)
     sVariables = gather_all_variables(s.tree)
     gVariables = gather_all_variables(g.tree, keep_orig=False)
     # First, just make extra sure none of the restricted names are included
@@ -481,7 +481,7 @@ def generate_states_in_path(student_state: CodeState, valid_combinations: list[t
 
     for (change_vector, candidate_state) in valid_combinations:
         filtered_changes = [change for change in change_vector if
-                            compareASTs(change.oldSubtree, change.newSubtree, checkEquality=True) != 0]
+                            compare_trees(change.oldSubtree, change.newSubtree, check_equality=True) != 0]
 
         if filtered_changes:
             score = desirability(student_state, candidate_state, student_state.goal)

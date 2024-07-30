@@ -1,6 +1,6 @@
 import ast
 
-from comparison.utils.astTools import compareASTs, deepcopy, cmp
+from comparison.utils.astTools import compare_trees, deepcopy, cmp
 from comparison.utils.display import print_function
 from comparison.utils.tools import log
 
@@ -29,15 +29,15 @@ class ChangeVector:
         if c1 != 0:
             return c1
         else:
-            c2 = compareASTs(self.oldSubtree, other.oldSubtree)
+            c2 = compare_trees(self.oldSubtree, other.oldSubtree)
             if c2 != 0:
                 return c2
             else:
-                c3 = compareASTs(self.newSubtree, other.newSubtree)
+                c3 = compare_trees(self.newSubtree, other.newSubtree)
                 if c3 != 0:
                     return c3
                 else:
-                    return compareASTs(self.start, other.start)
+                    return compare_trees(self.start, other.start)
 
     def deepcopy(self):
         path = self.path[:] if self.path != None else None
@@ -142,7 +142,7 @@ class ChangeVector:
                     self.newSubtree.lineno = oldSpot.lineno
                 if hasattr(oldSpot, "col_offset"):
                     self.newSubtree.col_offset = oldSpot.col_offset
-            if compareASTs(oldSpot, self.oldSubtree, checkEquality=True) != 0:
+            if compare_trees(oldSpot, self.oldSubtree, check_equality=True) != 0:
                 log("ChangeVector\tapplyChange\t" + str(caller) + "\t" + "Change old values don't match: " + str(
                     self) + "\n" + str(print_function(self.start)), "bug")
             setattr(treeSpot, location[0], self.newSubtree)
@@ -332,7 +332,7 @@ class DeleteVector(ChangeVector):
         if type(treeSpot) == list:
             # Remove the old line
             if location < len(treeSpot):
-                if compareASTs(treeSpot[location], self.oldSubtree, checkEquality=True) != 0:
+                if compare_trees(treeSpot[location], self.oldSubtree, check_equality=True) != 0:
                     log("DeleteVector\tapplyChange\t" + str(caller) + "\t" + "Delete old values don't match: " + str(
                         self) + "\n" + str(print_function(self.start)), "bug")
                 del treeSpot[location]

@@ -1,7 +1,7 @@
 """This is a file of useful functions used throughout the hint generation program"""
 import time
 
-LOG_PATH = "comparison/logs/"
+LOG_PATH = "C:\\Users\\marcl\\OneDrive\\Desktop\\University\\AST-Hints\\Comparator\\comparison\\logs\\"
 
 
 def log(msg, filename="main", newline=True):

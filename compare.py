@@ -21,10 +21,10 @@ def compare_solutions(student_ast, solution_ast) -> str:
     args = student_code_state.tree.body[0].args.args
     args = {arg.arg: None for arg in args}
     given_code = ast.parse(student_ast)
-    import_names = getAllImports(student_code_state.tree) + getAllImports(given_code)
+    import_names = get_all_imports(student_code_state.tree) + get_all_imports(given_code)
     inp = import_names + (list(args.keys()) if type(args) is dict else [])
     given_names = [str(x) for x in inp]
-    imports = getAllImportStatements(student_code_state.tree) + getAllImportStatements(given_code)
+    imports = get_all_import_statements(student_code_state.tree) + get_all_import_statements(given_code)
     student_code_state = getCanonicalForm(student_code_state, given_names, imports)
     original_tree = ast.parse(student_ast)
     # Do the same thing for the solution code
@@ -32,10 +32,10 @@ def compare_solutions(student_ast, solution_ast) -> str:
     args = solution_code_state.tree.body[0].args.args
     args = {arg.arg: None for arg in args}
     given_code = ast.parse(solution_ast)
-    import_names = getAllImports(solution_code_state.tree) + getAllImports(given_code)
+    import_names = get_all_imports(solution_code_state.tree) + get_all_imports(given_code)
     inp = import_names + (list(args.keys()) if type(args) is dict else [])
     given_names = [str(x) for x in inp]
-    imports = getAllImportStatements(solution_code_state.tree) + getAllImportStatements(given_code)
+    imports = get_all_import_statements(solution_code_state.tree) + get_all_import_statements(given_code)
     solution_code_state = getCanonicalForm(solution_code_state, given_names, imports)
 
     get_next_state(student_code_state, original_tree)
@@ -50,10 +50,10 @@ def prepare_code(student_code_state, student_ast) -> CodeState:
     args = student_code_state.tree.body[0].args.args
     args = {arg.arg: None for arg in args}
     given_code = ast.parse(student_ast)
-    import_names = getAllImports(student_code_state.tree) + getAllImports(given_code)
+    import_names = get_all_imports(student_code_state.tree) + get_all_imports(given_code)
     inp = import_names + (list(args.keys()) if type(args) is dict else [])
     given_names = [str(x) for x in inp]
-    imports = getAllImportStatements(student_code_state.tree) + getAllImportStatements(given_code)
+    imports = get_all_import_statements(student_code_state.tree) + get_all_import_statements(given_code)
 
     student_code_state = getCanonicalForm(student_code_state, given_names, imports)
     return student_code_state

@@ -36,7 +36,7 @@ def match_lists(list_x, list_y):
             while j < len(y_subset):
                 if x_subset[i][1] == y_subset[j][1]:
                     if (
-                            compareASTs(x_subset[i][0], y_subset[j][0], checkEquality=True)
+                            compare_trees(x_subset[i][0], y_subset[j][0], check_equality=True)
                             == 0
                     ):
                         map_set[y_subset[j][1]] = x_subset[i][1]
@@ -51,7 +51,7 @@ def match_lists(list_x, list_y):
         while i < len(x_subset):
             j = 0
             while j < len(y_subset):
-                if compareASTs(x_subset[i][0], y_subset[j][0], checkEquality=True) == 0:
+                if compare_trees(x_subset[i][0], y_subset[j][0], check_equality=True) == 0:
                     map_set[y_subset[j][1]] = x_subset[i][1]
                     x_subset.pop(i)
                     y_subset.pop(j)

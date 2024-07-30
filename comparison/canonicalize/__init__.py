@@ -216,7 +216,7 @@ def getCanonicalForm(s, given_names=None, argTypes=None, imports=None):
         if type(item) is ast.FunctionDef:
             mainFunctionName = item.name
             break
-    while compareASTs(oldTree, s.tree, checkEquality=True) != 0:
+    while compare_trees(oldTree, s.tree, check_equality=True) != 0:
         oldTree = deepcopy(s.tree)
         helperFolding(s.tree, mainFunctionName, imports)
         stateDiff(s, "helperFolding")

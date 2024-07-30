@@ -1,7 +1,7 @@
 import ast
 import collections.abc
 
-supported_libraries = ["string", "math", "random", "__future__", "copy"]
+supported_libraries = ["string", "math", "random", "__future__", "copy", "os"]
 
 builtInTypes = [bool, bytes, complex, dict, float, int, list, set, str, tuple, type]
 
@@ -638,6 +638,12 @@ libraryMap = {
         "lgamma",
         "pi",
         "e",
+    ],
+    "os": [
+        "name",
+        "curdir",
+        "path",
+        "remove",
     ],
     "random": [
         "seed",

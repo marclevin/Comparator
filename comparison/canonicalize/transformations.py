@@ -234,7 +234,7 @@ def replaceAst(a, old, new, shouldReplace):
     """Replace the old value with the new one, but only once! That's what the shouldReplace variable is for."""
     if not isinstance(a, ast.AST) or not shouldReplace[0]:
         return a
-    elif compareASTs(a, old, checkEquality=True) == 0:
+    elif compare_trees(a, old, check_equality=True) == 0:
         shouldReplace[0] = False
         return new
     return apply_to_children(a, lambda x: replaceAst(x, old, new, shouldReplace))
@@ -267,7 +267,7 @@ def mapHelper(a, helper, idNum, imports):
             # First, update the method's variables
             methodArgs = deepcopy(helper.args)
             individualizeVariables(methodArgs, variablePairs, idNum, imports)
-            methodLines = deepcopyList(helper.body)
+            methodLines = deepcopy_list(helper.body)
             for j in range(len(methodLines)):
                 individualizeVariables(methodLines[j], variablePairs, idNum, imports)
 
@@ -282,7 +282,7 @@ def mapHelper(a, helper, idNum, imports):
                     var = ast.Name(arg.arg, ast.Load())
                     transferMetaData(arg, var)
                     methodLines[-1] = replaceAst(methodLines[-1], var, value, [True])
-                elif couldCrash(value):
+                elif could_crash(value):
                     badArgs = True
                     break
                 else:
@@ -302,7 +302,7 @@ def mapHelper(a, helper, idNum, imports):
                 returnLine = [replaceAst(body[i], callExpression, methodLines[-1].value, [True])]
                 methodLines.pop(-1)
             else:
-                comp = compareASTs(body[i].value, callExpression, checkEquality=True) == 0
+                comp = compare_trees(body[i].value, callExpression, check_equality=True) == 0
                 if type(body[i]) == ast.Return and comp:
                     # In the case of a return, we can return None, it's cool
                     callVal = ast.NameConstant(None, helperReturnVal=True)
@@ -375,7 +375,7 @@ def helperFolding(a, mainFun, imports):
                     for tmpA in ast.walk(item):
                         if type(tmpA) in [ast.Assign, ast.AugAssign]:
                             allGood = True
-                            assignedIds = gatherAssignedVarIds(
+                            assignedIds = gather_assigned_var_ids(
                                 tmpA.targets if type(tmpA) == ast.Assign else [tmpA.target])
                             for arg in allArgs:
                                 if arg in assignedIds:
@@ -385,7 +385,7 @@ def helperFolding(a, mainFun, imports):
                                 break
                     else:
                         for j in range(len(item.body) - 1):
-                            if couldCrash(item.body[j]):
+                            if could_crash(item.body[j]):
                                 break
                         else:
                             # If we satisfy these requirements, translate the body of the function into all functions that call it
@@ -404,13 +404,13 @@ def helperFolding(a, mainFun, imports):
         elif type(item) == ast.Assign:
             # Is it ever changed in the global area?
             if len(item.targets) == 1 and type(item.targets[0]) == ast.Name:
-                if eventualType(item.value) in [int, float, bool, str]:  # if it isn't mutable
+                if eventual_type(item.value) in [int, float, bool, str]:  # if it isn't mutable
                     for j in range(i + 1, len(body)):
                         line = body[j]
                         if type(line) == ast.FunctionDef:
                             if count_occurrences(line, ast.Global) > 0:  # TODO: improve this
                                 break
-                            if item.targets[0].id in getAllAssignedVarIds(line):
+                            if item.targets[0].id in get_all_assigned_var_ids(line):
                                 break
                         else:  # if in scope
                             if count_variables(line, item.targets[0].id) > 0:
@@ -446,11 +446,11 @@ def listNotEmpty(a):
                 elif type(a.args[1]) == ast.BinOp and type(a.args[1].op) == ast.Add:
                     if type(a.args[1].right) == ast.Num and type(a.args[1].right) != complex and a.args[
                         1].right.n > 0 and \
-                            compareASTs(a.args[0], a.args[1].left, checkEquality=True) == 0:
+                            compare_trees(a.args[0], a.args[1].left, check_equality=True) == 0:
                         return True
                     elif type(a.args[1].left) == ast.Num and type(a.args[1].left) != complex and a.args[
                         1].left.n > 0 and \
-                            compareASTs(a.args[0], a.args[1].right, checkEquality=True) == 0:
+                            compare_trees(a.args[0], a.args[1].right, check_equality=True) == 0:
                         return True
     elif type(a) in [ast.List, ast.Tuple]:
         return len(a.elts) > 0
@@ -541,7 +541,7 @@ def simplify(a):
     elif type(a) == ast.AugAssign:
         # Turn all AugAssigns into Assigns
         a.target = simplify(a.target)
-        if eventualType(a.target) not in [bool, int, str, float]:
+        if eventual_type(a.target) not in [bool, int, str, float]:
             # Can't get rid of AugAssign, in case the += is different
             a.value = simplify(a.value)
             return a
@@ -613,7 +613,7 @@ def propogateMetadata(a, argTypes, variableMap, idNum):
             t = a.targets[0]
             if type(t) == ast.Name:
                 simplifyUpdateId(t, variableMap, idNum)
-                varType = eventualType(val)
+                varType = eventual_type(val)
                 t.type = varType
                 variableMap[t.id] = (varType, t.varID)  # update type
             elif type(t) in [ast.Tuple, ast.List]:
@@ -623,7 +623,7 @@ def propogateMetadata(a, argTypes, variableMap, idNum):
                     allVariableNamesUsed(val)) == 0
                 for j in range(len(t.elts)):
                     t2 = t.elts[j]
-                    givenType = eventualType(val.elts[j]) if getTypes else None
+                    givenType = eventual_type(val.elts[j]) if getTypes else None
                     if type(t2) == ast.Name:
                         simplifyUpdateId(t2, variableMap, idNum)
                         t2.type = givenType
@@ -638,7 +638,7 @@ def propogateMetadata(a, argTypes, variableMap, idNum):
         t = a.target = propogateMetadata(a.target, argTypes, variableMap, idNum)
         a.value = propogateMetadata(a.value, argTypes, variableMap, idNum)
         if type(t) == ast.Name:
-            if eventualType(a.target) not in [bool, int, str, float]:
+            if eventual_type(a.target) not in [bool, int, str, float]:
                 finalType = None
             else:
                 if type(a.target) == ast.Name:
@@ -655,7 +655,7 @@ def propogateMetadata(a, argTypes, variableMap, idNum):
                     log("transformations\tsimplify\tOdd AugAssign target: " + str(type(a.target)), "bug")
                 transferMetaData(a.target, loadedTarget)
                 actualValue = ast.BinOp(loadedTarget, a.op, a.value)
-                finalType = eventualType(actualValue)
+                finalType = eventual_type(actualValue)
 
             simplifyUpdateId(t, variableMap, idNum)
             varType = finalType
@@ -666,7 +666,7 @@ def propogateMetadata(a, argTypes, variableMap, idNum):
         a.iter = propogateMetadata(a.iter, argTypes, variableMap, idNum)
         if type(a.target) == ast.Name:
             simplifyUpdateId(a.target, variableMap, idNum)
-            ev = eventualType(a.iter)
+            ev = eventual_type(a.iter)
             if ev == str:
                 a.target.type = str
             # we know ranges are made of ints
@@ -864,7 +864,7 @@ def constantFolding(a):
         # Remove the opposite values IF removing them won't mess up the type.
         i = len(newValues) - 1
         while i > 0:
-            if (newValues[i] == (not breaks)) and eventualType(newValues[i - 1]) == bool:
+            if (newValues[i] == (not breaks)) and eventual_type(newValues[i - 1]) == bool:
                 newValues.pop(i)
             i -= 1
 
@@ -897,13 +897,13 @@ def constantFolding(a):
         l = constantFolding(a.left)
         r = constantFolding(a.right)
         # Hack to make hint chaining work- don't constant-fold filler strings!
-        if containsTokenStepString(l) or containsTokenStepString(r):
+        if contains_token_step_string(l) or contains_token_step_string(r):
             a.left = applyTransferLambda(a.left)
             a.right = applyTransferLambda(a.right)
             return a
         if type(l) in builtInTypes and type(r) in builtInTypes:
             try:
-                val = doBinaryOp(a.op, l, r)
+                val = do_binary_op(a.op, l, r)
                 if type(val) == float and val % 0.0001 != 0:  # don't deal with trailing floats
                     pass
                 else:
@@ -923,7 +923,7 @@ def constantFolding(a):
                 rLeft = constantFolding(r.left)
                 if type(rLeft) in builtInTypes:
                     try:
-                        newLeft = astFormat(doBinaryOp(a.op, l, rLeft))
+                        newLeft = astFormat(do_binary_op(a.op, l, rLeft))
                         transferMetaData(r.left, newLeft)
                         return ast.BinOp(newLeft, a.op, r.right)
                     except Exception as e:
@@ -931,17 +931,17 @@ def constantFolding(a):
 
             # Empty string is often unneccessary
             if type(l) == str and l == '':
-                if type(a.op) == ast.Add and eventualType(r) == str:
+                if type(a.op) == ast.Add and eventual_type(r) == str:
                     return r
-                elif type(a.op) == ast.Mult and eventualType(r) == int:
+                elif type(a.op) == ast.Mult and eventual_type(r) == int:
                     return ''
             elif type(l) == bool:
                 l = int(l)
             # 0 is often unneccessary
-            if l == 0 and eventualType(r) in [int, float]:
+            if l == 0 and eventual_type(r) in [int, float]:
                 if type(a.op) in [ast.Add, ast.BitOr]:
                     # If it won't change the type
-                    if type(l) == int or eventualType(r) == float:
+                    if type(l) == int or eventual_type(r) == float:
                         return r
                     elif type(l) == float:  # Cast it
                         return ast.Call(ast.Name("float", ast.Load(), typeCastFunction=True), [r], [])
@@ -949,59 +949,59 @@ def constantFolding(a):
                     tmpR = astFormat(r)
                     transferMetaData(a.right, tmpR)
                     newR = ast.UnaryOp(ast.USub(addedOtherOp=True), tmpR, addedOther=True)
-                    if type(l) == int or eventualType(r) == float:
+                    if type(l) == int or eventual_type(r) == float:
                         return newR
                     elif type(l) == float:
                         return ast.Call(ast.Name("float", ast.Load(), typeCastFunction=True), [newR], [])
                 elif type(a.op) in [ast.Mult, ast.LShift, ast.RShift]:
                     # If either is a float, it's 0
-                    return 0.0 if float in [eventualType(r), type(l)] else 0
+                    return 0.0 if float in [eventual_type(r), type(l)] else 0
                 elif type(a.op) in [ast.Div, ast.FloorDiv, ast.Mod]:
                     # Check if the right might be zero
                     if type(r) in builtInTypes and r != 0:
-                        return 0.0 if float in [eventualType(r), type(l)] else 0
+                        return 0.0 if float in [eventual_type(r), type(l)] else 0
             # Same for 1
             elif l == 1:
-                if type(a.op) == ast.Mult and eventualType(r) in [int, float]:
-                    if type(l) == int or eventualType(r) == float:
+                if type(a.op) == ast.Mult and eventual_type(r) in [int, float]:
+                    if type(l) == int or eventual_type(r) == float:
                         return r
                     elif type(l) == float:
                         return ast.Call(ast.Name("float", ast.Load(), typeCastFunction=True), [r], [])
             # No reason to make this a float if the other value has already been cast
             elif type(l) == float and l == int(l):
-                if type(a.op) in [ast.Add, ast.Sub, ast.Mult, ast.Div] and eventualType(r) == float:
+                if type(a.op) in [ast.Add, ast.Sub, ast.Mult, ast.Div] and eventual_type(r) == float:
                     l = int(l)
         # Some of the same operations are done with the right, but not all of them
         if type(r) in builtInTypes:
             if type(r) == str and r == '':
-                if type(a.op) == ast.Add and eventualType(l) == str:
+                if type(a.op) == ast.Add and eventual_type(l) == str:
                     return l
-                elif type(a.op) == ast.Mult and eventualType(l) == int:
+                elif type(a.op) == ast.Mult and eventual_type(l) == int:
                     return ''
             elif type(r) == bool:
                 r = int(r)
             else:
-                if r == 0 and eventualType(l) in [int, float]:
+                if r == 0 and eventual_type(l) in [int, float]:
                     if type(a.op) in [ast.Add, ast.Sub, ast.LShift, ast.RShift, ast.BitOr]:
-                        if type(r) == int or eventualType(l) == float:
+                        if type(r) == int or eventual_type(l) == float:
                             return l
                         elif type(r) == float:
                             return ast.Call(ast.Name("float", ast.Load(), typeCastFunction=True), [l], [])
                     elif type(a.op) == ast.Mult:
-                        return 0.0 if float in [eventualType(l), type(r)] else 0
+                        return 0.0 if float in [eventual_type(l), type(r)] else 0
                 elif r == 1:
-                    if type(a.op) in [ast.Mult, ast.Div, ast.Pow] and eventualType(l) in [int, float]:
-                        if type(r) == int or eventualType(l) == float:
+                    if type(a.op) in [ast.Mult, ast.Div, ast.Pow] and eventual_type(l) in [int, float]:
+                        if type(r) == int or eventual_type(l) == float:
                             return l
                         elif type(r) == float:
                             return ast.Call(ast.Name("float", ast.Load(), typeCastFunction=True), [l], [])
-                    elif type(a.op) == ast.FloorDiv and eventualType(l) == int:
-                        if eventualType(r) == int:
+                    elif type(a.op) == ast.FloorDiv and eventual_type(l) == int:
+                        if eventual_type(r) == int:
                             return l
-                        elif eventualType(r) == float:
+                        elif eventual_type(r) == float:
                             return ast.Call(ast.Name("float", ast.Load(), typeCastFunction=True), [l], [])
                 elif type(r) == float and r == int(r):
-                    if type(a.op) in [ast.Add, ast.Sub, ast.Mult, ast.Div] and eventualType(l) == float:
+                    if type(a.op) in [ast.Add, ast.Sub, ast.Mult, ast.Div] and eventual_type(l) == float:
                         r = int(r)
         a.left = applyTransferLambda(a.left)
         a.right = applyTransferLambda(a.right)
@@ -1021,7 +1021,7 @@ def constantFolding(a):
 
         if type(test) == bool:
             return aB if test else aO  # evaluate the if expression now
-        elif compareASTs(b, o, checkEquality=True) == 0:
+        elif compare_trees(b, o, check_equality=True) == 0:
             return aB  # if they're the same, no reason for the expression
         a.test = aTest
         a.body = aB
@@ -1034,7 +1034,7 @@ def constantFolding(a):
         l = constantFolding(a.left)
         r = constantFolding(a.comparators[0])
         # Hack to make hint chaining work- don't constant-fold filler strings!
-        if containsTokenStepString(l) or containsTokenStepString(r):
+        if contains_token_step_string(l) or contains_token_step_string(r):
             tmpLeft = astFormat(l)
             transferMetaData(a.left, tmpLeft)
             a.left = tmpLeft
@@ -1043,37 +1043,37 @@ def constantFolding(a):
             a.comparators = [tmpRight]
             return a
         # Check whether the two sides are the same
-        comp = compareASTs(l, r, checkEquality=True) == 0
-        if comp and (not couldCrash(l)) and type(op) in [ast.Lt, ast.Gt, ast.NotEq]:
+        comp = compare_trees(l, r, check_equality=True) == 0
+        if comp and (not could_crash(l)) and type(op) in [ast.Lt, ast.Gt, ast.NotEq]:
             tmp = ast.NameConstant(False)
             transferMetaData(a, tmp)
             return tmp
-        elif comp and (not couldCrash(l)) and type(op) in [ast.Eq, ast.LtE, ast.GtE]:
+        elif comp and (not could_crash(l)) and type(op) in [ast.Eq, ast.LtE, ast.GtE]:
             tmp = ast.NameConstant(True)
             transferMetaData(a, tmp)
             return tmp
         if (type(l) in builtInTypes) and (type(r) in builtInTypes):
             try:
-                result = astFormat(doCompare(op, l, r))
+                result = astFormat(do_compare(op, l, r))
                 transferMetaData(a, result)
                 return result
             except:
                 pass
         # Reduce the expressions when possible!
-        if type(l) == type(r) == ast.BinOp and type(l.op) == type(r.op) and not couldCrash(l) and not couldCrash(r):
+        if type(l) == type(r) == ast.BinOp and type(l.op) == type(r.op) and not could_crash(l) and not could_crash(r):
             if type(l.op) == ast.Add:
                 # Remove repeated values
                 unchanged = False
-                if compareASTs(l.left, r.left, checkEquality=True) == 0:
+                if compare_trees(l.left, r.left, check_equality=True) == 0:
                     l = l.right
                     r = r.right
-                elif compareASTs(l.right, r.right, checkEquality=True) == 0:
+                elif compare_trees(l.right, r.right, check_equality=True) == 0:
                     l = l.left
                     r = r.left
-                elif compareASTs(l.left, r.right, checkEquality=True) == 0 and eventualType(l) in [int, float]:
+                elif compare_trees(l.left, r.right, check_equality=True) == 0 and eventual_type(l) in [int, float]:
                     l = l.right
                     r = r.left
-                elif compareASTs(l.right, r.left, checkEquality=True) == 0 and eventualType(l) in [int, float]:
+                elif compare_trees(l.right, r.left, check_equality=True) == 0 and eventual_type(l) in [int, float]:
                     l = l.left
                     r = r.right
                 else:
@@ -1088,10 +1088,10 @@ def constantFolding(a):
                     return constantFolding(a)  # Repeat this check to see if we can keep reducing it
             elif type(l.op) == ast.Sub:
                 unchanged = False
-                if compareASTs(l.left, r.left, checkEquality=True) == 0:
+                if compare_trees(l.left, r.left, check_equality=True) == 0:
                     l = l.right
                     r = r.right
-                elif compareASTs(l.right, r.right, checkEquality=True) == 0:
+                elif compare_trees(l.right, r.right, check_equality=True) == 0:
                     l = l.left
                     r = r.left
                 else:
@@ -1192,8 +1192,8 @@ def isMutatingFunction(a):
             funDict = funMaps[a.func.value.id]
             funName = a.func.attr
         # if the item is calling a function directly
-        elif eventualType(a.func.value) in typeMaps:
-            funDict = funMaps[typeMaps[eventualType(a.func.value)]]
+        elif eventual_type(a.func.value) in typeMaps:
+            funDict = funMaps[typeMaps[eventual_type(a.func.value)]]
             funName = a.func.attr
         else:
             return True
@@ -1273,7 +1273,7 @@ def propagateValues(a, liveVars):
         if isMutatingFunction(a):
             allVars = allVariablesUsed(a)
             for var in allVars:
-                if (eventualType(var) not in [int, float, bool, str]):
+                if (eventual_type(var) not in [int, float, bool, str]):
                     if (var.id in liveVars):
                         del liveVars[var.id]
                     currentLiveVars = list(liveVars.keys())
@@ -1283,7 +1283,7 @@ def propagateValues(a, liveVars):
                             del liveVars[liveVar]
             return a
         elif type(a.func) == ast.Name and a.func.id in liveVars and \
-                eventualType(liveVars[a.func.id]) in [int, float, complex, bytes, bool, type(None)]:
+                eventual_type(liveVars[a.func.id]) in [int, float, complex, bytes, bool, type(None)]:
             # Special case: don't move a simple value to the front of a Call
             # because it will cause a compiler error instead of a runtime error
             a.args = propagateValues(a.args, liveVars)
@@ -1291,7 +1291,7 @@ def propagateValues(a, liveVars):
             return a
     elif type(a) == ast.Attribute:
         if type(a.value) == ast.Name and a.value.id in liveVars and \
-                eventualType(liveVars[a.value.id]) in [int, float, complex, bytes, bool, type(None)]:
+                eventual_type(liveVars[a.value.id]) in [int, float, complex, bytes, bool, type(None)]:
             # Don't move for the same reason as above
             return a
     return apply_to_children(a, lambda x: propagateValues(x, liveVars))
@@ -1315,9 +1315,9 @@ def clearBlockVars(a, liveVars):
 
     if type(a) in [ast.Assign, ast.AugAssign]:
         if type(a) == ast.Assign:
-            targets = gatherAssignedVars(a.targets)
+            targets = gather_assigned_vars(a.targets)
         else:
-            targets = gatherAssignedVars([a.target])
+            targets = gather_assigned_vars([a.target])
         for target in targets:
             varId = None
             if type(target) == ast.Name:
@@ -1336,7 +1336,7 @@ def clearBlockVars(a, liveVars):
     elif type(a) == ast.Call:
         if hasMutatingFunction(a):
             for v in allVariablesUsed(a):
-                if eventualType(v) not in [int, float, bool, str]:
+                if eventual_type(v) not in [int, float, bool, str]:
                     if v.id in liveVars:
                         del liveVars[v.id]
                     liveKeys = list(liveVars.keys())
@@ -1414,8 +1414,8 @@ def copyPropagation(a, liveVars=None, inLoop=False):
                     # In plain names, we can update the liveVars
                     if type(target) == ast.Name:
                         varId = target.id
-                        if inLoop or couldCrash(a[i].value) or eventualType(a[i].value) not in [bool, int, float, str,
-                                                                                                tuple]:
+                        if inLoop or could_crash(a[i].value) or eventual_type(a[i].value) not in [bool, int, float, str,
+                                                                                                  tuple]:
                             # Remove this variable from the live vars
                             if varId in liveVars:
                                 del liveVars[varId]
@@ -1437,7 +1437,7 @@ def copyPropagation(a, liveVars=None, inLoop=False):
                     if type(a[i].value) in [ast.Tuple, ast.List] and len(target.elts) == len(a[i].value.elts):
                         for j in range(len(target.elts)):
                             if type(target.elts[j]) == ast.Name:
-                                if (not couldCrash(a[i].value.elts[j])):
+                                if (not could_crash(a[i].value.elts[j])):
                                     liveVars[target.elts[j]] = a[i].value.elts[j]
                                 else:
                                     if target.elts[j] in liveVars:
@@ -1460,7 +1460,7 @@ def copyPropagation(a, liveVars=None, inLoop=False):
                             log("transformations\tcopyPropagation\tWeird assign type: " + str(type(e)), "bug")
             elif type(a[i]) == ast.AugAssign:
                 a[i].value = propagateValues(a[i].value, liveVars)
-                assns = gatherAssignedVarIds([a[i].target])
+                assns = gather_assigned_var_ids([a[i].target])
                 for target in assns:
                     if target in liveVars:
                         del liveVars[target]
@@ -1522,7 +1522,7 @@ def copyPropagation(a, liveVars=None, inLoop=False):
                 # We can keep any values that occur in both
                 for key in liveVars1:
                     if key in liveVars2:
-                        if compareASTs(liveVars1[key], liveVars2[key], checkEquality=True) == 0:
+                        if compare_trees(liveVars1[key], liveVars2[key], check_equality=True) == 0:
                             liveVars[key] = liveVars1[key]
             # TODO: think more deeply about how this should work
             elif type(a[i]) == ast.Try:
@@ -1575,7 +1575,7 @@ def deadCodeRemoval(a, liveVars=None, keepPrints=True, inLoop=False):
                 else:
                     namesSeen.append(a.body[i].name)
             elif type(a.body[i]) == ast.Assign:
-                namesSeen += gatherAssignedVars(a.body[i].targets)
+                namesSeen += gather_assigned_vars(a.body[i].targets)
             i -= 1
         liveVars |= set(namesSeen)  # make sure all global names are used!
 
@@ -1617,7 +1617,7 @@ def deadCodeRemoval(a, liveVars=None, keepPrints=True, inLoop=False):
             elif t == ast.Assign:
                 # Check to see if the names being assigned are in the set of live variables
                 allDead = True
-                allTargets = gatherAssignedVars(stmt.targets)
+                allTargets = gather_assigned_vars(stmt.targets)
                 allNamesUsed = allVariableNamesUsed(stmt.value)
                 for target in allTargets:
                     if type(target) == ast.Name and (target.id in liveVars or target.id in allNamesUsed):
@@ -1629,7 +1629,7 @@ def deadCodeRemoval(a, liveVars=None, keepPrints=True, inLoop=False):
                         allDead = False
                 # Also, check if the variable itself is contained in the value, because that can crash too
                 # If none are used, we can delete this line. Otherwise, use the value's vars
-                if allDead and (not couldCrash(stmt)) and (not containsTokenStepString(stmt)):
+                if allDead and (not could_crash(stmt)) and (not contains_token_step_string(stmt)):
                     a.pop(i)
                 else:
                     liveVars |= set(allVariableNamesUsed(stmt.value))
@@ -1686,7 +1686,7 @@ def deadCodeRemoval(a, liveVars=None, keepPrints=True, inLoop=False):
                                 ast.Pass(removedLines=True, global_id=gid)]
                             break
                     else:
-                        if couldCrash(stmt.iter) or containsTokenStepString(stmt.iter):
+                        if could_crash(stmt.iter) or contains_token_step_string(stmt.iter):
                             a[i] = ast.Expr(stmt.iter, collapsedExpr=True)
                         else:
                             a.pop(i)
@@ -1719,7 +1719,7 @@ def deadCodeRemoval(a, liveVars=None, keepPrints=True, inLoop=False):
                 # First, if True/False, just replace it with the lines
                 test = a[i].test
                 if type(test) == ast.NameConstant and test.value in [True, False]:
-                    assignedVars = getAllAssignedVars(a[i])
+                    assignedVars = get_all_assigned_vars(a[i])
                     for var in assignedVars:
                         # UNLESS we have a weird variable assignment problem
                         if var.id[0] == "g" and hasattr(var, "originalId"):
@@ -1741,7 +1741,7 @@ def deadCodeRemoval(a, liveVars=None, keepPrints=True, inLoop=False):
                 liveVars |= allVars
                 if len(stmt.body) == 0 and len(stmt.orelse) == 0:
                     # Get rid of the if and keep going
-                    if couldCrash(stmt.test) or containsTokenStepString(stmt.test):
+                    if could_crash(stmt.test) or contains_token_step_string(stmt.test):
                         newStmt = ast.Expr(stmt.test, collapsedExpr=True)
                         transferMetaData(stmt, newStmt)
                         a[i] = newStmt
@@ -1777,7 +1777,7 @@ def deadCodeRemoval(a, liveVars=None, keepPrints=True, inLoop=False):
                         j += 1
             elif t == ast.Expr:
                 # Remove the line if it won't crash things.
-                if couldCrash(stmt) or containsTokenStepString(stmt):
+                if could_crash(stmt) or contains_token_step_string(stmt):
                     liveVars |= set(allVariableNamesUsed(stmt))
                 else:
                     # check whether any of these variables might crash the program
@@ -1785,7 +1785,7 @@ def deadCodeRemoval(a, liveVars=None, keepPrints=True, inLoop=False):
                     allVars = allVariableNamesUsed(stmt)
                     for j in range(i):
                         if type(a[j]) == ast.Assign:
-                            for id in gatherAssignedVarIds(a[j].targets):
+                            for id in gather_assigned_var_ids(a[j].targets):
                                 if id in allVars:
                                     allVars.remove(id)
                     if len(allVars) > 0:
@@ -1839,10 +1839,10 @@ def areDisjoint(a, b):
         aRight = a.comparators[0]
         bLeft = b.left
         bRight = b.comparators[0]
-        alblComp = compareASTs(aLeft, bLeft, checkEquality=True)
-        albrComp = compareASTs(aLeft, bRight, checkEquality=True)
-        arblComp = compareASTs(aRight, bLeft, checkEquality=True)
-        arbrComp = compareASTs(aRight, bRight, checkEquality=True)
+        alblComp = compare_trees(aLeft, bLeft, check_equality=True)
+        albrComp = compare_trees(aLeft, bRight, check_equality=True)
+        arblComp = compare_trees(aRight, bLeft, check_equality=True)
+        arbrComp = compare_trees(aRight, bRight, check_equality=True)
         altype = type(aLeft) in [ast.Num, ast.Str]
         artype = type(aRight) in [ast.Num, ast.Str]
         bltype = type(bLeft) in [ast.Num, ast.Str]
@@ -1884,10 +1884,10 @@ def areDisjoint(a, b):
     elif type(a) == type(b) == ast.BoolOp:
         return False  # for now- TODO: when is this not true?
     elif type(a) == ast.UnaryOp and type(a.op) == ast.Not:
-        if compareASTs(a.operand, b, checkEquality=True) == 0:
+        if compare_trees(a.operand, b, check_equality=True) == 0:
             return True
     elif type(b) == ast.UnaryOp and type(b.op) == ast.Not:
-        if compareASTs(b.operand, a, checkEquality=True) == 0:
+        if compare_trees(b.operand, a, check_equality=True) == 0:
             return True
     return False
 
@@ -1898,8 +1898,8 @@ def crashesOn(a):
     if not isinstance(a, ast.AST):
         return []
     if type(a) == ast.BinOp:
-        l = eventualType(a.left)
-        r = eventualType(a.right)
+        l = eventual_type(a.left)
+        r = eventual_type(a.right)
         if type(a.op) == ast.Add:
             if not ((l == r == str) or (l in [int, float] and r in [int, float])):
                 return [a]
@@ -1916,23 +1916,23 @@ def crashesOn(a):
                 return [a]
     elif type(a) == ast.UnaryOp:
         if type(a.op) in [ast.UAdd, ast.USub]:
-            if eventualType(a.operand) not in [int, float]:
+            if eventual_type(a.operand) not in [int, float]:
                 return [a]
         elif type(a.op) == ast.Invert:
-            if eventualType(a.operand) != int:
+            if eventual_type(a.operand) != int:
                 return [a]
     elif type(a) == ast.Compare:
         if len(a.ops) != len(a.comparators):
             return [a]
-        elif type(a.ops[0]) in [ast.In, ast.NotIn] and not is_iterable_type(eventualType(a.comparators[0])):
+        elif type(a.ops[0]) in [ast.In, ast.NotIn] and not is_iterable_type(eventual_type(a.comparators[0])):
             return [a]
         elif type(a.ops[0]) in [ast.Lt, ast.LtE, ast.Gt, ast.GtE]:
             # In Python3, you can't compare different types. BOOOOOO!!
-            firstType = eventualType(a.left)
+            firstType = eventual_type(a.left)
             if firstType == None:
                 return [a]
             for comp in a.comparators:
-                if eventualType(comp) != firstType:
+                if eventual_type(comp) != firstType:
                     return [a]
     elif type(a) == ast.Call:
         env = []  # TODO: what if the environments aren't imported?
@@ -1947,7 +1947,7 @@ def crashesOn(a):
                 funDict = funMaps[a.func.value.id]
                 safeFuns = safeFunMaps[a.func.value.id]
                 funName = a.func.attr
-            elif eventualType(a.func.value) == str:
+            elif eventual_type(a.func.value) == str:
                 funDict = funMaps["string"]
                 safeFuns = safeFunMaps["string"]
                 funName = a.func.attr
@@ -1961,7 +1961,7 @@ def crashesOn(a):
             if funName in safeFuns:
                 argTypes = []
                 for i in range(len(a.args)):
-                    eventual = eventualType(a.args[i])
+                    eventual = eventual_type(a.args[i])
                     if eventual == None:
                         return [a]
                     argTypes.append(eventual)
@@ -1983,18 +1983,18 @@ def crashesOn(a):
             else:
                 return [a]
     elif type(a) == ast.Subscript:
-        if eventualType(a.value) not in [str, list, tuple]:
+        if eventual_type(a.value) not in [str, list, tuple]:
             return [a]
     elif type(a) == ast.Name:
         # If it's an undefined variable, it might crash
         if hasattr(a, "randomVar"):
             return [a]
     elif type(a) == ast.Slice:
-        if a.lower != None and eventualType(a.lower) != int:
+        if a.lower != None and eventual_type(a.lower) != int:
             return [a]
-        if a.upper != None and eventualType(a.upper) != int:
+        if a.upper != None and eventual_type(a.upper) != int:
             return [a]
-        if a.step != None and eventualType(a.step) != int:
+        if a.step != None and eventual_type(a.step) != int:
             return [a]
     elif type(a) in [ast.Assert, ast.Import, ast.ImportFrom, ast.Attribute, ast.Index]:
         return [a]
@@ -2007,7 +2007,7 @@ def crashesOn(a):
 
 def isNegation(a, b):
     """Is a the negation of b?"""
-    return compareASTs(deMorganize(ast.UnaryOp(ast.Not(), deepcopy(a))), b, checkEquality=True) == 0
+    return compare_trees(deMorganize(ast.UnaryOp(ast.Not(), deepcopy(a))), b, check_equality=True) == 0
 
 
 def reverse(op):
@@ -2062,16 +2062,16 @@ def orderCommutativeOperations(a):
                     # First, do we even want to swap these two?
                     # Branch tests MUST be disjoint to be swapped- otherwise, we break semantics
                     if areDisjoint(branches[i][0], branches[i + 1][0]) and \
-                            compareASTs(branches[i][0], branches[i + 1][0]) > 0:
-                        if not (couldCrash(branches[i][0]) or couldCrash(branches[i + 1][0])):
+                            compare_trees(branches[i][0], branches[i + 1][0]) > 0:
+                        if not (could_crash(branches[i][0]) or could_crash(branches[i + 1][0])):
                             (branches[i], branches[i + 1]) = (branches[i + 1], branches[i])
                             isSorted = False
                         # Two values can be swapped if they crash on the SAME thing
-                        elif couldCrash(branches[i][0]) and couldCrash(branches[i + 1][0]):
+                        elif could_crash(branches[i][0]) and could_crash(branches[i + 1][0]):
                             # Check to see if they crash on the same things
-                            l1 = sorted(crashesOn(branches[i][0]), key=functools.cmp_to_key(compareASTs))
-                            l2 = sorted(crashesOn(branches[i + 1][0]), key=functools.cmp_to_key(compareASTs))
-                            if compareASTs(l1, l2, checkEquality=True) == 0:
+                            l1 = sorted(crashesOn(branches[i][0]), key=functools.cmp_to_key(compare_trees))
+                            l2 = sorted(crashesOn(branches[i + 1][0]), key=functools.cmp_to_key(compare_trees))
+                            if compare_trees(l1, l2, check_equality=True) == 0:
                                 (branches[i], branches[i + 1]) = (branches[i + 1], branches[i])
                                 isSorted = False
             # Do our last two branches nicely form an if/else already?
@@ -2089,28 +2089,29 @@ def orderCommutativeOperations(a):
         canSort = True
         for i in range(len(a.values)):
             a.values[i] = orderCommutativeOperations(a.values[i])
-            if couldCrash(a.values[i]) or eventualType(a.values[i]) != bool or containsTokenStepString(a.values[i]):
+            if could_crash(a.values[i]) or eventual_type(a.values[i]) != bool or contains_token_step_string(
+                    a.values[i]):
                 canSort = False
 
         if canSort:
-            a.values = sorted(a.values, key=functools.cmp_to_key(compareASTs))
+            a.values = sorted(a.values, key=functools.cmp_to_key(compare_trees))
         else:
             # Even if there are some problems, we can partially sort. See above
             isSorted = False
             while not isSorted:
                 isSorted = True
                 for i in range(len(a.values) - 1):
-                    if compareASTs(a.values[i], a.values[i + 1]) > 0 and \
-                            eventualType(a.values[i]) == bool and eventualType(a.values[i + 1]) == bool:
-                        if not (couldCrash(a.values[i]) or couldCrash(a.values[i + 1])):
+                    if compare_trees(a.values[i], a.values[i + 1]) > 0 and \
+                            eventual_type(a.values[i]) == bool and eventual_type(a.values[i + 1]) == bool:
+                        if not (could_crash(a.values[i]) or could_crash(a.values[i + 1])):
                             (a.values[i], a.values[i + 1]) = (a.values[i + 1], a.values[i])
                             isSorted = False
                         # Two values can also be swapped if they crash on the SAME thing
-                        elif couldCrash(a.values[i]) and couldCrash(a.values[i + 1]):
+                        elif could_crash(a.values[i]) and could_crash(a.values[i + 1]):
                             # Check to see if they crash on the same things
-                            l1 = sorted(crashesOn(a.values[i]), key=functools.cmp_to_key(compareASTs))
-                            l2 = sorted(crashesOn(a.values[i + 1]), key=functools.cmp_to_key(compareASTs))
-                            if compareASTs(l1, l2, checkEquality=True) == 0:
+                            l1 = sorted(crashesOn(a.values[i]), key=functools.cmp_to_key(compare_trees))
+                            l2 = sorted(crashesOn(a.values[i + 1]), key=functools.cmp_to_key(compare_trees))
+                            if compare_trees(l1, l2, check_equality=True) == 0:
                                 (a.values[i], a.values[i + 1]) = (a.values[i + 1], a.values[i])
                                 isSorted = False
         return a
@@ -2120,14 +2121,14 @@ def orderCommutativeOperations(a):
         r = a.right = orderCommutativeOperations(a.right)
 
         # Don't reorder if we're currently walking through hint steps
-        if containsTokenStepString(l) or containsTokenStepString(r):
+        if contains_token_step_string(l) or contains_token_step_string(r):
             return a
 
         # TODO: what about possible crashes?
         # Certain operands are commutative
         if (top in [ast.Mult, ast.BitOr, ast.BitXor, ast.BitAnd]) or \
-                ((top == ast.Add) and ((eventualType(l) in [int, float, bool]) or \
-                                       (eventualType(r) in [int, float, bool]))):
+                ((top == ast.Add) and ((eventual_type(l) in [int, float, bool]) or \
+                                       (eventual_type(r) in [int, float, bool]))):
             # Break the chain of binary operations into a list of the
             # operands over the same op, then sort the operands
             operands = [[l, a.op], [r, None]]
@@ -2139,7 +2140,7 @@ def orderCommutativeOperations(a):
                     operands[i:i + 1] = [[operand.left, operand.op], [operand.right, op]]
                 else:
                     i += 1
-            operands = sorted(operands, key=functools.cmp_to_key(lambda x, y: compareASTs(x[0], y[0])))
+            operands = sorted(operands, key=functools.cmp_to_key(lambda x, y: compare_trees(x[0], y[0])))
             for i in range(len(operands) - 1):  # push all the ops forward
                 if operands[i][1] == None:
                     operands[i][1] = operands[i + 1][1]
@@ -2163,7 +2164,7 @@ def orderCommutativeOperations(a):
             a.values[i] = orderCommutativeOperations(a.values[i])
 
         pairs = list(zip(a.keys, a.values))
-        pairs.sort(key=functools.cmp_to_key(lambda x, y: compareASTs(x[0], y[0])))  # sort by keys
+        pairs.sort(key=functools.cmp_to_key(lambda x, y: compare_trees(x[0], y[0])))  # sort by keys
         k, v = zip(*pairs) if len(pairs) > 0 else ([], [])
         a.keys = list(k)
         a.values = list(v)
@@ -2174,12 +2175,12 @@ def orderCommutativeOperations(a):
         a.comparators = [r]
 
         # Don't reorder when we're doing hint steps
-        if containsTokenStepString(l) or containsTokenStepString(r):
+        if contains_token_step_string(l) or contains_token_step_string(r):
             return a
 
         if (type(a.ops[0]) in [ast.Eq, ast.NotEq]):
             # Equals and not-equals are commutative
-            if compareASTs(l, r) > 0:
+            if compare_trees(l, r) > 0:
                 a.left, a.comparators[0] = a.comparators[0], a.left
         elif (type(a.ops[0]) in [ast.Gt, ast.GtE]):
             # We'll always use < and <=, just so everything's the same
@@ -2190,14 +2191,14 @@ def orderCommutativeOperations(a):
                 # If it's a list of items, sort the list
                 # TODO: should we implement crashable sorting here?
                 for i in range(len(r.elts)):
-                    if couldCrash(r.elts[i]):
+                    if could_crash(r.elts[i]):
                         break  # don't sort if there'a a crash!
                 else:
-                    r.elts = sorted(r.elts, key=functools.cmp_to_key(compareASTs))
+                    r.elts = sorted(r.elts, key=functools.cmp_to_key(compare_trees))
                     # Then remove duplicates
                     i = 0
                     while i < len(r.elts) - 1:
-                        if compareASTs(r.elts[i], r.elts[i + 1], checkEquality=True) == 0:
+                        if compare_trees(r.elts[i], r.elts[i + 1], check_equality=True) == 0:
                             r.elts.pop(i + 1)
                         else:
                             i += 1
@@ -2209,11 +2210,11 @@ def orderCommutativeOperations(a):
                 crashable = False
                 for i in range(len(a.args)):
                     a.args[i] = orderCommutativeOperations(a.args[i])
-                    if couldCrash(a.args[i]) or containsTokenStepString(a.args[i]):
+                    if could_crash(a.args[i]) or contains_token_step_string(a.args[i]):
                         crashable = True
                 # TODO: crashable sorting here?
                 if not crashable:
-                    a.args = sorted(a.args, key=functools.cmp_to_key(compareASTs))
+                    a.args = sorted(a.args, key=functools.cmp_to_key(compare_trees))
                 return a
     return apply_to_children(a, orderCommutativeOperations)
 
@@ -2246,7 +2247,7 @@ def deMorganize(a):
         # not not blah == blah
         elif top == ast.UnaryOp and type(oper.op) == ast.Not:
             oper.operand = deMorganize(oper.operand)
-            if eventualType(oper.operand) != bool:
+            if eventual_type(oper.operand) != bool:
                 return a
             oper.operand.negated = not oper.operand.negated if hasattr(oper.operand, "negated") else True
             return oper.operand
@@ -2285,7 +2286,7 @@ def cleanupEquals(a):
         if type(l) == ast.NameConstant and l.value in [True, False]:
             (l, r) = (r, l)
         # If we have (boolean expression) == True
-        if type(r) == ast.NameConstant and r.value in [True, False] and (eventualType(l) == bool):
+        if type(r) == ast.NameConstant and r.value in [True, False] and (eventual_type(l) == bool):
             # Matching types
             if (type(a.ops[0]) == ast.Eq and r.value == True) or \
                     (type(a.ops[0]) == ast.NotEq and r.value == False):
@@ -2310,7 +2311,7 @@ def cleanupBoolOps(a):
         allTypesWork = True
         for i in range(len(a.values)):
             a.values[i] = cleanupBoolOps(a.values[i])
-            if eventualType(a.values[i]) != bool or hasattr(a.values[i], "multiComp"):
+            if eventual_type(a.values[i]) != bool or hasattr(a.values[i], "multiComp"):
                 allTypesWork = False
 
         # We can't reduce if the types aren't all booleans
@@ -2329,7 +2330,7 @@ def cleanupBoolOps(a):
                     # First, check for all identical values from the front
                     j = 0
                     while j < minlength:
-                        if compareASTs(current.values[j], next.values[j], checkEquality=True) != 0:
+                        if compare_trees(current.values[j], next.values[j], check_equality=True) != 0:
                             break
                         j += 1
 
@@ -2373,7 +2374,7 @@ def cleanupSlices(a):
             # Upper defaults to len(value)
             if a.slice.upper != None and type(a.slice.upper) == ast.Call and \
                     type(a.slice.upper.func) == ast.Name and a.slice.upper.func.id == "len":
-                if compareASTs(a.value, a.slice.upper.args[0], checkEquality=True) == 0:
+                if compare_trees(a.value, a.slice.upper.args[0], check_equality=True) == 0:
                     a.slice.upper = None
             # Step defaults to 1
             if a.slice.step != None and type(a.slice.step) == ast.Num and a.slice.step.n == 1:
@@ -2390,14 +2391,14 @@ def cleanupTypes(a):
         a.left = cleanupTypes(a.left)
         a.right = cleanupTypes(a.right)
         # Ints become floats naturally
-        if eventualType(a.left) == eventualType(a.right) == float:
+        if eventual_type(a.left) == eventual_type(a.right) == float:
             if type(a.right) == ast.Call and type(a.right.func) == ast.Name and \
                     a.right.func.id == "float" and len(a.right.args) == 1 and len(a.right.keywords) == 0 and \
-                    eventualType(a.right.args[0]) in [int, float]:
+                    eventual_type(a.right.args[0]) in [int, float]:
                 a.right = a.right.args[0]
             elif type(a.left) == ast.Call and type(a.left.func) == ast.Name and \
                     a.left.func.id == "float" and len(a.left.args) == 1 and len(a.left.keywords) == 0 and \
-                    eventualType(a.left.args[0]) in [int, float]:
+                    eventual_type(a.left.args[0]) in [int, float]:
                 a.left = a.left.args[0]
         return a
     elif type(a) == ast.Call and type(a.func) == ast.Name and len(a.args) == 1 and len(a.keywords) == 0:
@@ -2405,7 +2406,7 @@ def cleanupTypes(a):
         a.args = [cleanupTypes(a.args[0])]
         # If the type already matches, no need to cast it
         funName = a.func.id
-        argType = eventualType(a.args[0])
+        argType = eventual_type(a.args[0])
         if type(a.func) == ast.Name:
             if (funName == "float" and argType == float) or \
                     (funName == "int" and argType == int) or \
@@ -2453,7 +2454,7 @@ def cleanupNegations(a):
                 return a
             # (-x) + y
             elif isNegative(a.left):
-                if couldCrash(a.left) and couldCrash(a.right):
+                if could_crash(a.left) and could_crash(a.right):
                     return a  # can't switch if it'll change the message
                 else:
                     (a.left, a.right) = (a.right, turnPositive(a.left))
@@ -2475,7 +2476,7 @@ def cleanupNegations(a):
                     return a
                 # x - (y - z) = x + (-y + z) = x + (z - y)
                 elif type(a.right.op) == ast.Sub:
-                    if couldCrash(a.right.left) and couldCrash(a.right.right):
+                    if could_crash(a.right.left) and could_crash(a.right.right):
                         a.right.left = cleanupNegations(
                             ast.UnaryOp(ast.USub(addedOtherOp=True), a.right.left, addedOther=True))
                         a.right.op = ast.Add(global_id=a.right.op.global_id, num_negated=True)
@@ -2494,12 +2495,12 @@ def cleanupNegations(a):
                 return a
             # -x * y = -(x*y)
             elif isNegative(a.left):
-                if eventualType(a.right) in [int, float]:
+                if eventual_type(a.right) in [int, float]:
                     a.left = turnPositive(a.left)
                     return cleanupNegations(ast.UnaryOp(ast.USub(addedOtherOp=True), a, addedOther=True))
             # x * -y = -(x*y)
             elif isNegative(a.right):
-                if eventualType(a.left) in [int, float]:
+                if eventual_type(a.left) in [int, float]:
                     a.right = turnPositive(a.right)
                     return cleanupNegations(ast.UnaryOp(ast.USub(addedOtherOp=True), a, addedOther=True))
         elif type(a.op) in [ast.Div, ast.FloorDiv]:
@@ -2521,7 +2522,7 @@ def cleanupNegations(a):
                     return a.operand
                 # -(x - y) = -x + y = y - x
                 elif type(a.operand.op) == ast.Sub:
-                    if couldCrash(a.operand.left) and couldCrash(a.operand.right):
+                    if could_crash(a.operand.left) and could_crash(a.operand.right):
                         a.operand.left = cleanupNegations(
                             ast.UnaryOp(ast.USub(addedOtherOp=True), a.operand.left, addedOther=True))
                         a.operand.op = ast.Add(global_id=a.operand.op.global_id, num_negated=True)
@@ -2538,8 +2539,8 @@ def cleanupNegations(a):
         if type(a.args[0]) == ast.UnaryOp and type(a.args[0].op) == ast.USub:
             a.args[0] = a.args[0].operand
         elif type(a.args[0]) == ast.BinOp and type(a.args[0].op) == ast.Sub:
-            if not (couldCrash(a.args[0].left) and couldCrash(a.args[0].right)) and \
-                    compareASTs(a.args[0].left, a.args[0].right) > 0:
+            if not (could_crash(a.args[0].left) and could_crash(a.args[0].right)) and \
+                    compare_trees(a.args[0].left, a.args[0].right) > 0:
                 (a.args[0].left, a.args[0].right) = (a.args[0].right, a.args[0].left)
         return a
     else:
@@ -2566,7 +2567,7 @@ def combineConditionals(a):
         # if a: x elif b:   x can be - if a or b:   x
         elif (len(a.orelse) == 1) and \
                 (type(a.orelse[0]) == ast.If) and (len(a.orelse[0].orelse) == 0):
-            if compareASTs(a.body, a.orelse[0].body, checkEquality=True) == 0:
+            if compare_trees(a.body, a.orelse[0].body, check_equality=True) == 0:
                 a.test = ast.BoolOp(ast.Or(combinedConditionalOp=True), [a.test, a.orelse[0].test],
                                     combinedConditional=True)
                 a.orelse = []
@@ -2680,8 +2681,8 @@ def conditionalRedundancy(a):
                 stmt.orelse = conditionalRedundancy(stmt.orelse)
 
                 # If a line appears in both, move it outside the conditionals
-                if len(stmt.body) > 0 and len(stmt.orelse) > 0 and compareASTs(stmt.body[-1], stmt.orelse[-1],
-                                                                               checkEquality=True) == 0:
+                if len(stmt.body) > 0 and len(stmt.orelse) > 0 and compare_trees(stmt.body[-1], stmt.orelse[-1],
+                                                                                 check_equality=True) == 0:
                     nextLine = stmt.body[-1]
                     nextLine.second_global_id = stmt.orelse[-1].global_id
                     stmt.body = stmt.body[:-1]
@@ -2775,7 +2776,7 @@ def collapseConditionals(a):
 
                     # This only works for Assign and Return
                     if type(ifLine) == type(elseLine) == ast.Assign and \
-                            compareASTs(ifLine.targets, elseLine.targets, checkEquality=True) == 0:
+                            compare_trees(ifLine.targets, elseLine.targets, check_equality=True) == 0:
                         pass
                     elif type(ifLine) == ast.Return and type(elseLine) == ast.Return:
                         pass
@@ -2790,7 +2791,7 @@ def collapseConditionals(a):
                             # But keep the test in case it crashes- we'll remove it later
                             ifLine.global_id = None  # we're replacing the whole if statement
                             l[i:i + 1] = [ast.Expr(l[i].test, addedOther=True, moved_line=ifLine.global_id), ifLine]
-                        elif eventualType(l[i].test) == bool:
+                        elif eventual_type(l[i].test) == bool:
                             testVal = l[i].test
                             if ifLine.value.id == 'True':
                                 newVal = testVal
@@ -2810,8 +2811,8 @@ def collapseConditionals(a):
                     # First, check to see if the current and prior have the same return bodies
                     if i != 0 and type(l[i - 1]) == ast.If and \
                             len(l[i - 1].body) == 1 and len(l[i - 1].orelse) == 0 and \
-                            type(ifLine) == ast.Return and compareASTs(ifLine, l[i - 1].body[0],
-                                                                       checkEquality=True) == 0:
+                            type(ifLine) == ast.Return and compare_trees(ifLine, l[i - 1].body[0],
+                                                                         check_equality=True) == 0:
                         # If they do, combine their tests with an Or and get rid of this line
                         l[i - 1].test = ast.BoolOp(ast.Or(combinedConditionalOp=True), [l[i - 1].test, l[i].test],
                                                    combinedConditional=True)
@@ -2825,7 +2826,7 @@ def collapseConditionals(a):
                             # No point in keeping the if line- just use the return
                             l[i] = ast.Expr(l[i].test, addedOther=True)
                         else:
-                            if eventualType(l[i].test) == bool:
+                            if eventual_type(l[i].test) == bool:
                                 testVal = l[i].test
                                 if ifLine.value.id == 'True':
                                     newLine = ast.Return(testVal)
