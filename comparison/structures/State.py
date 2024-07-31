@@ -3,6 +3,7 @@ from typing import List
 
 from comparison.structures.ChangeVector import ChangeVector
 from comparison.utils.astTools import deepcopy, cmp
+from utils.display import print_function
 
 
 # The State class holds all the relevent information for a solution state
@@ -13,6 +14,7 @@ class State:
     name = None
     score = None
     feedback = None
+    code = None
 
     fun = None
     loadedFun = None
@@ -107,6 +109,7 @@ class CodeState(State):
         super().__init__()
         self.goal = goal
         self.tree = tree
+        self.code = print_function(tree)
 
 
 class IntermediateState(State):
@@ -114,10 +117,12 @@ class IntermediateState(State):
     distance_to_original = -1
     change_vectors: list = None
     count = 0
+    code = None
 
     def __init__(self, tree=None):
         super().__init__()
         self.tree = tree
+        self.code = print_function(tree)
 
 
 class GoalState(State):

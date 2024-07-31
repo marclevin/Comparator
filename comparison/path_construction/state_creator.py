@@ -344,10 +344,8 @@ def generateMappings(s, g):
     return allMaps
 
 
-def optimize_goal(s: CodeState, changes: list[ChangeVector]):
-    """Takes a state and a list of changes and returns the best goal state by applying the changes (powerset) and
-    scoring the results"""
-    current_goal, current_diff, current_edits = s.goal, s.distance_to_goal, changes  # set up values that will change
+def optimize_goal(student_state: CodeState, changes: list[ChangeVector]):
+    current_goal, current_diff, current_edits = student_state.goal, student_state.distance_to_goal, changes
     all_changes = []
 
     class Branch:  # use this to hold branches
@@ -356,7 +354,7 @@ def optimize_goal(s: CodeState, changes: list[ChangeVector]):
             self.next = next
             self.state = state
 
-    tree_level = [Branch([], changes, s)]
+    tree_level = [Branch([], changes, student_state)]
     # Until you've run out of possible goal states...
     while len(tree_level) != 0:
         next_level = []
@@ -368,17 +366,13 @@ def optimize_goal(s: CodeState, changes: list[ChangeVector]):
                 # If our current best is in this, don't bother
                 if isStrictSubset(current_edits, new_changes):
                     continue
-
                 # Check to see that the state exists and that it isn't too far away
-                new_state = apply_change_vectors(s, new_changes)
-                if new_state is None:  # shouldn't happen
-                    log("generateNextStates\toptimizeGoal\tBroken edit: " + str(new_changes), "bug")
-                    continue
-                new_distance, _ = distance(s, new_state, given_changes=new_changes)
+                new_state = apply_change_vectors(student_state, new_changes)
+                new_distance, _ = distance(student_state, new_state, given_changes=new_changes)
 
                 all_changes.append((new_changes, new_state))  # just in case we need the final goal
 
-                if new_state.score == 1 and new_distance <= current_diff:  # it's a new goal!
+                if new_distance <= current_diff:  # it's a new goal!
                     # We know that it's closer because we just tested distance
                     current_goal, current_diff, current_edits = new_state, new_distance, new_changes
                 else:
@@ -386,7 +380,10 @@ def optimize_goal(s: CodeState, changes: list[ChangeVector]):
                     # We only add a state here if it's closer than the current goal
                     next_level.append(Branch(new_changes, branch.next[i + 1:], new_state))
         tree_level = next_level
-        s.goal, s.distance_to_goal = current_goal, current_diff  # otherwise, put in the new goal
+    if student_state.goal.code == current_goal.code:
+        return all_changes
+    else:
+        student_state.goal, student_state.distance_to_goal = current_goal, current_diff
 
 
 def fastOptimizeGoal(s, changes, states, goals, includeSmallSets=False):
@@ -445,7 +442,6 @@ def is_valid_next_state(student_state, new_state, goal_state):
     return True
 
 
-# TODO: Fix this to use the new scoring system (desirability)
 def generate_states_in_path(student_state: CodeState, valid_combinations: list[tuple[list[ChangeVector], CodeState]]):
     best_score, best_state = -1, None
     ideal_changes = None
@@ -474,11 +470,31 @@ def get_all_combinations(student_state: CodeState, changes: list[ChangeVector]):
     return all_combinations
 
 
+# Preamble: We are given the students current state, and the goal state (from Chris)
+# Step 1: First, optimize the goal state, by applying possible combinations of edits from the original diff.
+# Step 2: If the goal state is not the same as the current goal state, we have a new goal state.
+# Step 3: Generate all possible combinations of edits from the current state to the new goal state (power set)
+# Step 4: For each combination, apply the changes to the current state and check if the state is valid.
+# Step 5: If the state is valid, score it based on the four desirable properties.
+# Step 6: If the score is better than the current best, update the best state and the best score.
+# Step 7: If we have a best state, set the next state of the current state to the best state.
+# Step 8: Finally, we have the next state in the solution space.
+# Step 9: We move on to generating the hint.
+
+# Flow:
+# In: Student_State and Goal_State
+# Out: Student_State with next state set
 def get_next_state(student_state: CodeState):
-    """Generate the best next state for s, so that it will produce a desirable hint"""
+    """Generates the next state in the solution space for the student state"""
     (student_state.distance_to_goal, changes) = distance(student_state,
                                                          student_state.goal)  # now get the actual changes
-    all_combinations = get_all_combinations(student_state, changes)
+
+    # Optimize the goal state
+    all_combinations = optimize_goal(student_state, changes)
+    if all_combinations is None:
+        changes = get_changes(student_state.tree, student_state.goal.tree)
+        all_combinations = get_all_combinations(student_state, changes)
+
     student_state.changesToGoal = len(changes)
 
     # Now check for the required properties of a next state. Filter before sorting to save time

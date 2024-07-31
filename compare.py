@@ -3,10 +3,10 @@
 import autopep8
 
 from comparison.canonicalize import getCanonicalForm
-from comparison.individualize import map_edit
 from comparison.path_construction.comparator import *
 from comparison.path_construction.state_creator import get_next_state
 from comparison.utils.generate_message import *
+from individualize import map_edit
 
 
 def compare_solutions(student_ast, solution_ast) -> str:
