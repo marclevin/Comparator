@@ -6,7 +6,7 @@ from comparison.utils.tools import log
 
 # VARIABLE ANONYMIZATION
 
-def updateVariableNames(candidate_ast, var_map, scope_name, random_counter, imports):
+def update_variable_names(candidate_ast, var_map, scope_name, random_counter, imports):
     if not isinstance(candidate_ast, ast.AST):
         return
 
@@ -16,7 +16,7 @@ def updateVariableNames(candidate_ast, var_map, scope_name, random_counter, impo
                 candidate_ast.originalId = candidate_ast.name
             candidate_ast.name = var_map[candidate_ast.name]
         anonymize_statement_names(candidate_ast, var_map, "_" + candidate_ast.name, imports)
-    elif type(candidate_ast) == ast.arg:
+    elif type(candidate_ast) is ast.arg:
         if candidate_ast.arg not in var_map and not (
                 built_in_name(candidate_ast.arg) or imported_name(candidate_ast.arg, imports)):
             log("Can't assign to arg?", "bug")
@@ -30,7 +30,7 @@ def updateVariableNames(candidate_ast, var_map, scope_name, random_counter, impo
                 if not isAnonVariable(var_map[candidate_ast.arg]):
                     candidate_ast.dontChangeName = True
             candidate_ast.arg = var_map[candidate_ast.arg]
-    elif type(candidate_ast) == ast.Name:
+    elif type(candidate_ast) is ast.Name:
         if candidate_ast.id not in var_map and not (
                 built_in_name(candidate_ast.id) or imported_name(candidate_ast.id, imports)):
             var_map[candidate_ast.id] = "r" + str(random_counter[0]) + scope_name
@@ -47,7 +47,7 @@ def updateVariableNames(candidate_ast, var_map, scope_name, random_counter, impo
             candidate_ast.id = var_map[candidate_ast.id]
     else:
         for child in ast.iter_child_nodes(candidate_ast):
-            updateVariableNames(child, var_map, scope_name, random_counter, imports)
+            update_variable_names(child, var_map, scope_name, random_counter, imports)
 
 
 def gatherLocalScope(a, globalMap, scopeName, imports, goBackwards=False):
@@ -127,9 +127,9 @@ def anonymize_statement_names(a, globalMap, scopeName, imports, goBackwards=Fals
     functionsSeen = []
     if type(a) == ast.FunctionDef:
         for arg in a.args.args:
-            updateVariableNames(arg, varMap, scopeName, randomCounter, imports)
+            update_variable_names(arg, varMap, scopeName, randomCounter, imports)
     for line in a.body:
-        updateVariableNames(line, varMap, scopeName, randomCounter, imports)
+        update_variable_names(line, varMap, scopeName, randomCounter, imports)
 
 
 def anonymizeNames(a, namesToKeep, imports):
@@ -569,251 +569,253 @@ def simplify(a):
     return apply_to_children(a, lambda x: simplify(x))
 
 
-def propogateMetadata(a, argTypes, variableMap, idNum):
-    """This function propogates metadata about type throughout the AST.
+def propagate_metadata(node, arg_types, variable_map, id_num):
+    """This function propagates metadata about type throughout the AST.
     argTypes lets us institute types for each function's args
     variableMap maps variable ids to their types and id numbers
     idNum gives us a global number to use for variable ids"""
-    if not isinstance(a, ast.AST):
-        return a
-    elif type(a) == ast.FunctionDef:
-        if a.name in argTypes:
-            theseTypes = argTypes[a.name]
+    if not isinstance(node, ast.AST):
+        return node
+    elif type(node) is ast.FunctionDef:
+        if node.name in arg_types:
+            these_types = arg_types[node.name]
         else:
-            theseTypes = []
-        variableMap = copy.deepcopy(variableMap)  # variables shouldn't affect variables outside
-        idNum = copy.deepcopy(idNum)
-        for i in range(len(a.args.args)):
-            arg = a.args.args[i]
-            if type(arg) == ast.arg:
-                simplifyUpdateId(arg, variableMap, idNum)
+            these_types = []
+        variable_map = copy.deepcopy(variable_map)  # variables shouldn't affect variables outside
+        id_num = copy.deepcopy(id_num)
+        for i in range(len(node.args.args)):
+            arg = node.args.args[i]
+            if type(arg) is ast.arg:
+                simplifyUpdateId(arg, variable_map, id_num)
                 # Match the args if possible
-                if len(a.args.args) == len(theseTypes) and \
-                        theseTypes[i] in ["int", "str", "float", "bool", "list"]:
-                    arg.type = eval(theseTypes[i])
-                    variableMap[arg.arg] = (arg.type, arg.varID)
+                if len(node.args.args) == len(these_types) and \
+                        these_types[i] in ["int", "str", "float", "bool", "list"]:
+                    arg.type = eval(these_types[i])
+                    variable_map[arg.arg] = (arg.type, arg.varID)
                 else:
                     arg.type = None
-                    variableMap[arg.arg] = (None, arg.varID)
+                    variable_map[arg.arg] = (None, arg.varID)
             else:
                 log("transformations\tpropogateMetadata\tWeird type in args: " + str(type(arg)), "bug")
 
-        newBody = []
-        for line in a.body:
-            newLine = propogateMetadata(line, argTypes, variableMap, idNum)
-            if type(newLine) == list:
-                newBody += newLine
+        new_body = []
+        for line in node.body:
+            new_line = propagate_metadata(line, arg_types, variable_map, id_num)
+            if type(new_line) is list:
+                new_body += new_line
             else:
-                newBody.append(newLine)
-        a.body = newBody
-        return a
-    elif type(a) == ast.Assign:
-        val = a.value = propogateMetadata(a.value, argTypes, variableMap, idNum)
-        if len(a.targets) == 1:
-            t = a.targets[0]
-            if type(t) == ast.Name:
-                simplifyUpdateId(t, variableMap, idNum)
-                varType = eventual_type(val)
-                t.type = varType
-                variableMap[t.id] = (varType, t.varID)  # update type
-            elif type(t) in [ast.Tuple, ast.List]:
-                # If the items are being assigned separately, with no dependance on each other,
+                new_body.append(new_line)
+        node.body = new_body
+        return node
+    elif type(node) is ast.Assign:
+        val = node.value = propagate_metadata(node.value, arg_types, variable_map, id_num)
+        if len(node.targets) == 1:
+            node_target = node.targets[0]
+            if type(node_target) is ast.Name:
+                simplifyUpdateId(node_target, variable_map, id_num)
+                var_type = eventual_type(val)
+                node_target.type = var_type
+                variable_map[node_target.id] = (var_type, node_target.varID)  # update type
+            elif type(node_target) in [ast.Tuple, ast.List]:
+                # If the items are being assigned separately, with no dependence on each other,
                 # assign the appropriate types
-                getTypes = type(val) in [ast.Tuple, ast.List] and len(t.elts) == len(val.elts) and len(
+                get_types = type(val) in [ast.Tuple, ast.List] and len(node_target.elts) == len(val.elts) and len(
                     allVariableNamesUsed(val)) == 0
-                for j in range(len(t.elts)):
-                    t2 = t.elts[j]
-                    givenType = eventual_type(val.elts[j]) if getTypes else None
-                    if type(t2) == ast.Name:
-                        simplifyUpdateId(t2, variableMap, idNum)
-                        t2.type = givenType
-                        variableMap[t2.id] = (givenType, t2.varID)
-                    elif type(t.elts[j]) in [ast.Subscript, ast.Attribute, ast.Tuple, ast.List]:
+                for j in range(len(node_target.elts)):
+                    node_other_target = node_target.elts[j]
+                    given_type = eventual_type(val.elts[j]) if get_types else None
+                    if type(node_other_target) is ast.Name:
+                        simplifyUpdateId(node_other_target, variable_map, id_num)
+                        node_other_target.type = given_type
+                        variable_map[node_other_target.id] = (given_type, node_other_target.varID)
+                    elif type(node_target.elts[j]) in [ast.Subscript, ast.Attribute, ast.Tuple, ast.List]:
                         pass
                     else:
-                        log("transformations\tpropogateMetadata\tOdd listTarget: " + str(type(t.elts[j])), "bug")
-        return a
-    elif type(a) == ast.AugAssign:
+                        log("transformations\tpropogateMetadata\tOdd listTarget: " + str(type(node_target.elts[j])),
+                            "bug")
+        return node
+    elif type(node) is ast.AugAssign:
         # Turn all AugAssigns into Assigns
-        t = a.target = propogateMetadata(a.target, argTypes, variableMap, idNum)
-        a.value = propogateMetadata(a.value, argTypes, variableMap, idNum)
-        if type(t) == ast.Name:
-            if eventual_type(a.target) not in [bool, int, str, float]:
-                finalType = None
+        node_target = node.target = propagate_metadata(node.target, arg_types, variable_map, id_num)
+        node.value = propagate_metadata(node.value, arg_types, variable_map, id_num)
+        if type(node_target) is ast.Name:
+            if eventual_type(node.target) not in [bool, int, str, float]:
+                final_type = None
             else:
-                if type(a.target) == ast.Name:
-                    loadedTarget = ast.Name(a.target.id, ast.Load())
-                elif type(a.target) == ast.Subscript:
-                    loadedTarget = ast.Subscript(deepcopy(a.target.value), deepcopy(a.target.slice), ast.Load())
-                elif type(a.target) == ast.Attribute:
-                    loadedTarget = ast.Attribute(deepcopy(a.target.value), a.target.attr, ast.Load())
-                elif type(a.target) == ast.Tuple:
-                    loadedTarget = ast.Tuple(deepcopy(a.target.elts), ast.Load())
-                elif type(a.target) == ast.List:
-                    loadedTarget = ast.List(deepcopy(a.target.elts), ast.Load())
+                if type(node.target) is ast.Name:
+                    loaded_target = ast.Name(node.target.id, ast.Load())
+                elif type(node.target) is ast.Subscript:
+                    loaded_target = ast.Subscript(deepcopy(node.target.value), deepcopy(node.target.slice), ast.Load())
+                elif type(node.target) is ast.Attribute:
+                    loaded_target = ast.Attribute(deepcopy(node.target.value), node.target.attr, ast.Load())
+                elif type(node.target) is ast.Tuple:
+                    loaded_target = ast.Tuple(deepcopy(node.target.elts), ast.Load())
+                elif type(node.target) is ast.List:
+                    loaded_target = ast.List(deepcopy(node.target.elts), ast.Load())
                 else:
-                    log("transformations\tsimplify\tOdd AugAssign target: " + str(type(a.target)), "bug")
-                transferMetaData(a.target, loadedTarget)
-                actualValue = ast.BinOp(loadedTarget, a.op, a.value)
-                finalType = eventual_type(actualValue)
+                    loaded_target = None
+                    log("transformations\tsimplify\tOdd AugAssign target: " + str(type(node.target)), "bug")
+                transferMetaData(node.target, loaded_target)
+                actual_value = ast.BinOp(loaded_target, node.op, node.value)
+                final_type = eventual_type(actual_value)
 
-            simplifyUpdateId(t, variableMap, idNum)
-            varType = finalType
-            t.type = varType
-            variableMap[t.id] = (varType, t.varID)  # update type
-        return a
-    elif type(a) == ast.For:  # START HERE
-        a.iter = propogateMetadata(a.iter, argTypes, variableMap, idNum)
-        if type(a.target) == ast.Name:
-            simplifyUpdateId(a.target, variableMap, idNum)
-            ev = eventual_type(a.iter)
+            simplifyUpdateId(node_target, variable_map, id_num)
+            var_type = final_type
+            node_target.type = var_type
+            variable_map[node_target.id] = (var_type, node_target.varID)  # update type
+        return node
+    elif type(node) is ast.For:  # START HERE
+        node.iter = propagate_metadata(node.iter, arg_types, variable_map, id_num)
+        if type(node.target) is ast.Name:
+            simplifyUpdateId(node.target, variable_map, id_num)
+            ev = eventual_type(node.iter)
             if ev == str:
-                a.target.type = str
+                node.target.type = str
             # we know ranges are made of ints
-            elif type(a.iter) == ast.Call and type(a.iter.func) == ast.Name and (a.iter.func.id) == "range":
-                a.target.type = int
+            elif type(node.iter) is ast.Call and type(node.iter.func) is ast.Name and node.iter.func.id == "range":
+                node.target.type = int
             else:
-                a.target.type = None
-            variableMap[a.target.id] = (a.target.type, a.target.varID)
-        a.target = propogateMetadata(a.target, argTypes, variableMap, idNum)
+                node.target.type = None
+            variable_map[node.target.id] = (node.target.type, node.target.varID)
+        node.target = propagate_metadata(node.target, arg_types, variable_map, id_num)
 
         # Go through the body and orelse to map out more variables
         body = []
-        bodyMap = copy.deepcopy(variableMap)
-        for i in range(len(a.body)):
-            result = propogateMetadata(a.body[i], argTypes, bodyMap, idNum)
-            if type(result) == list:
+        body_map = copy.deepcopy(variable_map)
+        for i in range(len(node.body)):
+            result = propagate_metadata(node.body[i], arg_types, body_map, id_num)
+            if type(result) is list:
                 body += result
             else:
                 body.append(result)
-        a.body = body
+        node.body = body
 
-        orelse = []
-        orelseMap = copy.deepcopy(variableMap)
-        for var in bodyMap:
-            if var not in orelseMap:
-                orelseMap[var] = (42, bodyMap[var][1])
-        for i in range(len(a.orelse)):
-            result = propogateMetadata(a.orelse[i], argTypes, orelseMap, idNum)
-            if type(result) == list:
-                orelse += result
+        or_else = []
+        or_else_map = copy.deepcopy(variable_map)
+        for var in body_map:
+            if var not in or_else_map:
+                or_else_map[var] = (42, body_map[var][1])
+        for i in range(len(node.orelse)):
+            result = propagate_metadata(node.orelse[i], arg_types, or_else_map, id_num)
+            if type(result) is list:
+                or_else += result
             else:
-                orelse.append(result)
-        a.orelse = orelse
+                or_else.append(result)
+        node.or_else = or_else
 
-        keys = list(variableMap.keys())
+        keys = list(variable_map.keys())
         for key in keys:  # reset types of changed keys
-            if key not in bodyMap or bodyMap[key] != variableMap[key] or \
-                    key not in orelseMap or orelseMap[key] != variableMap[key]:
-                variableMap[key] = (None, variableMap[key][1])
-        if count_occurrences(a.body, ast.Break) == 0:  # We will definitely enter the else!
-            for key in orelseMap:
+            if key not in body_map or body_map[key] != variable_map[key] or \
+                    key not in or_else_map or or_else_map[key] != variable_map[key]:
+                variable_map[key] = (None, variable_map[key][1])
+        if count_occurrences(node.body, ast.Break) == 0:  # We will definitely enter the else!
+            for key in or_else_map:
                 # If we KNOW it will be this type
-                if key not in bodyMap or bodyMap[key] == orelseMap[key]:
-                    variableMap[key] = orelseMap[key]
+                if key not in body_map or body_map[key] == or_else_map[key]:
+                    variable_map[key] = or_else_map[key]
 
         # If we KNOW it will run at least once
-        if listNotEmpty(a.iter):
-            for key in bodyMap:
-                if key in variableMap:
+        if listNotEmpty(node.iter):
+            for key in body_map:
+                if key in variable_map:
                     continue
                 # type might be changed
-                elif key in orelseMap and orelseMap[key] != bodyMap[key]:
+                elif key in or_else_map and or_else_map[key] != body_map[key]:
                     continue
-                variableMap[key] = bodyMap[key]
-        return a
-    elif type(a) == ast.While:
+                variable_map[key] = body_map[key]
+        return node
+    elif type(node) is ast.While:
         body = []
-        bodyMap = copy.deepcopy(variableMap)
-        for i in range(len(a.body)):
-            result = propogateMetadata(a.body[i], argTypes, bodyMap, idNum)
-            if type(result) == list:
+        body_map = copy.deepcopy(variable_map)
+        for i in range(len(node.body)):
+            result = propagate_metadata(node.body[i], arg_types, body_map, id_num)
+            if type(result) is list:
                 body += result
             else:
                 body.append(result)
-        a.body = body
+        node.body = body
 
-        orelse = []
-        orelseMap = copy.deepcopy(variableMap)
-        for var in bodyMap:
-            if var not in orelseMap:
-                orelseMap[var] = (None, bodyMap[var][1])
-        for i in range(len(a.orelse)):
-            result = propogateMetadata(a.orelse[i], argTypes, orelseMap, idNum)
-            if type(result) == list:
-                orelse += result
+        or_else = []
+        or_else_map = copy.deepcopy(variable_map)
+        for var in body_map:
+            if var not in or_else_map:
+                or_else_map[var] = (None, body_map[var][1])
+        for i in range(len(node.orelse)):
+            result = propagate_metadata(node.orelse[i], arg_types, or_else_map, id_num)
+            if type(result) is list:
+                or_else += result
             else:
-                orelse.append(result)
-        a.orelse = orelse
+                or_else.append(result)
+        node.or_else = or_else
 
-        keys = list(variableMap.keys())
+        keys = list(variable_map.keys())
         for key in keys:
-            if key not in bodyMap or bodyMap[key] != variableMap[key] or \
-                    key not in orelseMap or orelseMap[key] != variableMap[key]:
-                variableMap[key] = (None, variableMap[key][1])
+            if key not in body_map or body_map[key] != variable_map[key] or \
+                    key not in or_else_map or or_else_map[key] != variable_map[key]:
+                variable_map[key] = (None, variable_map[key][1])
 
-        a.test = propogateMetadata(a.test, argTypes, variableMap, idNum)
-        return a
-    elif type(a) == ast.If:
-        a.test = propogateMetadata(a.test, argTypes, variableMap, idNum)
-        variableMap1 = copy.deepcopy(variableMap)
-        variableMap2 = copy.deepcopy(variableMap)
+        node.test = propagate_metadata(node.test, arg_types, variable_map, id_num)
+        return node
+    elif type(node) is ast.If:
+        node.test = propagate_metadata(node.test, arg_types, variable_map, id_num)
+        variable_map1 = copy.deepcopy(variable_map)
+        variable_map2 = copy.deepcopy(variable_map)
 
         body = []
-        for i in range(len(a.body)):
-            result = propogateMetadata(a.body[i], argTypes, variableMap1, idNum)
-            if type(result) == list:
+        for i in range(len(node.body)):
+            result = propagate_metadata(node.body[i], arg_types, variable_map1, id_num)
+            if type(result) is list:
                 body += result
             else:
                 body.append(result)
-        a.body = body
+        node.body = body
 
-        for var in variableMap1:
-            if var not in variableMap2:
-                variableMap2[var] = (42, variableMap1[var][1])
+        for var in variable_map1:
+            if var not in variable_map2:
+                variable_map2[var] = (42, variable_map1[var][1])
 
-        orelse = []
-        for i in range(len(a.orelse)):
-            result = propogateMetadata(a.orelse[i], argTypes, variableMap2, idNum)
-            if type(result) == list:
-                orelse += result
+        or_else = []
+        for i in range(len(node.orelse)):
+            result = propagate_metadata(node.orelse[i], arg_types, variable_map2, id_num)
+            if type(result) is list:
+                or_else += result
             else:
-                orelse.append(result)
-        a.orelse = orelse
+                or_else.append(result)
+        node.or_else = or_else
 
-        variableMap.clear()
-        for key in variableMap1:
-            if key in variableMap2:
-                if variableMap1[key] == variableMap2[key]:
-                    variableMap[key] = variableMap1[key]
-                elif variableMap1[key][1] != variableMap2[key][1]:
+        variable_map.clear()
+        for key in variable_map1:
+            if key in variable_map2:
+                if variable_map1[key] == variable_map2[key]:
+                    variable_map[key] = variable_map1[key]
+                elif variable_map1[key][1] != variable_map2[key][1]:
                     log("transformations\tsimplify\tvarId mismatch", "bug")
                 else:  # type mismatch
-                    if variableMap2[key][0] == 42:
-                        variableMap[key] = variableMap1[key]
+                    if variable_map2[key][0] == 42:
+                        variable_map[key] = variable_map1[key]
                     else:
-                        variableMap[key] = (None, variableMap1[key][1])
-            elif len(a.orelse) > 0 and type(a.orelse[-1]) == ast.Return:  # if the else exits, it doesn't matter
-                variableMap[key] = variableMap1[key]
-        for key in variableMap2:
-            if key not in variableMap1 and len(a.body) > 0 and type(
-                    a.body[-1]) == ast.Return:  # if the if exits, it doesn't matter
-                variableMap[key] = variableMap2[key]
-        return a
-    elif type(a) == ast.Name:
-        if a.id in variableMap and variableMap[a.id][0] != 42:
-            a.type = variableMap[a.id][0]
-            a.varID = variableMap[a.id][1]
+                        variable_map[key] = (None, variable_map1[key][1])
+            elif len(node.orelse) > 0 and type(node.orelse[-1]) == ast.Return:  # if the else exits, it doesn't matter
+                variable_map[key] = variable_map1[key]
+        for key in variable_map2:
+            if key not in variable_map1 and len(node.body) > 0 and type(
+                    node.body[-1]) is ast.Return:  # if the if exits, it doesn't matter
+                variable_map[key] = variable_map2[key]
+        return node
+    elif type(node) is ast.Name:
+        if node.id in variable_map and variable_map[node.id][0] != 42:
+            node.type = variable_map[node.id][0]
+            node.varID = variable_map[node.id][1]
         else:
-            if a.id in variableMap:
-                a.varID = variableMap[a.id][1]
-        a.ctx = propogateMetadata(a.ctx, argTypes, variableMap, idNum)
-        return a
-    elif type(a) == ast.AugLoad:
+            if node.id in variable_map:
+                node.varID = variable_map[node.id][1]
+        node.ctx = propagate_metadata(node.ctx, arg_types, variable_map, id_num)
+        return node
+    elif type(node) is ast.AugLoad:
         return ast.Load()
-    elif type(a) == ast.AugStore:
+    elif type(node) is ast.AugStore:
         return ast.Store()
-    return apply_to_children(a, lambda x: propogateMetadata(x, argTypes, variableMap, idNum))
+    return apply_to_children(node, lambda x: propagate_metadata(x, arg_types, variable_map, id_num))
 
 
 ### SIMPLIFYING FUNCTIONS ###
@@ -1185,7 +1187,7 @@ def isMutatingFunction(a):
                "dict": staticDictFunctions}
     typeMaps = {str: "string", list: "list", dict: "dict"}
     if type(a.func) == ast.Name:
-        funDict = builtInFunctions
+        funDict = built_in_functions
         funName = a.func.id
     elif type(a.func) == ast.Attribute:
         if type(a.func.value) == ast.Name and a.func.value.id in funMaps:
@@ -1723,7 +1725,7 @@ def deadCodeRemoval(a, liveVars=None, keepPrints=True, inLoop=False):
                     for var in assignedVars:
                         # UNLESS we have a weird variable assignment problem
                         if var.id[0] == "g" and hasattr(var, "originalId"):
-                            log("canonicalize\tdeadCodeRemoval\tWeird global variable: " + print_functionn(a[i]), "bug")
+                            log("canonicalize\tdeadCodeRemoval\tWeird global variable: " + print_function(a[i]), "bug")
                             break
                     else:
                         if test.value == True:
@@ -1939,7 +1941,7 @@ def crashesOn(a):
         funMaps = {"math": mathFunctions, "string": builtInStringFunctions}
         safeFunMaps = {"math": safeMathFunctions, "string": safeStringFunctions}
         if type(a.func) == ast.Name:
-            funDict = builtInFunctions
+            funDict = built_in_functions
             safeFuns = builtInSafeFunctions
             funName = a.func.id
         elif type(a.func) == ast.Attribute:

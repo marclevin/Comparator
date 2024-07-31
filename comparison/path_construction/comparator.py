@@ -255,7 +255,7 @@ def diff_asts(ast_x, ast_y):
     elif not isinstance(ast_x, ast.AST) and not isinstance(ast_y, ast.AST):
         if type(ast_x) is list and type(ast_y) is list:
             return diff_lists(ast_x, ast_y)
-        elif ast_x == ast_y and type(ast_x) is not type(ast_y):
+        elif ast_x is not ast_y or type(ast_x) is not type(ast_y):
             # Type check.
             return [ChangeVector([], ast_x, ast_y)]  # they're primitive, so just switch them
         else:  # equal values

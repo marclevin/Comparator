@@ -1,9 +1,9 @@
 # Entry point
-from typing import Tuple
+from typing import Tuple, Dict
 
 import autopep8
 
-from comparison.canonicalize import getCanonicalForm
+from comparison.canonicalize import get_canonical_form
 from comparison.path_construction.comparator import *
 from comparison.path_construction.state_creator import get_next_state
 from comparison.utils.generate_message import *
@@ -32,23 +32,25 @@ def create_state(student_code: str, goal_code: str) -> CodeState:
     goal_code_state = IntermediateState(tree=ast.parse(goal_code))
     # Canonicalize
     # Student imports & names
-    student_imports, student_names = collect_imports_and_names(student_code_state)
-    student_code_state = getCanonicalForm(student_code_state, given_names=student_names, imports=student_imports)
+    student_imports, student_names, student_args = collect_attributes(student_code_state)
+    student_code_state = get_canonical_form(student_code_state, given_names=student_names, imports=student_imports,
+                                            arg_types=student_args)
     # Goal imports & names
-    goal_imports, goal_names = collect_imports_and_names(goal_code_state)
-    goal_code_state = getCanonicalForm(goal_code_state, given_names=goal_names, imports=goal_imports)
+    goal_imports, goal_names, goal_args = collect_attributes(goal_code_state)
+    goal_code_state = get_canonical_form(goal_code_state, given_names=goal_names, imports=goal_imports,
+                                         arg_types=goal_args)
     student_code_state.goal = goal_code_state
     return student_code_state
 
 
-def collect_imports_and_names(given_ast) -> Tuple[List[ast.AST], List[str]]:
+def collect_attributes(given_ast) -> Tuple[List[ast.AST], List[str], Dict[str, None]]:
     args = given_ast.tree.body[0].args.args
     args = {arg.arg: None for arg in args}
     import_names = get_all_imports(given_ast) + get_all_imports(given_ast)
     inp = import_names + (list(args.keys()) if type(args) is dict else [])
     given_names = [str(x) for x in inp]
     imports = get_all_import_statements(given_ast) + get_all_import_statements(given_ast)
-    return imports, given_names
+    return imports, given_names, args
 
 
 def test_compare():
