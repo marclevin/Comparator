@@ -453,10 +453,10 @@ def get_weight(given_tree, count_tokens=True):
         return weight
 
 
-def get_changes(student_code_state, candidate_code_state):
-    changes = diff_asts(student_code_state, candidate_code_state)
+def get_changes(student_code_tree: ast.AST, candidate_code_tree: ast.AST):
+    changes = diff_asts(student_code_tree, candidate_code_tree)
     for change in changes:
-        change.start = student_code_state
+        change.start = student_code_tree
     return changes
 
 
@@ -464,22 +464,22 @@ def get_changes_weight(changes, countTokens=True):
     weight = 0
     for change in changes:
         if isinstance(change, AddVector):
-            weight += get_weight(change.newSubtree, count_tokens=countTokens)
+            weight += get_weight(change.new_subtree, count_tokens=countTokens)
         elif isinstance(change, DeleteVector):
-            weight += get_weight(change.oldSubtree, count_tokens=countTokens)
+            weight += get_weight(change.old_subtree, count_tokens=countTokens)
         elif isinstance(change, SwapVector):
             weight += 2  # only changing the positions
         elif isinstance(change, MoveVector):
             weight += 1  # only moving one item
         elif isinstance(change, SubVector):
-            weight += abs(get_weight(change.newSubtree, count_tokens=countTokens) - \
-                          get_weight(change.oldSubtree, count_tokens=countTokens))
+            weight += abs(get_weight(change.new_subtree, count_tokens=countTokens) - \
+                          get_weight(change.old_subtree, count_tokens=countTokens))
         elif isinstance(change, SuperVector):
-            weight += abs(get_weight(change.oldSubtree, count_tokens=countTokens) - \
-                          get_weight(change.newSubtree, count_tokens=countTokens))
+            weight += abs(get_weight(change.old_subtree, count_tokens=countTokens) - \
+                          get_weight(change.new_subtree, count_tokens=countTokens))
         else:
-            weight += max(get_weight(change.oldSubtree, count_tokens=countTokens),
-                          get_weight(change.newSubtree, count_tokens=countTokens))
+            weight += max(get_weight(change.old_subtree, count_tokens=countTokens),
+                          get_weight(change.new_subtree, count_tokens=countTokens))
     return weight
 
 

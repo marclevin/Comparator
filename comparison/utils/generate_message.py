@@ -204,7 +204,7 @@ def getLineNumber(tree, path, value):
     if type(firstStep) == tuple:
         # for all tuples, the line should stay the same
         cv = ChangeVector(path, 0, 1)
-        location = cv.traverseTree(tree)
+        location = cv.traverse_tree(tree)
         childType = firstStep[0]
         if hasattr(location, childType):
             child = getattr(location, childType)
@@ -364,14 +364,14 @@ def getLineNumber(tree, path, value):
             # a move/swap vector; give the location of the first value
             # move up one, then put the value into the 'last' position
             cv = ChangeVector([-1, value] + path[1:], 0, 1)
-            location = cv.traverseTree(tree)
+            location = cv.traverse_tree(tree)
             if not hasattr(location, "lineno"):  # include the value in the path
                 return getLineNumber(tree, [value] + path[1:], None)
             return location.lineno
         # Otherwise it's an Add or Delete vector
         elif type(path[1]) == tuple:
             cv = ChangeVector(path[1:], 0, 1)
-            location = cv.traverseTree(tree)
+            location = cv.traverse_tree(tree)
             childType = path[1][0]
             if hasattr(location, childType):
                 l = getattr(location, childType)
@@ -540,7 +540,7 @@ def getColumnNumber(tree, path, value):
     firstStep = path[0]
     if type(firstStep) == tuple:
         cv = ChangeVector(path, 0, 1)
-        location = cv.traverseTree(tree)
+        location = cv.traverse_tree(tree)
         childType = firstStep[0]
         if hasattr(location, childType):
             child = getattr(location, childType)
@@ -773,11 +773,11 @@ def getColumnNumber(tree, path, value):
         if firstStep == -1:
             # a move/swap vector; give the location of the first value
             cv = ChangeVector([0, value] + path[1:], 0, 1)
-            location = cv.traverseTree(tree)
+            location = cv.traverse_tree(tree)
             return location.col_offset
         elif type(path[1]) == tuple:
             cv = ChangeVector(path[1:], 0, 1)
-            location = cv.traverseTree(tree)
+            location = cv.traverse_tree(tree)
             childType = path[1][0]
             if hasattr(location, childType):
                 l = getattr(location, childType)
@@ -1714,20 +1714,20 @@ def formatHints(edit, hintLevel):
     startTree = edit[0].start
     while i < len(edit):
         cv = edit[i]
-        (oldVal, newVal) = (cv.oldSubtree, cv.newSubtree)
+        (oldVal, newVal) = (cv.old_subtree, cv.new_subtree)
         # Different phrases for different change vectors
         if isinstance(cv, AddVector):
             verb1, verb2, verb3 = "add ", "", " to "
             if hintLevel == 1:
                 newVal = reduceToOneToken(oldVal, newVal, "add")
-            (cv.oldSubtree, cv.newSubtree) = (oldVal, newVal)
+            (cv.old_subtree, cv.new_subtree) = (oldVal, newVal)
             oldStr, newStr = "", formatButCatchNone(newVal)
         elif isinstance(cv, DeleteVector):
             verb1, verb2, verb3 = "remove ", "", " from "
             oldStr, newStr = formatButCatchNone(oldVal), ""
         elif isinstance(cv, SwapVector):
             verb1, verb2, verb3 = "swap ", " with ", " in "
-            oldVal, newVal = cv.getSwapees()
+            oldVal, newVal = cv.get_swaps()
             oldStr, newStr = formatButCatchNone(oldVal), formatButCatchNone(newVal)
         elif isinstance(cv, MoveVector):
             verb1, verb2, verb3 = "move ", " behind ", " in "
@@ -1748,7 +1748,7 @@ def formatHints(edit, hintLevel):
                 newVal = reduceToOneToken(oldVal, newVal, type)
 
             oldStr, newStr = formatButCatchNone(oldVal), formatButCatchNone(newVal)
-            (cv.oldSubtree, cv.newSubtree) = (oldVal, newVal)
+            (cv.old_subtree, cv.new_subtree) = (oldVal, newVal)
 
         # Context
         context = formatContext(cv.path, verb3)
@@ -1788,7 +1788,7 @@ def formatHints(edit, hintLevel):
 
         tmp = cv.deepcopy()
         tmp.start = startTree
-        t = tmp.applyChange()
+        t = tmp.apply_change()
         tmpS = State()
         tmpS.tree = t
         tmpS.fun = print_function(t, 0)

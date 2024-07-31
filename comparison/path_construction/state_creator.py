@@ -33,55 +33,54 @@ def desirability(student_state: CodeState, candidate_state: IntermediateState, g
     return score
 
 
-def mapDifferences(start, end):
-    d = {"start": {}}
-    allChanges = get_changes(start, end)
-    s = deepcopy(start)
-    for change in allChanges:
-        change.update(s, d)
-        s = change.applyChange()
-    return d
+def map_differences(start: ast.AST, end: ast.AST):
+    diff_map = {"start": {}}
+    all_changes = get_changes(start, end)
+    start_copy = deepcopy(start)
+    for change in all_changes:
+        change.update(start_copy, diff_map)
+        start_copy = change.apply_change()
+    return diff_map
 
 
-def quickDeepCopy(cv):
+def quick_deep_copy(change_vector):
     # Doesn't copy start because it will get replaced anyway
     # the old subtree and new subtree can be aliases because we never modify them
-    path = cv.path[:]
-    old, new = cv.oldSubtree, cv.newSubtree
-    if isinstance(cv, AddVector):
+    path = change_vector.path[:]
+    old, new = change_vector.old_subtree, change_vector.new_subtree
+    if isinstance(change_vector, AddVector):
         return AddVector(path, old, new)
-    elif isinstance(cv, DeleteVector):
+    elif isinstance(change_vector, DeleteVector):
         return DeleteVector(path, old, new)
-    elif isinstance(cv, SwapVector):
+    elif isinstance(change_vector, SwapVector):
         tmp = SwapVector(path, old, new)
-        if cv.oldPath != None:
-            tmp.oldPath = cv.oldPath
-            tmp.newPath = cv.newPath
+        if change_vector.old_path is not None:
+            tmp.old_path = change_vector.old_path
+            tmp.new_path = change_vector.new_path
         return tmp
-    elif isinstance(cv, MoveVector):
+    elif isinstance(change_vector, MoveVector):
         return MoveVector(path, old, new)
-    elif isinstance(cv, SubVector):
+    elif isinstance(change_vector, SubVector):
         return SubVector(path, old, new)
-    elif isinstance(cv, SuperVector):
+    elif isinstance(change_vector, SuperVector):
         return SuperVector(path, old, new)
-    elif isinstance(cv, ChangeVector):
+    elif isinstance(change_vector, ChangeVector):
         return ChangeVector(path, old, new)
     else:
-        log("generateNextSteps\tquickDeepCopy\tMissing type: " + str(type(cv)), "bug")
-        return cv
+        raise Exception("Unknown change vector type, can't copy")
 
 
-def update_change_vectors(changes, oldStart, newStart):
+def update_change_vectors(changes, old_start, new_start):
     if len(changes) == 0:
-        return changes, newStart
+        return changes, new_start
     # We need new CVs here because they're going to change
-    changes = [quickDeepCopy(x) for x in changes]
-    mapDict = mapDifferences(oldStart, newStart)
-    newState = deepcopy(newStart)
+    changes = [quick_deep_copy(change) for change in changes]
+    map_dict = map_differences(old_start, new_start)
+    new_state = deepcopy(new_start)
     for change in changes:
-        change.update(newState, mapDict)  # mapDict gets updated each time
-        newState = change.applyChange()
-    return changes, newState
+        change.update(new_state, map_dict)  # map_dict gets updated each time
+        new_state = change.apply_change()
+    return changes, new_state
 
 
 def apply_change_vectors(student_state: CodeState, changes: List[ChangeVector]) -> State:
@@ -89,8 +88,8 @@ def apply_change_vectors(student_state: CodeState, changes: List[ChangeVector]) 
     if len(changes) == 0:
         return student_state
     tup = update_change_vectors(changes, changes[0].start, student_state.tree)
-    changes, newState = tup
-    inter_state = IntermediateState(tree=newState)
+    changes, new_state = tup
+    inter_state = IntermediateState(tree=new_state)
     inter_state.code = print_function(inter_state.tree)
     return inter_state
 
@@ -386,26 +385,6 @@ def optimize_goal(student_state: CodeState, changes: list[ChangeVector]):
         student_state.goal, student_state.distance_to_goal = current_goal, current_diff
 
 
-def fastOptimizeGoal(s, changes, states, goals, includeSmallSets=False):
-    # Only try out one, two, all but two, all but one
-    fastChanges = fastPowerSet(changes, includeSmallSets)
-    currentGoal, currentDiff, currentEdits = s.goal, s.goal_dist, changes
-    for changeSet in fastChanges:
-        if isStrictSubset(currentEdits, changeSet):    continue
-        newState = apply_change_vectors(s, changeSet, states, goals)
-        if newState == None:    continue
-        newDistance, _ = distance(s, newState, given_changes=changeSet)
-        if newDistance <= currentDiff and newState.score == 1:
-            # Just take the first one we find
-            currentGoal, currentDiff, currentEdits = newState, newDistance, changeSet
-            break
-    if s.goal.code == currentGoal.code:
-        return None
-    else:
-        s.goal, s.goal_dist = currentGoal, currentDiff
-        return currentEdits
-
-
 def is_valid_next_state(student_state, new_state, goal_state):
     """Checks the three rules for valid next states"""
 
@@ -448,7 +427,7 @@ def generate_states_in_path(student_state: CodeState, valid_combinations: list[t
 
     for (change_vector, candidate_state) in valid_combinations:
         filtered_changes = [change for change in change_vector if
-                            compare_trees(change.oldSubtree, change.newSubtree, check_equality=True) != 0]
+                            compare_trees(change.old_subtree, change.new_subtree, check_equality=True) != 0]
 
         if filtered_changes:
             score = desirability(student_state, candidate_state, student_state.goal)
