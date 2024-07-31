@@ -1,4 +1,5 @@
 # Entry point
+from typing import Tuple
 
 import autopep8
 
@@ -9,54 +10,45 @@ from comparison.utils.generate_message import *
 from individualize import map_edit
 
 
-def compare_solutions(student_ast, solution_ast) -> str:
+def compare_solutions(student_code, solution_code) -> str:
     # First we must use pep8 to format the code to ensure we have a consistent format
-    student_ast = autopep8.fix_code(student_ast)
-    solution_ast = autopep8.fix_code(solution_ast)
-    # Maybe we should consider type erasure here?
-    student_code_state = CodeState(tree=ast.parse(student_ast),
-                                   goal=IntermediateState(tree=ast.parse(solution_ast)))
-    # Get the args from the AST
+    student_code = autopep8.fix_code(student_code)
+    solution_code = autopep8.fix_code(solution_code)
 
-    args = student_code_state.tree.body[0].args.args
-    args = {arg.arg: None for arg in args}
-    given_code = ast.parse(student_ast)
-    import_names = get_all_imports(student_code_state.tree) + get_all_imports(given_code)
-    inp = import_names + (list(args.keys()) if type(args) is dict else [])
-    given_names = [str(x) for x in inp]
-    imports = get_all_import_statements(student_code_state.tree) + get_all_import_statements(given_code)
-    student_code_state = getCanonicalForm(student_code_state, given_names, imports)
-    original_tree = ast.parse(student_ast)
-    # Do the same thing for the solution code
-    solution_code_state = student_code_state.goal
-    args = solution_code_state.tree.body[0].args.args
-    args = {arg.arg: None for arg in args}
-    given_code = ast.parse(solution_ast)
-    import_names = get_all_imports(solution_code_state.tree) + get_all_imports(given_code)
-    inp = import_names + (list(args.keys()) if type(args) is dict else [])
-    given_names = [str(x) for x in inp]
-    imports = get_all_import_statements(solution_code_state.tree) + get_all_import_statements(given_code)
-    solution_code_state = getCanonicalForm(solution_code_state, given_names, imports)
+    student_code_state = create_state(student_code, solution_code)
 
     get_next_state(student_code_state)
+    if student_code_state.next is None:
+        return "No hint available, student code is identical to the goal code."
     # Doing individualize step here.
-    edit = map_edit(student_code_state.tree, original_tree, student_code_state.change_vectors)
+    edit = map_edit(student_code_state.tree, ast.parse(student_code), student_code_state.change_vectors)
     return formatHints(edit, 2)
 
 
 # compare(".\\data\\isWeekendBroken.py", ".\\data\\isWeekend.py")
 
-def prepare_code(student_code_state, student_ast) -> CodeState:
-    args = student_code_state.tree.body[0].args.args
+def create_state(student_code: str, goal_code: str) -> CodeState:
+    student_code_state = CodeState(tree=ast.parse(student_code))
+    goal_code_state = IntermediateState(tree=ast.parse(goal_code))
+    # Canonicalize
+    # Student imports & names
+    student_imports, student_names = collect_imports_and_names(student_code_state)
+    student_code_state = getCanonicalForm(student_code_state, given_names=student_names, imports=student_imports)
+    # Goal imports & names
+    goal_imports, goal_names = collect_imports_and_names(goal_code_state)
+    goal_code_state = getCanonicalForm(goal_code_state, given_names=goal_names, imports=goal_imports)
+    student_code_state.goal = goal_code_state
+    return student_code_state
+
+
+def collect_imports_and_names(given_ast) -> Tuple[List[ast.AST], List[str]]:
+    args = given_ast.tree.body[0].args.args
     args = {arg.arg: None for arg in args}
-    given_code = ast.parse(student_ast)
-    import_names = get_all_imports(student_code_state.tree) + get_all_imports(given_code)
+    import_names = get_all_imports(given_ast) + get_all_imports(given_ast)
     inp = import_names + (list(args.keys()) if type(args) is dict else [])
     given_names = [str(x) for x in inp]
-    imports = get_all_import_statements(student_code_state.tree) + get_all_import_statements(given_code)
-
-    student_code_state = getCanonicalForm(student_code_state, given_names, imports)
-    return student_code_state
+    imports = get_all_import_statements(given_ast) + get_all_import_statements(given_ast)
+    return imports, given_names
 
 
 def test_compare():

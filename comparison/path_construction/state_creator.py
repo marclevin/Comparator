@@ -467,7 +467,10 @@ def get_next_state(student_state: CodeState):
     """Generates the next state in the solution space for the student state"""
     (student_state.distance_to_goal, changes) = distance(student_state,
                                                          student_state.goal)  # now get the actual changes
-
+    # if the distance is 0, we're done
+    if student_state.distance_to_goal == 0 or len(changes) == 0:
+        student_state.next = None
+        return
     # Optimize the goal state
     all_combinations = optimize_goal(student_state, changes)
     if all_combinations is None:

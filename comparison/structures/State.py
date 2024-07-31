@@ -105,7 +105,7 @@ class CodeState(State):
     edit: List[ChangeVector] = None  # the changes on the edge to the next state
 
     # Constructor
-    def __init__(self, tree, goal):
+    def __init__(self, tree, goal=None):
         super().__init__()
         self.goal = goal
         self.tree = tree
