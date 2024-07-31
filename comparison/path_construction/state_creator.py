@@ -2,34 +2,6 @@ from comparison.path_construction.comparator import *
 from comparison.utils.tools import *
 
 
-def getNextId(states, idStart):
-    count = 0
-    for s in states:
-        if idStart in s.id:
-            count += 1
-    return idStart + str(count)
-
-
-def filterChanges(combinations, changes, oldStart, newStart):
-    # Remove any combos which do not include the given changes
-    i = 0
-    while i < len(combinations):
-        (nc, nn) = combinations[i]
-        isLegal = True
-        for change in changes:
-            if change in nc:
-                nc.remove(change)
-            else:
-                isLegal = False
-                break
-        if isLegal and len(nc) > 0:  # empty sets aren't allowed
-            i += 1
-        else:
-            combinations.pop(i)
-    return combinations
-
-
-# TODO: Change this to use the updated system.
 def desirability(student_state: CodeState, candidate_state: IntermediateState, goal_state):
     """Scores the state n based on the four desirable properties. Returns a number
         between 0 (not desirable) and 1 (very desirable)."""
@@ -508,8 +480,6 @@ def get_next_state(student_state: CodeState):
                                                          student_state.goal)  # now get the actual changes
     all_combinations = get_all_combinations(student_state, changes)
     student_state.changesToGoal = len(changes)
-
-    # TODO: Fix isValidNextState to work with the new scoring system
 
     # Now check for the required properties of a next state. Filter before sorting to save time
     valid_combinations = filter(lambda candidate: is_valid_next_state(student_state, candidate[1], student_state.goal),

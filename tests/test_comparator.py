@@ -369,51 +369,51 @@ class TestComparator(unittest.TestCase):
 
     # get_changes_weight tests
     @patch('comparison.path_construction.comparator.get_weight')
-    def test_no_changes(self, mock_get_weight):
+    def test_get_changes_weight_no_changes(self, mock_get_weight):
         changes = []
         result = get_changes_weight(changes)
         self.assertEqual(result, 0)
 
     @patch('comparison.path_construction.comparator.get_weight')
-    def test_add_vector(self, mock_get_weight):
+    def test_get_changes_weight_add_vector(self, mock_get_weight):
         change = AddVector([], None, MagicMock())
         mock_get_weight.return_value = 5
         result = get_changes_weight([change])
         self.assertEqual(result, 5)
 
     @patch('comparison.path_construction.comparator.get_weight')
-    def test_delete_vector(self, mock_get_weight):
+    def test_get_changes_weight_delete_vector(self, mock_get_weight):
         change = DeleteVector([], MagicMock(), None)
         mock_get_weight.return_value = 3
         result = get_changes_weight([change])
         self.assertEqual(result, 3)
 
-    def test_swap_vector(self):
+    def test_get_changes_weight_swap_vector(self):
         change = SwapVector([], None, None)
         result = get_changes_weight([change])
         self.assertEqual(result, 2)
 
-    def test_move_vector(self):
+    def test_get_changes_weight_move_vector(self):
         change = MoveVector([], None, None)
         result = get_changes_weight([change])
         self.assertEqual(result, 1)
 
     @patch('comparison.path_construction.comparator.get_weight')
-    def test_sub_vector(self, mock_get_weight):
+    def test_get_changes_weight_sub_vector(self, mock_get_weight):
         change = SubVector([], MagicMock(), MagicMock())
         mock_get_weight.side_effect = [7, 4]
         result = get_changes_weight([change])
         self.assertEqual(result, 3)
 
     @patch('comparison.path_construction.comparator.get_weight')
-    def test_super_vector(self, mock_get_weight):
+    def test_get_changes_weight_super_vector(self, mock_get_weight):
         change = SuperVector([], MagicMock(), MagicMock())
         mock_get_weight.side_effect = [4, 7]
         result = get_changes_weight([change])
         self.assertEqual(result, 3)
 
     @patch('comparison.path_construction.comparator.get_weight')
-    def test_mixed_changes(self, mock_get_weight):
+    def test_get_changes_weight_mixed_changes(self, mock_get_weight):
         changes = [
             AddVector([], None, MagicMock()),
             DeleteVector([], MagicMock(), None),
