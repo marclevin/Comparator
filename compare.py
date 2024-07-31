@@ -14,6 +14,11 @@ def compare_solutions(student_code, solution_code) -> str:
     # First we must use pep8 to format the code to ensure we have a consistent format
     student_code = autopep8.fix_code(student_code)
     solution_code = autopep8.fix_code(solution_code)
+    try:
+        ast.parse(student_code)
+        ast.parse(solution_code)
+    except SyntaxError:
+        return "Student code OR solution code has syntax errors."
 
     student_code_state = create_state(student_code, solution_code)
 

@@ -476,6 +476,8 @@ def get_next_state(student_state: CodeState):
     if all_combinations is None:
         changes = get_changes(student_state.tree, student_state.goal.tree)
         all_combinations = get_all_combinations(student_state, changes)
+    changes = [change for change in changes if
+               compare_trees(change.old_subtree, change.new_subtree, check_equality=True) != 0]
 
     student_state.changesToGoal = len(changes)
 

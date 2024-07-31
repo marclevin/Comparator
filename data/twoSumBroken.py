@@ -1,6 +1,6 @@
 def twosum(numbers, target):
-    for i in range(len(numbers)):
-        for j in range(i, len(numbers)):
+    for i in numbers:
+        for j in numbers - i:
             if (numbers[i] + numbers[j]) == target:
-                return ["mango", "apple"]
-    return [1, 2]
+                return [i, j]
+    return []
