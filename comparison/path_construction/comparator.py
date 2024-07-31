@@ -174,17 +174,17 @@ def find_move_vectors(map_set, list_x, list_y, added_lines, deleted_lines):
             if isinstance(action, MoveVector):
                 add_to_count = 0
                 for deleteAction in deleted_lines:
-                    if deleteAction <= action.newSubtree:
+                    if deleteAction <= action.new_subtree:
                         add_to_count += 1
-                action.newSubtree += add_to_count
+                action.new_subtree += add_to_count
     if len(added_lines) > 0:
         for action in move_actions:
             if isinstance(action, MoveVector):
                 add_to_count = 0
                 for addAction in added_lines:
-                    if addAction <= action.newSubtree:
+                    if addAction <= action.new_subtree:
                         add_to_count += 1
-                action.newSubtree += add_to_count
+                action.new_subtree += add_to_count
     return move_actions
 
 
