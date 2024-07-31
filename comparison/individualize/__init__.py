@@ -844,19 +844,19 @@ def map_edit(canon, orig, edit, name_map=None):
         starting_tree = cv.start
         starting_path = cv.path
         cv = basicTypeSpecialFunction(cv)
-        cv.oldSubtree = mapNames(cv.oldSubtree, name_map)
-        cv.newSubtree = mapNames(cv.newSubtree, name_map)
+        cv.old_subtree = mapNames(cv.old_subtree, name_map)
+        cv.new_subtree = mapNames(cv.new_subtree, name_map)
         cv.start = mapNames(cv.start, name_map)  # makes checking things easier later on
 
         # First, apply the complex special functions
         # Sometimes we've already edited the given old subtree (like with multi-conditionals). If so, skip this step.
-        if hasattr(cv.oldSubtree, "global_id") and cv.oldSubtree.global_id in already_edited:
+        if hasattr(cv.old_subtree, "global_id") and cv.old_subtree.global_id in already_edited:
             del edit[count]
             continue
         elif hasattr(cv, "alreadyDone"):
             # Need to update the path and start tree
             cv.start = updated_orig
-            cv.path = generatePathToId(updated_orig, cv.oldSubtree.global_id)
+            cv.path = generatePathToId(updated_orig, cv.old_subtree.global_id)
             edit[count] = cv
             updated_orig = edit[count].apply_change(caller="mapEdit 1")
             count += 1
@@ -939,8 +939,8 @@ def map_edit(canon, orig, edit, name_map=None):
             cv.start = updated_orig
             cv.old_path = generatePathToId(updated_orig, oldSwap.global_id)
             cv.new_path = generatePathToId(updated_orig, newSwap.global_id)
-            cv.oldSubtree = oldSwap
-            cv.newSubtree = newSwap
+            cv.old_subtree = oldSwap
+            cv.new_subtree = newSwap
         elif hasattr(cv.old_subtree, "global_id") and cv.old_subtree.global_id is not None:
             # If you can, just use the original tree and update the path
             old_start = cv.start
