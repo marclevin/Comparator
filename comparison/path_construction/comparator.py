@@ -264,6 +264,11 @@ def diff_asts(ast_x, ast_y):
         else:  # equal values
             return []
     else:  # Two mismatched types
+        # One might be a primitive type and the other a constant, so drill down to the constant value
+        if type(ast_x) in [int, float, str, bool] and type(ast_y) is ast.Constant:
+            return diff_asts(ast_x, ast_y.value)
+        elif type(ast_y) in [int, float, str, bool] and type(ast_x) is ast.Constant:
+            return diff_asts(ast_x.value, ast_y)
         return [ChangeVector([], ast_x, ast_y)]
 
 

@@ -379,6 +379,8 @@ def optimize_goal(student_state: CodeState, changes: list[ChangeVector]):
                     # We only add a state here if it's closer than the current goal
                     next_level.append(Branch(new_changes, branch.next[i + 1:], new_state))
         tree_level = next_level
+    if student_state.code == current_goal.code:
+        return all_changes
     if student_state.goal.code == current_goal.code:
         return all_changes
     else:

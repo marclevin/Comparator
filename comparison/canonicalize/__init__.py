@@ -59,18 +59,20 @@ def get_canonical_form(student_state, given_names=None, arg_types=None, imports=
         deadCodeRemoval
     ]
     # student_state.tree = propagate_metadata(student_state.tree, arg_types, {}, [0])
-    student_state.tree = simplify(student_state.tree)
-    student_state.tree = anonymize_names(student_state.tree, given_names, imports)
-    old_tree = None
-    # Get the name of the main function in the student's code
     main_function_name = None
     for item in student_state.tree.body:
         if type(item) is ast.FunctionDef:
             main_function_name = item.name
             break
+    student_state.tree = simplify(student_state.tree)
+    helperFolding(student_state.tree, main_function_name, imports)
+    student_state.tree = anonymize_names(student_state.tree, given_names, imports)
+    old_tree = None
+    # Get the name of the main function in the student's code
+
     while compare_trees(old_tree, student_state.tree, check_equality=True) != 0:
         old_tree = deepcopy(student_state.tree)
-        helperFolding(student_state.tree, main_function_name, imports)
+        # helperFolding(student_state.tree, main_function_name, imports)
         for transformation in transformation_list:
             student_state.tree = transformation(student_state.tree)  # modify in place
     student_state.code = print_function(student_state.tree)
