@@ -13,6 +13,10 @@ def print_function(unit, indent=0):
     if unit is None:
         return ""
     if not isinstance(unit, ast.AST):
+        if type(unit) is str:
+            return "'" + unit + "'"
+        if type(unit) is int or type(unit) is float:
+            return str(unit)
         log("display\tprintFunction\tNot AST: " + str(type(unit)) + "," + str(unit), "bug")
         return str(unit)
 

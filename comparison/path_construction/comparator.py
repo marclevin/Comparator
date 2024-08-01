@@ -256,8 +256,11 @@ def diff_asts(ast_x, ast_y):
         if type(ast_x) is list and type(ast_y) is list:
             return diff_lists(ast_x, ast_y)
         elif ast_x is not ast_y or type(ast_x) is not type(ast_y):
-            # Type check.
-            return [ChangeVector([], ast_x, ast_y)]  # they're primitive, so just switch them
+            # Check if they are both primitive types, if they are, and are the same value, return nothing
+            if type(ast_x) in [int, float, str, bool] and type(ast_y) in [int, float, str, bool]:
+                if ast_x != ast_y:
+                    return [ChangeVector([], ast_x, ast_y)]
+            return []
         else:  # equal values
             return []
     else:  # Two mismatched types

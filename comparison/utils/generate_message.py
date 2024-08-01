@@ -1792,15 +1792,6 @@ def formatHints(edit, hintLevel):
         tmpS = State()
         tmpS.tree = t
         tmpS.fun = print_function(t, 0)
-        # try:
-        #     ast.parse(tmpS.fun)
-        #     if hintLevel == "next_step" or (
-        #         hintLevel == "half_steps" and i + 1 >= math.ceil(len(edit) / 2.0)
-        #     ):
-        #         message += "If you need more help, ask for feedback again."
-        #         break
-        # except:
-        #     pass
         startTree = t
         i += 1
     edit = edit[: i + 1]

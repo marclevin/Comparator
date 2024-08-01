@@ -55,19 +55,24 @@ def gatherLocalScope(a, globalMap, scopeName, imports, goBackwards=False):
     varLetter = "g" if type(a) == ast.Module else "v"
     paramCounter = 0
     localCounter = 0
+    paramNames = set()
+
     if type(a) == ast.FunctionDef:
         for param in a.args.args:
             if type(param) == ast.arg:
                 if not (built_in_name(param.arg) or imported_name(param.arg,
                                                                   imports)) and param.arg not in localMap and param.arg not in globalMap:
                     localMap[param.arg] = "p" + str(paramCounter) + scopeName
+                    paramNames.add(param.arg)
                     paramCounter += 1
             else:
                 log("transformations\tanonymizeFunctionNames\tWeird parameter type: " + str(type(param)), "bug")
+
     if goBackwards:
         items = a.body[::-1]  # go through this backwards to get the used function names
     else:
         items = a.body[:]
+
     # First, go through and create the globalMap
     while len(items) > 0:
         item = items[0]
@@ -103,7 +108,7 @@ def gatherLocalScope(a, globalMap, scopeName, imports, goBackwards=False):
             for assn in assns:
                 if type(assn) == ast.Name:
                     if not (built_in_name(assn.id) or imported_name(assn.id, imports)):
-                        if assn.id not in localMap and assn.id not in globalMap:
+                        if assn.id not in localMap and assn.id not in globalMap and assn.id not in paramNames:
                             localMap[assn.id] = varLetter + str(localCounter) + scopeName
                             localCounter += 1
 
@@ -117,31 +122,30 @@ def gatherLocalScope(a, globalMap, scopeName, imports, goBackwards=False):
     return localMap
 
 
-def anonymize_statement_names(a, globalMap, scopeName, imports, goBackwards=False):
+def anonymize_statement_names(node, global_map, scope_name, imports, go_backwards=False):
     """Gather the local variables, then update variable names in each line"""
-    localMap = gatherLocalScope(a, globalMap, scopeName, imports, goBackwards=goBackwards)
-    varMap = {}
-    varMap.update(globalMap)
-    varMap.update(localMap)
-    randomCounter = [0]
-    functionsSeen = []
-    if type(a) == ast.FunctionDef:
-        for arg in a.args.args:
-            update_variable_names(arg, varMap, scopeName, randomCounter, imports)
-    for line in a.body:
-        update_variable_names(line, varMap, scopeName, randomCounter, imports)
+    local_map = gatherLocalScope(node, global_map, scope_name, imports, goBackwards=go_backwards)
+    var_map = {}
+    var_map.update(global_map)
+    var_map.update(local_map)
+    random_counter = [0]
+    if type(node) is ast.FunctionDef:
+        for arg in node.args.args:
+            update_variable_names(arg, var_map, scope_name, random_counter, imports)
+    for line in node.body:
+        update_variable_names(line, var_map, scope_name, random_counter, imports)
 
 
-def anonymizeNames(a, namesToKeep, imports):
-    """Anonymize all of variables/names that occur in the given AST"""
+def anonymize_names(node, names_to_keep, imports):
+    """Anonymize all variables/names that occur in the given AST"""
     """If we run this on an anonymized AST, it will fix the names again to get rid of any gaps!"""
-    if type(a) != ast.Module:
-        return a
-    globalMap = {}
-    for var in namesToKeep:
-        globalMap[var] = var
-    anonymize_statement_names(a, globalMap, "", imports, goBackwards=True)
-    return a
+    if type(node) is not ast.Module:
+        return node
+    global_map = {}
+    # for var in names_to_keep:
+    #     global_map[var] = var
+    anonymize_statement_names(node, global_map, "", imports, go_backwards=True)
+    return node
 
 
 def propogateNameMetadata(a, namesToKeep, imports):
@@ -153,7 +157,7 @@ def propogateNameMetadata(a, namesToKeep, imports):
     elif not isinstance(a, ast.AST):
         return a
     if type(a) == ast.Name:
-        if (built_in_name(a.id) or imported_name(a.id, imports)):
+        if built_in_name(a.id) or imported_name(a.id, imports):
             pass
         elif a.id in namesToKeep:
             a.dontChangeName = True
@@ -163,7 +167,7 @@ def propogateNameMetadata(a, namesToKeep, imports):
             if not isAnonVariable(a.id):
                 a.dontChangeName = True  # it's a name we shouldn't mess with
     elif type(a) == ast.arg:
-        if (built_in_name(a.arg) or imported_name(a.arg, imports)):
+        if built_in_name(a.arg) or imported_name(a.arg, imports):
             pass
         elif a.arg in namesToKeep:
             a.dontChangeName = True

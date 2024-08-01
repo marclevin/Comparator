@@ -1,1 +1,8 @@
-31 Jul 2024 16:54:27	display	printFunction	Not AST: <class 'int'>,1
+01 Aug 2024 14:38:10	ChangeVector	applyChange	None	Change old values don't match: 'j' - j : [('slice', 'Subscript'), ('right', 'Binary Operation'), ('left', 'Compare'), ('test', 'If'), 0, ('body', 'For'), 0, ('body', 'For'), 0, ('body', 'Function Definition'), 0, ('body', 'Module')]
+def twosum(numbers, targetnumber):
+    for i in range(len(numbers)):
+        for j in range((i + 1), len(numbers)):
+            if ((numbers[i] + numbers['j']) == targetnumber):
+                return [i, j]
+    return []
+
