@@ -1,3 +1,6 @@
+from typing import Tuple, Dict
+
+from canonicalize import get_canonical_form
 from comparison.path_construction.comparator import *
 from comparison.utils.tools import *
 
@@ -92,41 +95,6 @@ def apply_change_vectors(student_state: CodeState, changes: List[ChangeVector]) 
     inter_state = IntermediateState(tree=new_state)
     inter_state.code = print_function(inter_state.tree)
     return inter_state
-
-
-def chooseGoal(s, goals, states):
-    # First, find the closest goal state and the changes required to get to it
-    goalDist = 2  # the max dist is 1
-    goal = origGoal = None
-    changes = None
-    # First, find the program whose structure best matches the state
-    for g in goals:
-        (tempD, tempChanges) = distance(s, g, ignoreVariables=True)
-        # prefer more common goals over less common ones
-        if (tempD < goalDist) or (tempD == goalDist and g.count > goal.count):
-            (goal, goalDist, changes) = (g, tempD, tempChanges)
-    # Then do variable matching between the two programs
-    if goal != None:
-        # First, do helper function mapping, if it's necessary
-        helperDistributions = generateHelperDistributions(s, goal, goals, states)
-        if len(helperDistributions) > 0:
-            goalDist = 2  # reset because now we're going to count variables
-            origGoal = goal
-            for modG in helperDistributions:
-                (tempD, tempChanges) = distance(s, modG)
-                # prefer more common goals over less common ones
-                if (tempD < goalDist) or (tempD == goalDist and modG.count > goal.count):
-                    (goal, goalDist, changes) = (modG, tempD, tempChanges)
-
-        goalDist = 2  # reset because now we're going to count variables
-        origGoal = goal
-        allDistributions = generateVariableDistributions(s, goal, goals, states)
-        for modG in allDistributions:
-            (tempD, tempChanges) = distance(s, modG)
-            # prefer more common goals over less common ones
-            if (tempD < goalDist) or (tempD == goalDist and modG.count > goal.count):
-                (goal, goalDist, changes) = (modG, tempD, tempChanges)
-    return goal
 
 
 def generateHelperDistributions(s, g, goals, states):
@@ -495,3 +463,29 @@ def get_next_state(student_state: CodeState):
         return
 
     generate_states_in_path(student_state, valid_combinations)
+
+
+def create_state(student_code: str, goal_code: str) -> CodeState:
+    student_code_state = CodeState(tree=ast.parse(student_code))
+    goal_code_state = IntermediateState(tree=ast.parse(goal_code))
+    # Canonicalize
+    # Student imports & names
+    student_imports, student_names, student_args = collect_attributes(student_code_state)
+    student_code_state = get_canonical_form(student_code_state, given_names=student_names, imports=student_imports,
+                                            arg_types=student_args)
+    # Goal imports & names
+    goal_imports, goal_names, goal_args = collect_attributes(goal_code_state)
+    goal_code_state = get_canonical_form(goal_code_state, given_names=goal_names, imports=goal_imports,
+                                         arg_types=goal_args)
+    student_code_state.goal = goal_code_state
+    return student_code_state
+
+
+def collect_attributes(given_ast) -> Tuple[List[ast.AST], List[str], Dict[str, None]]:
+    args = given_ast.tree.body[0].args.args
+    args = {arg.arg: None for arg in args}
+    import_names = get_all_imports(given_ast) + get_all_imports(given_ast)
+    inp = import_names + (list(args.keys()) if type(args) is dict else [])
+    given_names = [str(x) for x in inp]
+    imports = get_all_import_statements(given_ast) + get_all_import_statements(given_ast)
+    return imports, given_names, args

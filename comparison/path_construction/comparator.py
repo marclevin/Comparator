@@ -108,8 +108,6 @@ def match_lists(list_x, list_y):
 
 
 # Recursively generate all moves by working from the outside of the list inwards.
-# This should be optimal for lists of up to size four, and once you get to size five, your program is too
-# large and I don't care anymore.
 def generate_move_pairs(start_list, end_list):
     # Base case: If either list has 1 or 0 elements, no moves are needed.
     if len(start_list) <= 1:
@@ -140,7 +138,19 @@ def generate_move_pairs(start_list, end_list):
     return [("move", start_list[0])] + generate_move_pairs(start_list[1:], end_list[:i] + end_list[i + 1:])
 
 
-def find_move_vectors(map_set, list_x, list_y, added_lines, deleted_lines):
+def find_move_vectors(map_set, list_x, list_y):
+    change_vectors = []
+    # First, get all the added and deleted lines
+    deleted_lines = map_set[-1] if -1 in map_set else []
+    for line in sorted(deleted_lines):
+        change_vectors.append(DeleteVector([line], list_x[line], None))
+
+    added_lines = list(filter(lambda tmp: map_set[tmp] == -1, map_set.keys()))
+    added_offset = 0  # Because added lines don't start in the list, we need
+    # to offset their positions for each new one that's added
+    for line in sorted(added_lines):
+        change_vectors.append(AddVector([line - added_offset], None, list_y[line]))
+        added_offset += 1
     """We'll find all the moved lines by recreating the mapSet from a tmpSet using actions"""
     start_list = list(range(len(list_x)))
     end_list = [map_set[i] for i in range(len(list_y))]
@@ -158,19 +168,18 @@ def find_move_vectors(map_set, list_x, list_y, added_lines, deleted_lines):
             "bug",
         )
         return []
-    move_actions = []
     if start_list != end_list:
         move_pairs = generate_move_pairs(start_list, end_list)
         for pair in move_pairs:
             if pair[0] == "move":
-                move_actions.append(MoveVector([-1], pair[1], end_list.index(pair[1])))
+                change_vectors.append(MoveVector([-1], pair[1], end_list.index(pair[1])))
             elif pair[0] == "swap":
-                move_actions.append(SwapVector([-1], pair[1], pair[2]))
+                change_vectors.append(SwapVector([-1], pair[1], pair[2]))
             else:
                 log("Missing movePair type: " + str(pair[0]), "bug")
     # We need to make sure the indices start at the appropriate numbers, since they're referring to the original tree
     if len(deleted_lines) > 0:
-        for action in move_actions:
+        for action in change_vectors:
             if isinstance(action, MoveVector):
                 add_to_count = 0
                 for deleteAction in deleted_lines:
@@ -178,17 +187,17 @@ def find_move_vectors(map_set, list_x, list_y, added_lines, deleted_lines):
                         add_to_count += 1
                 action.new_subtree += add_to_count
     if len(added_lines) > 0:
-        for action in move_actions:
+        for action in change_vectors:
             if isinstance(action, MoveVector):
                 add_to_count = 0
                 for addAction in added_lines:
                     if addAction <= action.new_subtree:
                         add_to_count += 1
                 action.new_subtree += add_to_count
-    return move_actions
+    return change_vectors
 
 
-def diff_lists(list_x, list_y):
+def diff_lists(list_x: List, list_y: List) -> List[ChangeVector]:
     if len(list_x) == 0 and len(list_y) == 0:
         return []
     # Check identical lists
@@ -197,20 +206,20 @@ def diff_lists(list_x, list_y):
     map_set = match_lists(list_x, list_y)
     change_vectors = []
 
-    # First, get all the added and deleted lines
-    deleted_lines = map_set[-1] if -1 in map_set else []
-    for line in sorted(deleted_lines):
-        change_vectors.append(DeleteVector([line], list_x[line], None))
-
-    added_lines = list(filter(lambda tmp: map_set[tmp] == -1, map_set.keys()))
-    added_offset = 0  # Because added lines don't start in the list, we need
-    # to offset their positions for each new one that's added
-    for line in sorted(added_lines):
-        change_vectors.append(AddVector([line - added_offset], None, list_y[line]))
-        added_offset += 1
+    # # First, get all the added and deleted lines
+    # deleted_lines = map_set[-1] if -1 in map_set else []
+    # for line in sorted(deleted_lines):
+    #     change_vectors.append(DeleteVector([line], list_x[line], None))
+    #
+    # added_lines = list(filter(lambda tmp: map_set[tmp] == -1, map_set.keys()))
+    # added_offset = 0  # Because added lines don't start in the list, we need
+    # # to offset their positions for each new one that's added
+    # for line in sorted(added_lines):
+    #     change_vectors.append(AddVector([line - added_offset], None, list_y[line]))
+    #     added_offset += 1
 
     # Now, find all the required moves
-    change_vectors += find_move_vectors(map_set, list_x, list_y, added_lines, deleted_lines)
+    change_vectors += find_move_vectors(map_set, list_x, list_y)
 
     # Finally, for each pair of lines (which have already been moved appropriately,
     # find if they need a normal ChangeVector

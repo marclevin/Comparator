@@ -1,10 +1,10 @@
-def twosum(numbers, targetnumber):
-    for i in range(len(numbers)):
-        for j in range((i + 1), len(numbers)):
-            if helper_check(numbers[i], numbers[j], targetnumber):
+def twoSum(nums, target):
+    for i in range(len(nums)):
+        for j in range((i + 1), len(nums)):
+            if helper_check(nums[i], nums[j], target):
                 return [i, j]
     return []
 
 
-def helper_check(num1, num2, target):
-    return num1 + num2 == (target)
+def helper_check(num1, num2, other):
+    return num1 + num2 == other
