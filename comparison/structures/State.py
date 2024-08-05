@@ -3,7 +3,7 @@ from typing import List
 
 from comparison.structures.ChangeVector import ChangeVector
 from comparison.utils.astTools import deepcopy, cmp
-from utils.display import print_function
+from comparison.utils.display import print_function
 
 
 # The State class holds all the relevent information for a solution state

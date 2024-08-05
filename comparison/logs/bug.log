@@ -1,20 +1,20 @@
-05 Aug 2024 14:09:58	individualize	mapEdit	Missing global_id
-Original CV: Delete: (1 + 2) - None : [0, ('elts', 'List'), ('value', 'Return'), 1, ('body', 'Function Definition'), 0, ('body', 'Module')]
-New CV: Delete: (1 + 2) - None : [0, ('elts', 'List'), ('value', 'Return'), 1, ('body', 'Function Definition'), 0, ('body', 'Module')]
-Full Edit: [Delete: (1 + 2) - None : [0, ('elts', 'List'), ('value', 'Return'), 1, ('body', 'Function Definition'), 0, ('body', 'Module')]]
+05 Aug 2024 14:24:10	individualize	mapEdit	Missing global_id
+Original CV: Delete: 0 - None : [1, ('elts', 'List'), ('value', 'Return'), 1, ('body', 'Function Definition'), 0, ('body', 'Module')]
+New CV: Delete: 0 - None : [1, ('elts', 'List'), ('value', 'Return'), 1, ('body', 'Function Definition'), 0, ('body', 'Module')]
+Full Edit: [Delete: 0 - None : [1, ('elts', 'List'), ('value', 'Return'), 1, ('body', 'Function Definition'), 0, ('body', 'Module')]]
 Updated function:
 def twoSum(nums, target):
     for i in range(len(nums)):
         for j in range((i + 1), len(nums)):
-            if ((nums[i] + nums[j]) == target):
+            if ((nums[i] + nums[j]) != target):
                 return [i, j]
-    return [(1 + 2)]
+    return [0, 0]
 
 Original function:
 def twoSum(nums, target):
     for i in range(len(nums)):
         for j in range((i + 1), len(nums)):
-            if ((nums[i] + nums[j]) == target):
+            if ((nums[i] + nums[j]) != target):
                 return [i, j]
-    return [(1 + 2)]
+    return [0, 0]
 

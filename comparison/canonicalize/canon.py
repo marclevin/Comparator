@@ -1,7 +1,7 @@
 import uuid
 
-from .anonymizer import AnonymizeNames
-from .transformations import *
+from comparison.canonicalize.anonymizer import AnonymizeNames
+from comparison.canonicalize.transformations import *
 
 id_counter = 0
 

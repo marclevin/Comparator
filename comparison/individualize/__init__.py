@@ -1,4 +1,4 @@
-from comparison.canonicalize import simplify_multicomp
+from comparison.canonicalize.canon import simplify_multicomp
 from comparison.path_construction.comparator import get_changes
 from comparison.path_construction.state_creator import update_change_vectors
 from comparison.structures.ChangeVector import *

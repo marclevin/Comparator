@@ -6,7 +6,7 @@ with open('.\\requirements.txt', encoding='utf-16') as f:
 setup(
     name='astHint',
     version='0.0.1',
-    packages=find_packages(),
+    packages=find_packages(include=['canonicalize', 'canonicalize.*']),
     include_package_data=True,
     install_requires=[required],
     entry_points='''

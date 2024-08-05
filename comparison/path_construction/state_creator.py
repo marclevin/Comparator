@@ -1,6 +1,6 @@
 from typing import Tuple
 
-from canonicalize import get_canonical_form
+from comparison.canonicalize.canon import get_canonical_form
 from comparison.path_construction.comparator import *
 from comparison.utils.tools import *
 
