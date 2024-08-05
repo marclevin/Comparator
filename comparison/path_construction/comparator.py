@@ -206,18 +206,6 @@ def diff_lists(list_x: List, list_y: List) -> List[ChangeVector]:
     map_set = match_lists(list_x, list_y)
     change_vectors = []
 
-    # # First, get all the added and deleted lines
-    # deleted_lines = map_set[-1] if -1 in map_set else []
-    # for line in sorted(deleted_lines):
-    #     change_vectors.append(DeleteVector([line], list_x[line], None))
-    #
-    # added_lines = list(filter(lambda tmp: map_set[tmp] == -1, map_set.keys()))
-    # added_offset = 0  # Because added lines don't start in the list, we need
-    # # to offset their positions for each new one that's added
-    # for line in sorted(added_lines):
-    #     change_vectors.append(AddVector([line - added_offset], None, list_y[line]))
-    #     added_offset += 1
-
     # Now, find all the required moves
     change_vectors += find_move_vectors(map_set, list_x, list_y)
 
