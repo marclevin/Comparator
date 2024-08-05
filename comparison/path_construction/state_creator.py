@@ -1,4 +1,4 @@
-from typing import Tuple, Dict
+from typing import Tuple
 
 from canonicalize import get_canonical_form
 from comparison.path_construction.comparator import *
@@ -352,7 +352,7 @@ def optimize_goal(student_state: CodeState, changes: list[ChangeVector]):
     if student_state.goal.code == current_goal.code:
         return all_changes
     else:
-        student_state.goal, student_state.distance_to_goal = current_goal, current_diff
+        student_state.goal, student_state.distance_to_goal, = current_goal, current_diff
 
 
 def is_valid_next_state(student_state, new_state, goal_state):
@@ -443,6 +443,7 @@ def get_next_state(student_state: CodeState):
         return
     # Optimize the goal state
     all_combinations = optimize_goal(student_state, changes)
+
     if all_combinations is None:
         changes = get_changes(student_state.tree, student_state.goal.tree)
         all_combinations = get_all_combinations(student_state, changes)
@@ -465,27 +466,23 @@ def get_next_state(student_state: CodeState):
     generate_states_in_path(student_state, valid_combinations)
 
 
-def create_state(student_code: str, goal_code: str) -> CodeState:
+def create_state(student_code: str, goal_code: str, canonicalize: bool) -> CodeState:
     student_code_state = CodeState(tree=ast.parse(student_code))
     goal_code_state = IntermediateState(tree=ast.parse(goal_code))
     # Canonicalize
+    if not canonicalize:
+        student_code_state.goal = goal_code_state
+        return student_code_state
     # Student imports & names
-    student_imports, student_names, student_args = collect_attributes(student_code_state)
-    student_code_state = get_canonical_form(student_code_state, given_names=student_names, imports=student_imports,
-                                            arg_types=student_args)
+    student_imports = collect_attributes(student_code_state)
+    student_code_state = get_canonical_form(student_code_state, imports=student_imports)
     # Goal imports & names
-    goal_imports, goal_names, goal_args = collect_attributes(goal_code_state)
-    goal_code_state = get_canonical_form(goal_code_state, given_names=goal_names, imports=goal_imports,
-                                         arg_types=goal_args)
+    goal_imports = collect_attributes(goal_code_state)
+    goal_code_state = get_canonical_form(goal_code_state, imports=goal_imports)
     student_code_state.goal = goal_code_state
     return student_code_state
 
 
-def collect_attributes(given_ast) -> Tuple[List[ast.AST], List[str], Dict[str, None]]:
-    args = given_ast.tree.body[0].args.args
-    args = {arg.arg: None for arg in args}
-    import_names = get_all_imports(given_ast) + get_all_imports(given_ast)
-    inp = import_names + (list(args.keys()) if type(args) is dict else [])
-    given_names = [str(x) for x in inp]
-    imports = get_all_import_statements(given_ast) + get_all_import_statements(given_ast)
-    return imports, given_names, args
+def collect_attributes(given_ast) -> Tuple[List[ast.AST], List[str]]:
+    imports = get_all_import_statements(given_ast)
+    return imports

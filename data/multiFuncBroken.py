@@ -8,13 +8,13 @@ vowel = ('aeiou')
 def to_pig_latin(s):
     sent = s.split(' ')
     pigLatin = ''
-    for word in sentence:
+    for word in sent:
         if word[0] in vowel:
             pigLatin += word + 'way' + ' '
         else:
             constant = 0
             for letter in word:
-                if letter not in vowels:
+                if letter not in vowel:
                     const = constant + 1
                     continue
                 else:
@@ -36,7 +36,7 @@ def to_english(s):
             e = e[:len(e) - 1]
             english = english + e + ' '
 
-    return english
+    return english.split("")
 
 
 def reverseConst(word):

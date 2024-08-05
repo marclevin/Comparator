@@ -21,6 +21,7 @@ class State:
     tree = None
 
     def __init__(self):
+        self.reverse_map = None
         self.change_vectors = None
 
     def __cmp__(this, other):
@@ -103,10 +104,12 @@ class CodeState(State):
     goal: State = None  # the eventual goal state for this student
     distance_to_goal: int = -1
     edit: List[ChangeVector] = None  # the changes on the edge to the next state
+    reverse_map = None
 
     # Constructor
     def __init__(self, tree, goal=None):
         super().__init__()
+        self.reverse_name_map = None
         self.goal = goal
         self.tree = tree
         self.code = print_function(tree)
