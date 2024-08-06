@@ -1,8 +1,0 @@
-06 Aug 2024 13:51:28	DeleteVector	applyChange	None	Delete old values don't match: Delete: 0 - None : [1, ('elts', 'List'), ('value', 'Return'), 1, ('body', 'Function Definition'), 0, ('body', 'Module')]
-def twoSum(nums, target):
-    for i in range(len(nums)):
-        for j in range((i + 1), len(nums)):
-            if ((nums[i] + nums[j]) != target):
-                return [i, j]
-    return [0, 0]
-

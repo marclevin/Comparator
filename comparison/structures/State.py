@@ -19,8 +19,10 @@ class State:
     fun = None
     loadedFun = None
     tree = None
+    count = 0
 
     def __init__(self):
+        self.count = 0
         self.reverse_map = None
         self.change_vectors = None
 
