@@ -113,6 +113,7 @@ class CodeState(State):
         self.goal = goal
         self.tree = tree
         self.code = print_function(tree)
+        self.original_ast = tree
 
 
 class IntermediateState(State):
@@ -121,10 +122,12 @@ class IntermediateState(State):
     change_vectors: list = None
     count = 0
     code = None
+    reverse_map = None
 
-    def __init__(self, tree=None):
+    def __init__(self, tree=None, reverse_map=None):
         super().__init__()
         self.tree = tree
+        self.reverse_map = reverse_map
         self.code = print_function(tree)
 
 

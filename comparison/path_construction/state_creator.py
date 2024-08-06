@@ -92,7 +92,7 @@ def apply_change_vectors(student_state: CodeState, changes: List[ChangeVector]) 
         return student_state
     tup = update_change_vectors(changes, changes[0].start, student_state.tree)
     changes, new_state = tup
-    inter_state = IntermediateState(tree=new_state)
+    inter_state = IntermediateState(tree=new_state, reverse_map=student_state.goal.reverse_map)
     inter_state.code = print_function(inter_state.tree)
     return inter_state
 

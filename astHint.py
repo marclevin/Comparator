@@ -62,7 +62,7 @@ def compare(student_solution, correct_solution):
 def compare_internal(student_solution, correct_solution) -> str:
     click.echo(click.style('Comparing the given files...', fg=fg_ast_hint))
     try:
-        hint = compare_solutions(student_solution, correct_solution, False)
+        hint = compare_solutions(student_solution, correct_solution, True)
     except FileNotFoundError as e:
         raise click.ClickException(f"Error: {e}")
     return hint
