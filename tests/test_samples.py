@@ -19,7 +19,8 @@ class TestSamples(unittest.TestCase):
         broken_code = open(broken_solution, "r").read()
         solution_code = open(solution, "r").read()
         hint = compare_solutions(broken_code, solution_code, True)
-        expected_hint = "At line 13, column 13 replace 'something else' with ' ' in the constant value\n"
+        expected_hint = ("At line 46, column 46 replace 'something else' with ' ' in the right side of the binary "
+                         "operation\n")
         self.assertEqual(hint, expected_hint)
 
     def test_multi_func_step_1(self):
@@ -46,7 +47,7 @@ class TestSamples(unittest.TestCase):
         broken_code = open(broken_solution, "r").read()
         solution_code = open(solution, "r").read()
         hint = compare_solutions(broken_code, solution_code, True)
-        expected_hint = "At line 46, column 46 replace 5 with 1 in the constant value\n"
+        expected_hint = "At line 46, column 46 replace 5 with 1 in the right side of the binary operation\n"
         self.assertEqual(hint, expected_hint)
 
     def test_multi_func_step_4(self):

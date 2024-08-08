@@ -190,7 +190,10 @@ def generate_states_in_path(student_state: CodeState, valid_combinations: list[t
 
 
 def get_all_combinations(student_state: CodeState, changes: list[ChangeVector]):
-    all_changes = power_set(changes)
+    if len(changes) < 5:
+        all_changes = power_set(changes)
+    else:
+        all_changes = fastPowerSet(changes)
     # Also find the solution states associated with the changes
     all_combinations = []
     for change in all_changes:

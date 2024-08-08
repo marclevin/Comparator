@@ -534,8 +534,12 @@ def formatContext(trace, verb):
         return verb + "the " + context
     else:
         # it might be the constant value path recurrance, pop the first val if it's a constant and try again
-        log("display\tformatContext\tMissing field: " + str(field) + "," + str(typ), "bug")
-        return ""
+        temp_trace = trace[1:]
+        if len(temp_trace) > 0 and type(temp_trace[0]) is tuple and temp_trace[0][0] == "value" and temp_trace[0][
+            1] == "Constant":
+            return formatContext(temp_trace, verb)
+        else:
+            return formatContext(temp_trace, verb)
 
 
 def formatList(node, field):
