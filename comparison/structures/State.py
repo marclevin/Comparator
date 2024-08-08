@@ -19,7 +19,10 @@ class State:
     fun = None
     loadedFun = None
     tree = None
+    anonymized_code = None
+
     count = 0
+
 
     def __init__(self):
         self.count = 0
@@ -101,6 +104,7 @@ class CanonicalState(State):
 
 
 class CodeState(State):
+    anonymized_code = None
     next: State = None
     original_ast: ast = None
     goal: State = None  # the eventual goal state for this student

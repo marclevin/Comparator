@@ -33,7 +33,7 @@ def give_ids(node):
 
 
 def get_canonical_form(student_state, given_names=None, imports=None):
-    student_state.tree = deepcopy(student_state.tree)  # no shallow copying! We need to leave the old tree alone
+    # student_state.tree = deepcopy(student_state.tree)  # no shallow copying! We need to leave the old tree alone
 
     if given_names is None:
         given_names = {}
@@ -61,9 +61,10 @@ def get_canonical_form(student_state, given_names=None, imports=None):
 
         deadCodeRemoval
     ]
-    student_state.tree = simplify(student_state.tree)
+    # student_state.tree = simplify(student_state.tree)
     anonymizer_instance = AnonymizeNames()
-    anonymizer_instance.visit(student_state.tree)
+    temp_tree = anonymizer_instance.visit(student_state.tree)
+    student_state.anonymized_code = ast.unparse(temp_tree)
     student_state.reverse_map = anonymizer_instance.reverse_name_map
     old_tree = None
     while compare_trees(old_tree, student_state.tree, check_equality=True) != 0:
