@@ -198,20 +198,6 @@ def get_all_combinations(student_state: CodeState, changes: list[ChangeVector]):
     return all_combinations
 
 
-# Preamble: We are given the students current state, and the goal state (from Chris)
-# Step 1: First, optimize the goal state, by applying possible combinations of edits from the original diff.
-# Step 2: If the goal state is not the same as the current goal state, we have a new goal state.
-# Step 3: Generate all possible combinations of edits from the current state to the new goal state (power set)
-# Step 4: For each combination, apply the changes to the current state and check if the state is valid.
-# Step 5: If the state is valid, score it based on the four desirable properties.
-# Step 6: If the score is better than the current best, update the best state and the best score.
-# Step 7: If we have a best state, set the next state of the current state to the best state.
-# Step 8: Finally, we have the next state in the solution space.
-# Step 9: We move on to generating the hint.
-
-# Flow:
-# In: Student_State and Goal_State
-# Out: Student_State with next state set
 def get_next_state(student_state: CodeState):
     """Generates the next state in the solution space for the student state"""
     (student_state.distance_to_goal, changes) = distance(student_state,
@@ -220,12 +206,9 @@ def get_next_state(student_state: CodeState):
     if student_state.distance_to_goal == 0 or len(changes) == 0:
         student_state.next = None
         return
-    # Optimize the goal state
-    # all_combinations = optimize_goal(student_state, changes)
-    all_combinations = None
-    if all_combinations is None:
-        changes = get_changes(student_state.tree, student_state.goal.tree)
-        all_combinations = get_all_combinations(student_state, changes)
+    changes = get_changes(student_state.tree, student_state.goal.tree)
+    all_combinations = get_all_combinations(student_state, changes)
+    # Filtering changes that don't actually change anything.
     changes = [change for change in changes if
                compare_trees(change.old_subtree, change.new_subtree, check_equality=True) != 0]
 

@@ -10,7 +10,7 @@ def to_pig_latin(s):
     pigLatin = ''
     for word in sent:
         if word[0] in vowel:
-            pigLatin += word + 'way' + ' ' + "something else"
+            pigLatin += word + 'way' + ' '
         else:
             constant = 0
             for letter in word:
@@ -47,5 +47,5 @@ def reverseConst(word):
         if not (l in vowel):
             word = l + f
         else:
-            b = True
+            b = False
     return word

@@ -406,7 +406,7 @@ def formatContext(trace, verb):
                   "Keyword": ("right side of the keyword"),
                   "Starred": ("value of the starred expression"),
                   "Name Constant": ("constant value"),
-                  "Constant": ("constant value")},
+                  },
         "values": {"Print": ("print statement"),
                    "Boolean Operation": ("boolean operation"),
                    "Dict": ("values of the dictionary")},
@@ -533,6 +533,7 @@ def formatContext(trace, verb):
         context = trace_d[field][typ]
         return verb + "the " + context
     else:
+        # it might be the constant value path recurrance, pop the first val if it's a constant and try again
         log("display\tformatContext\tMissing field: " + str(field) + "," + str(typ), "bug")
         return ""
 

@@ -235,7 +235,9 @@ def diff_asts(ast_x, ast_y):
         elif type(ast_x) is type(ast_y) is ast.Name:
             # TODO look into this
             if not built_in_name(ast_x.id) and not built_in_name(ast_y.id):
-                return []  # ignore the actual IDs
+                # Might be a variable mismatch, take the goal as a change
+                if ast_x.id != ast_y.id:
+                    return [ChangeVector([], ast_x, ast_y)]
 
         found_differences = []
         # For every field, like body, or value, etc.
