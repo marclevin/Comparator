@@ -34,8 +34,8 @@ def compare_solutions(student_code, solution_code, canonicalize) -> str:
 
 
 def test_compare():
-    student_file = ".\\data\\isWeekendBroken.py"
-    solution_file = ".\\data\\isWeekend.py"
+    student_file = ".\\data\\twoSumBroken.py"
+    solution_file = ".\\data\\twoSum.py"
     student_code = open(student_file, "r").read()
     solution_code = open(solution_file, "r").read()
     print("\n", compare_solutions(student_code, solution_code, True))

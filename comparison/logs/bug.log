@@ -1,8 +1,15 @@
-06 Aug 2024 13:51:28	DeleteVector	applyChange	None	Delete old values don't match: Delete: 0 - None : [1, ('elts', 'List'), ('value', 'Return'), 1, ('body', 'Function Definition'), 0, ('body', 'Module')]
-def twoSum(nums, target):
+08 Aug 2024 11:56:49	individualize	mapEdit	Couldn't find globalId: Super: (nums[i] + nums[j]) - nums[i] : [('left', 'Binary Operation'), ('left', 'Compare'), ('test', 'If'), 0, ('body', 'For'), 0, ('body', 'For'), 0, ('body', 'Function Definition'), 0, ('body', 'Module')]
+def twoSum(nums, some_number):
     for i in range(len(nums)):
         for j in range((i + 1), len(nums)):
-            if ((nums[i] + nums[j]) != target):
+            if (((nums[i] + nums[j]) + nums[j]) == some_number):
                 return [i, j]
-    return [0, 0]
+    return []
+
+def twoSum(nums, some_number):
+    for i in range(len(nums)):
+        for j in range((i + 1), len(nums)):
+            if (((nums[i] + nums[j]) + nums[j]) == some_number):
+                return [i, j]
+    return []
 

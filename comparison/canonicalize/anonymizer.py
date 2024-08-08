@@ -33,9 +33,24 @@ class AnonymizeNames(ast.NodeTransformer):
         self.var_counter = 0
         self.param_counter = 0
         node.name = self.anonymize_name(node.name, "func")
+
+        # Anonymize function parameters
         for arg in node.args.args:
             arg.arg = self.anonymize_name(arg.arg, "param")
+
+        # Visit the body of the function to handle nested functions and variables
         self.generic_visit(node)
+
+        # Update return statements to use anonymized function names
+        for stmt in node.body:
+            if isinstance(stmt, ast.Return) and isinstance(stmt.value, ast.Name):
+                if stmt.value.id not in self.name_map.values():
+                    if stmt.value.id in self.reverse_name_map.values():
+                        # The value to use here is the key that maps to the value
+                        stmt.value.id = list(self.reverse_name_map.keys())[
+                            list(self.reverse_name_map.values()).index(stmt.value.id)]
+                    else:
+                        stmt.value.id = self.anonymize_name(stmt.value.id, "func")
         self.scope_stack.pop()
         return node
 
@@ -47,8 +62,17 @@ class AnonymizeNames(ast.NodeTransformer):
             scoped_name = f"{scope}_{node.id}"
             if scoped_name in self.name_map:
                 node.id = self.name_map[scoped_name]
-        return node
-
-    def visit_Param(self, node):
-        node.id = self.anonymize_name(node.id, "param")
+            else:
+                flag = True
+                # Check if the variable is from an outer scope
+                for outer_scope in reversed(self.scope_stack[:-1]):
+                    flag = False
+                    scoped_name = f"{outer_scope}_{node.id}"
+                    if scoped_name in self.name_map:
+                        node.id = self.name_map[scoped_name]
+                        break
+                if flag:
+                    scoped_name = f"global_{node.id}"
+                    if scoped_name in self.name_map:
+                        node.id = self.name_map[scoped_name]
         return node

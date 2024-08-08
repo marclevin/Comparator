@@ -442,8 +442,8 @@ def get_next_state(student_state: CodeState):
         student_state.next = None
         return
     # Optimize the goal state
-    all_combinations = optimize_goal(student_state, changes)
-
+    # all_combinations = optimize_goal(student_state, changes)
+    all_combinations = None
     if all_combinations is None:
         changes = get_changes(student_state.tree, student_state.goal.tree)
         all_combinations = get_all_combinations(student_state, changes)

@@ -19,6 +19,7 @@ class State:
     fun = None
     loadedFun = None
     tree = None
+    anonymized_code = None
 
     def __init__(self):
         self.reverse_map = None
@@ -99,6 +100,7 @@ class CanonicalState(State):
 
 
 class CodeState(State):
+    anonymized_code = None
     next: State = None
     original_ast: ast = None
     goal: State = None  # the eventual goal state for this student

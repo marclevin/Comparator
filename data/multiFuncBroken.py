@@ -36,7 +36,7 @@ def to_english(s):
             e = e[:len(e) - 1]
             english = english + e + ' '
 
-    return english.split("")
+    return english
 
 
 def reverseConst(word):
