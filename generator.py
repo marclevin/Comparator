@@ -8,6 +8,7 @@ from openai import OpenAI
 from compare import validate_student_attempts
 
 teacher_attempt_count = 0
+max_teacher_attempts = 3
 
 
 def generate_ai_hint(problem_description: str, student_code: str, edit: str, goal_code: str) -> str:
@@ -21,7 +22,8 @@ def generate_ai_hint(problem_description: str, student_code: str, edit: str, goa
 def internal_generate_ai_hint(problem_description: str, student_code: str, edit: str, goal_code: str,
                               client: OpenAI) -> str:
     global teacher_attempt_count
-    if teacher_attempt_count > 5:
+    global max_teacher_attempts
+    if teacher_attempt_count > max_teacher_attempts:
         raise Exception("Too many attempts to generate a hint, stopping.")
     teacher_attempt_count += 1
     filled_template = populate_teacher_template(problem_description, student_code, edit)
@@ -52,9 +54,9 @@ def internal_generate_ai_hint(problem_description: str, student_code: str, edit:
         completions.append(completion_student.choices[0].message.content)
     logging.log(logging.INFO, f"Student completions: {completions}")
     # Now to compare the completions to the goal code.
-    average_score = validate_student_attempts(completions, goal_code)
-    # We want a solution that is at least 80% similar to the goal code.
-    if average_score < 0.8:
+    average_score = validate_student_attempts(completions, goal_code, student_code)
+    # We want a solution that is at least 85% similar to the goal code.
+    if average_score < 0.85:
         # We will handle the recursive attempt here.
         return internal_generate_ai_hint(problem_description, student_code, edit, goal_code, client)
     return short_form_hint

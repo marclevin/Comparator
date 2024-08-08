@@ -22,7 +22,7 @@ class TestComparator(unittest.TestCase):
             goal_code = file.read()
         with open(resource_path + "/student_code.py", "r") as file:
             student_code = file.read()
-        cls.student_code_state = create_state(student_code, goal_code)
+        cls.student_code_state = create_state(student_code, goal_code, True)
 
     # get_weight tests
     def test_get_weight(self):

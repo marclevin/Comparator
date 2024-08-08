@@ -5,34 +5,27 @@ from comparison.path_construction.comparator import *
 from comparison.utils.tools import *
 
 
-def desirability(student_state: CodeState, candidate_state: IntermediateState, goal_state):
-    """Scores the state n based on the four desirable properties. Returns a number
-        between 0 (not desirable) and 1 (very desirable)."""
-    # Original metric: 2 - 4 - 1 - 2
+def desirability(student_state: State, candidate_state: State, goal_state: State):
     score = 0
     d = 0
-    # First: has the state been visited before?
-    a = int(candidate_state.count > 0)
-    candidate_state.timesVisted = a
-    score += 4 * a
 
-    # Second: minimize the distance from current to next
+    # Minimize the distance from current to next
     b = 1 - distance(student_state, candidate_state)[0]
     candidate_state.distance_to_original = b
-    score += 2 * b
+    score += 4 * b
 
-    # Third: maximize the performance on test cases
+    # Maximize the performance on test cases
     # c = n.score
     # n.test = c
     # score += 1 * c
 
-    # Forth: minimize the distance from the next state to the final state
+    # Minimize the distance from the next state to the final state
     if student_state is not goal_state:
         d = 1 - distance(student_state, goal_state)[0]
     candidate_state.distance_to_goal = d
     score += 2 * d
 
-    score /= 7.0
+    score /= 6.0
     return score
 
 
@@ -95,220 +88,6 @@ def apply_change_vectors(student_state: CodeState, changes: List[ChangeVector]) 
     inter_state = IntermediateState(tree=new_state, reverse_map=student_state.goal.reverse_map)
     inter_state.code = print_function(inter_state.tree)
     return inter_state
-
-
-def generateHelperDistributions(s, g, goals, states):
-    restricted_names = list(eval(s.problem.arguments).keys())
-    sHelpers = gather_all_helpers(s.tree, restricted_names)
-    gHelpers = gather_all_helpers(g.tree, restricted_names)
-    nonMappableHelpers = gather_all_function_names(g.tree)
-    for pair in gHelpers:  # make sure to remove all matches, regardless of whether the second part matches!
-        for item in nonMappableHelpers:
-            if pair[0] == item[0]:
-                nonMappableHelpers.remove(item)
-                break
-    randomCount = nCount = newRandomCount = 0
-    if len(sHelpers) > len(gHelpers):
-        gHelpers |= set([("random_fun" + str(i), None) for i in range(len(sHelpers) - len(gHelpers))])
-        randomCount = newRandomCount = len(sHelpers) - len(gHelpers)
-    elif len(gHelpers) > len(sHelpers):
-        sHelpers |= set([("new_fun" + str(i), None) for i in range(len(gHelpers) - len(sHelpers))])
-        nCount = len(gHelpers) - len(sHelpers)
-
-    # First, track down vars which are going to conflict with built-in names in the goal state
-    starterPairs = []
-    sList, gList, nList = list(sHelpers), list(gHelpers), list(nonMappableHelpers)
-    i = 0
-    while i < len(sList):
-        for j in range(len(nList)):
-            if sList[i][1] == nList[j][0]:  # if the variable will conflict with a built-in name
-                if randomCount > 0:  # match the last random var to this var
-                    starterPairs.append((sList[i][0], "random_fun" + str(randomCount - 1)))
-                    sList.pop(i)
-                    gList.remove(("random_fun" + str(randomCount - 1), None))
-                    randomCount -= 1
-                    i -= 1  # since we're popping, make sure to check the next one
-                    break
-                else:  # generate a new random var and replace the current pos with a new n
-                    starterPairs.append((sList[i][0], "random_fun" + str(newRandomCount)))
-                    sList[i] = ("new_fun" + str(nCount), None)
-                    newRandomCount += 1
-                    nCount += 1
-                    break
-        i += 1
-    # Get rid of the original names now
-    sList = [x[0] for x in sList]
-    gList = [x[0] for x in gList]
-
-    listOfMaps = generateMappings(sList, gList)
-    allMaps = []
-    for map in listOfMaps:
-        d = {}
-        for tup in map:
-            d[tup[1]] = tup[0]
-        allMaps.append(d)
-    allFuns = []
-    for map in allMaps:
-        tmpTree = deepcopy(g.tree)
-        tmpTree = applyHelperMap(tmpTree, map)
-        tmpCode = print_function(tmpTree)
-
-        matches = list(filter(lambda x: x.code == tmpCode, goals))
-        if len(matches) > 0:
-            matches = sorted(matches, key=lambda s: getattr(s, "count"))
-            tmpG = matches[-1]
-            tmpG.tree = str_to_tree(tmpG.tree_source)
-            allFuns.append(tmpG)
-        else:
-            tmpG = CanonicalState(code=tmpCode, problem=s.problem, count=0)
-            tmpG.tree = tmpTree
-            tmpG.tree_source = tree_to_str(tmpTree)
-            tmpG.treeWeight = g.treeWeight
-            if tmpG.score != 1:
-                log("generateNextStates\tgenerateHelperDistributions\tBad helper remapping: " + str(map), "bug")
-                log(s.code, "bug")
-                log(print_function(s.orig_tree), "bug")
-                log(g.code, "bug")
-                log(tmpCode, "bug")
-            allFuns.append(tmpG)
-            goals.append(tmpG)
-            states.append(tmpG)
-    return allFuns
-
-
-def generateVariableDistributions(s, g, goals, states):
-    sParameters = gather_all_parameters(s.tree)
-    gParameters = gather_all_parameters(g.tree, keep_orig=False)
-    restricted_names = list(eval(s.problem.arguments).keys()) + get_all_imports(s.tree) + get_all_imports(g.tree)
-    sHelpers = gather_all_helpers(s.tree, restricted_names)
-    gHelpers = gather_all_helpers(g.tree, restricted_names)
-    sVariables = gather_all_variables(s.tree)
-    gVariables = gather_all_variables(g.tree, keep_orig=False)
-    # First, just make extra sure none of the restricted names are included
-    for name in restricted_names:
-        for item in sVariables:
-            if name == item[0]:
-                sVariables.remove(item)
-                break
-        for item in gVariables:
-            if name == item[0]:
-                gVariables.remove(item)
-                break
-    for pair in sParameters | sHelpers:  # make sure to remove all matches, regardless of whether the second part matches!
-        for item in sVariables:
-            if pair[0] == item[0]:
-                sVariables.remove(item)
-                break
-    for pair in gParameters | gHelpers:  # make sure to remove all matches, regardless of whether the second part matches!
-        for item in gVariables:
-            if pair[0] == item[0]:
-                gVariables.remove(item)
-                break
-    nonMappableVariables = gather_all_names(g.tree, keep_orig=False)
-    for pair in gVariables | gParameters | gHelpers:  # make sure to remove all matches, regardless of whether the second part matches!
-        for item in nonMappableVariables:
-            if pair[0] == item[0]:
-                nonMappableVariables.remove(item)
-                break
-    randomCount = nCount = newRandomCount = 0
-    if len(sVariables) > len(gVariables):
-        randomCount = newRandomCount = len(sVariables) - len(gVariables)
-        gVariables |= set([("random" + str(i), None) for i in range(len(sVariables) - len(gVariables))])
-    elif len(gVariables) > len(sVariables):
-        nCount = len(gVariables) - len(sVariables)
-        sVariables |= set([("n" + str(i) + "_global", None) for i in range(len(gVariables) - len(sVariables))])
-
-    # First, track down vars which are going to conflict with built-in names in the goal state
-    starterPairs = []
-    sList, gList, nList = list(sVariables), list(gVariables), list(nonMappableVariables)
-    i = 0
-    while i < len(sList):
-        for j in range(len(nList)):
-            if sList[i][1] == nList[j][0]:  # if the variable will conflict with a built-in name
-                if randomCount > 0:  # match the last random var to this var
-                    starterPairs.append((sList[i][0], "random" + str(randomCount - 1)))
-                    sList.pop(i)
-                    gList.remove(("random" + str(randomCount - 1), None))
-                    randomCount -= 1
-                    i -= 1  # since we're popping, make sure to check the next one
-                    break
-                else:  # generate a new random var and replace the current pos with a new n
-                    starterPairs.append((sList[i][0], "random" + str(newRandomCount)))
-                    sList[i] = ("n" + str(nCount) + "_global", None)
-                    newRandomCount += 1
-                    nCount += 1
-                    break
-        i += 1
-    # Get rid of the original names now
-    sList = [x[0] for x in sList]
-    gList = [x[0] for x in gList]
-    if max(len(sVariables), len(gVariables)) > 6:
-        # If it's too large, just do the obvious one-to-one mapping.
-        listOfMaps = [[(sList[i], gList[i]) for i in range(len(sList))]]
-    else:
-        listOfMaps = generateMappings(sList, gList)
-    allMaps = []
-    placeholdCount = 0
-    badMatches = set()
-    for map in listOfMaps:
-        d = {}
-        for pair in starterPairs:  # these apply to all of them
-            d[pair[1]] = pair[0]
-        for tup in map:
-            # Don't allow variable matching across functions!!! This just messes things up.
-            if getParentFunction(tup[0]) != getParentFunction(tup[1]) and getParentFunction(
-                    tup[0]) != None and getParentFunction(tup[1]) != None:
-                badMatches.add(tup[0])
-                badMatches.add(tup[1])
-                d["z" + str(placeholdCount) + "_newvar"] = tup[0]
-                placeholdCount += 1
-                d[tup[1]] = "z" + str(placeholdCount) + "_newvar"
-                placeholdCount += 1
-            else:
-                d[tup[1]] = tup[0]
-        placeholdCount = 0
-        allMaps.append(d)
-    allFuns = []
-    for map in allMaps:
-        tmpTree = deepcopy(g.tree)
-        tmpTree = applyVariableMap(tmpTree, map)
-        tmpCode = print_function(tmpTree)
-
-        matches = list(filter(lambda x: x.code == tmpCode, goals))
-        if len(matches) > 0:
-            matches = sorted(matches, key=lambda s: getattr(s, "count"))
-            tmpG = matches[-1]
-            tmpG.tree = str_to_tree(tmpG.tree_source)
-            allFuns.append(tmpG)
-        else:
-            tmpG = CanonicalState(code=tmpCode, problem=s.problem, count=0)
-            tmpG.tree = tmpTree
-            tmpG.tree_source = tree_to_str(tmpTree)
-            tmpG.treeWeight = g.treeWeight
-            if tmpG.score != 1:
-                log("generateNextStates\tgenerateVariablesDistributions\tBad variable remapping: " + str(map), "bug")
-                log(s.code, "bug")
-                log(print_function(s.orig_tree), "bug")
-                log(g.code, "bug")
-                log(tmpCode, "bug")
-            allFuns.append(tmpG)
-            goals.append(tmpG)
-            states.append(tmpG)
-    return allFuns
-
-
-def generateMappings(s, g):
-    if len(s) == 0:
-        return [[]]
-    allMaps = []
-    for i in range(len(g)):
-        thisMap = (s[0], g[i])
-        restMaps = generateMappings(s[1:], g[:i] + g[i + 1:])
-        if s[0] != g[i]:  # only need to include maps that aren't changing the variables
-            for map in restMaps:
-                map.append(copy.deepcopy(thisMap))
-        allMaps += restMaps
-    return allMaps
 
 
 def optimize_goal(student_state: CodeState, changes: list[ChangeVector]):
@@ -481,6 +260,15 @@ def create_state(student_code: str, goal_code: str, canonicalize: bool) -> CodeS
     goal_code_state = get_canonical_form(goal_code_state, imports=goal_imports)
     student_code_state.goal = goal_code_state
     return student_code_state
+
+
+def create_canonical_intermediate_state(code: str) -> State:
+    try:
+        code_state = IntermediateState(tree=ast.parse(code))
+        imports = collect_attributes(code_state)
+        return get_canonical_form(code_state, imports=imports)
+    except SyntaxError:
+        raise SyntaxError("Syntax error in code")
 
 
 def collect_attributes(given_ast) -> Tuple[List[ast.AST], List[str]]:
