@@ -23,7 +23,6 @@ class State:
 
     count = 0
 
-
     def __init__(self):
         self.count = 0
         self.reverse_map = None
@@ -40,35 +39,6 @@ class State:
     def deepcopy(this):
         s = State()
         s.id = this.id
-        s.name = this.name
-        s.score = this.score
-        s.fun = this.fun
-        s.tree = deepcopy(this.tree)
-
-        properties = [
-            "count",
-            "goal",
-            "goal_id",
-            "goalDist",
-            "next",
-            "next_id",
-            "edit",
-            "hint",
-            "treeWeight",
-        ]
-        for prop in properties:
-            if hasattr(this, prop):
-                setattr(s, prop, getattr(this, prop))
-        return s
-
-
-class OriginalState(State):
-    canonicalId = None
-
-    def deepcopy(this):
-        s = OriginalState()
-        s.id = this.id
-        s.canonicalId = this.canonicalId
         s.name = this.name
         s.score = this.score
         s.fun = this.fun

@@ -19,7 +19,7 @@ class TestSamples(unittest.TestCase):
         broken_code = open(broken_solution, "r").read()
         solution_code = open(solution, "r").read()
         hint = compare_solutions(broken_code, solution_code, True)
-        expected_hint = "At line 46, column 29 replace 5 with 1 in the constant value"
+        expected_hint = "At line 46, column 29 replace 5 with 1 in the integer value"
         self.assertEqual(hint, expected_hint)
 
     def test_multi_func_step_1(self):
@@ -28,7 +28,7 @@ class TestSamples(unittest.TestCase):
         broken_code = open(broken_solution, "r").read()
         solution_code = open(solution, "r").read()
         hint = compare_solutions(broken_code, solution_code, True)
-        expected_hint = "At line 50, column 16 replace True with False in the constant value"
+        expected_hint = "At line 50, column 16 replace True with False in the boolean value"
         self.assertEqual(hint, expected_hint)
 
     def test_multi_func_step_2(self):
@@ -37,7 +37,7 @@ class TestSamples(unittest.TestCase):
         broken_code = open(broken_solution, "r").read()
         solution_code = open(solution, "r").read()
         hint = compare_solutions(broken_code, solution_code, True)
-        expected_hint = "At line 13, column 39 replace ' ' with 'way' in the constant value"
+        expected_hint = "At line 13, column 39 replace ' ' with 'way' in the string"
         self.assertEqual(hint, expected_hint)
 
     def test_multi_func_step_3(self):
@@ -55,7 +55,7 @@ class TestSamples(unittest.TestCase):
         broken_code = open(broken_solution, "r").read()
         solution_code = open(solution, "r").read()
         hint = compare_solutions(broken_code, solution_code, True)
-        expected_hint = "At line 13, column 47 replace 'something else' with ' ' in the constant value"
+        expected_hint = "At line 13, column 47 replace 'something else' with ' ' in the string"
         self.assertEqual(hint, expected_hint)
 
     def test_multi_func_step_5(self):

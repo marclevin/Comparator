@@ -486,8 +486,7 @@ def get_changes_weight(changes, countTokens=True):
     return weight
 
 
-def distance(student_state: State, candidate: State, given_changes=None, forceReweight=False,
-             ignoreVariables=False):
+def distance(student_state: State, candidate: State, given_changes=None, forceReweight=False):
     """A method for comparing solution states, which returns a number between
         0 (identical solutions) and 1 (completely different)
   returns a tuple of (distance, changes)

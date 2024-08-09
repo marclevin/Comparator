@@ -25,4 +25,9 @@ class TestStateCreator(unittest.TestCase):
         node_a = ast.parse("a = 1\nb = 2")
         node_b = ast.parse("a = 2\nb = 1")
         self.assertEqual(map_differences(node_a, node_b),
-                         {'moved': [0, 1], 'start': {'body': {0: {}, 1: {}, 'len': 2, 'pos': [1, 0]}}})
+                         {'moved': [0, 1],
+                          'start': {'body': {0: {'targets': {0: {}, 'len': 1, 'pos': [0]}},
+                                             1: {'targets': {0: {}, 'len': 1, 'pos': [0]}},
+                                             'len': 2,
+                                             'pos': [1, 0]}}}
+                         )

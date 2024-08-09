@@ -1751,7 +1751,7 @@ def formatHints(edit, hintLevel):
             (cv.old_subtree, cv.new_subtree) = (oldVal, newVal)
 
         # Context
-        context = formatContext(cv.path, verb3)
+        context = formatContext(cv.path, verb3, oldVal)
 
         # Position
         line = getLineNumber(cv.start, cv.path, oldVal)

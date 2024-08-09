@@ -1,4 +1,5 @@
 import ast
+from types import NoneType
 
 from comparison.utils.tools import log
 
@@ -16,6 +17,8 @@ def print_function(unit, indent=0):
         if type(unit) is str:
             return "'" + unit + "'"
         if type(unit) is int or type(unit) is float:
+            return str(unit)
+        if type(unit) is bool:
             return str(unit)
         log("display\tprintFunction\tNot AST: " + str(type(unit)) + "," + str(unit), "bug")
         return str(unit)
@@ -262,25 +265,28 @@ def print_function(unit, indent=0):
         if len(unit.args) + len(unit.keywords) >= 1:
             output_string = output_string[:-2]
         output_string += ")"
-    elif unit_type is ast.Num:
-        if unit.n is not None:
-            if (type(unit.n) is complex) or (type(unit.n) is not complex and unit.n < 0):
-                output_string += '(' + str(unit.n) + ')'
-            else:
-                output_string += str(unit.n)
-    elif unit_type is ast.Str:
-        if unit.s is not None:
-            val = repr(unit.s)
-            if val[0] == '"':  # There must be a single quote in there...
-                val = "'''" + val[1:len(val) - 1] + "'''"
-            output_string += val
-    # s += "'" + a.s.replace("'", "\\'").replace('"', "\\'").replace("\n","\\n") + "'"
-    elif unit_type is ast.Bytes:
-        output_string += str(unit.s)
-    elif unit_type is ast.NameConstant:
-        output_string += str(unit.value)
     elif unit_type is ast.Constant:
-        output_string += print_function(unit.value, indent)
+        # Check the type of the .value for all primitives and tuples & frozensets
+        if type(unit.value) is str:
+            output_string += "'" + unit.value + "'"
+        elif type(unit.value) is int:
+            output_string += str(unit.value)
+        elif type(unit.value) is bool:
+            output_string += str(unit.value)
+        elif type(unit.value) is float:
+            output_string += str(unit.value)
+        elif type(unit.value) is complex:
+            output_string += "(" + str(unit.value) + ")"
+        elif type(unit.value) is tuple:
+            output_string += [str(x) for x in unit.value]
+        elif type(unit.value) is frozenset:
+            output_string += "{" + [str(x) for x in unit.value] + "}"
+        elif type(unit.value) is None:
+            output_string += "None"
+        elif type(unit.value) is bytes:
+            output_string += str(unit.value)
+        elif type(unit.value) is Ellipsis:
+            output_string += "..."
     elif unit_type is ast.Attribute:
         output_string += print_function(unit.value, indent) + "." + str(unit.attr)
     elif unit_type is ast.Subscript:
@@ -305,8 +311,6 @@ def print_function(unit, indent=0):
         output_string += ")"
     elif unit_type is ast.Starred:
         output_string += "*" + print_function(unit.value, indent)
-    elif unit_type is ast.Ellipsis:
-        output_string += "..."
     elif unit_type is ast.Slice:
         if unit.lower is not None:
             output_string += print_function(unit.lower, indent)
@@ -391,7 +395,7 @@ def print_function(unit, indent=0):
     return output_string
 
 
-def formatContext(trace, verb):
+def formatContext(trace, verb, oldVal=None):
     trace_d = {
         "value": {"Return": ("return statement"),
                   "Assign": ("right side of the assignment"),
@@ -512,6 +516,16 @@ def formatContext(trace, verb):
         "asname": {"Alias": ("new name")},
         "items": {"With": ("context of the with statement")}
     }
+    constant_d = {bool: "boolean value",
+                  int: "integer value",
+                  float: "float value",
+                  complex: "complex value",
+                  str: "string",
+                  bytes: "bytes value",
+                  NoneType: "None statement",
+                  Ellipsis: "ellipsis value",
+                  tuple: "tuple value",
+                  frozenset: "frozenset value", }
 
     # Find what type this is by trying to find the closest container in the path
     i = 0
@@ -531,7 +545,10 @@ def formatContext(trace, verb):
 
     field, typ = trace[i]
     if field in trace_d and typ in trace_d[field]:
-        context = trace_d[field][typ]
+        if typ is "Constant" and oldVal is not None:
+            context = constant_d[type(oldVal)]
+        else:
+            context = trace_d[field][typ]
         return verb + "the " + context
     else:
         log("formatContext\tMissing field: " + field + " " + typ, "bug")

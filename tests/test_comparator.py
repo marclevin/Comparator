@@ -212,7 +212,7 @@ class TestComparator(unittest.TestCase):
         result = distance(state, state.goal)
         self.assertIsNotNone(result)
         dist, _ = result
-        self.assertEqual(0.33, round(dist, 2))
+        self.assertEqual(0.67, round(dist, 2))
 
     def test_distance_given_changes(self):
         state = CodeState(tree=ast.parse("a = 1"), goal=IntermediateState(tree=ast.parse("b = 2")))
@@ -232,14 +232,7 @@ class TestComparator(unittest.TestCase):
         result = distance(state, state.goal, forceReweight=True)
         self.assertIsNotNone(result)
         dist, _ = result
-        self.assertEqual(0.33, round(dist, 2))
-
-    def test_distance_ignore_variables(self):
-        state = CodeState(tree=ast.parse("a = 1"), goal=IntermediateState(tree=ast.parse("b = 2")))
-        result = distance(state, state.goal, ignoreVariables=True)
-        self.assertIsNotNone(result)
-        dist, _ = result
-        self.assertEqual(0.33, round(dist, 2))
+        self.assertEqual(0.67, round(dist, 2))
 
     # get_changes_weight tests
     def test_get_changes_weight_no_changes(self):
