@@ -10,16 +10,16 @@ def to_pig_latin(s):
     pigLatin = ''
     for word in sent:
         if word[0] in vowel:
-            pigLatin += word + 'way' + ' ' + "something else"
+            pigLatin += word + 'way' + ' '
         else:
-            constant = 0
-            for letter in word:
-                if letter not in vowel:
-                    const = constant + 1
+            const = 0
+            for let in word:
+                if let not in vowel:
+                    const = const + 1
                     continue
                 else:
                     break
-            pigLatin += word[constant:] + 'a' + word[:constant] + 'ay' + ' '
+            pigLatin += word[const:] + 'a' + word[:const] + 'ay' + ' '
     return pigLatin
 
 
@@ -36,16 +36,16 @@ def to_english(s):
             e = e[:len(e) - 1]
             english = english + e + ' '
 
-    return english.split(' ')
+    return english
 
 
 def reverseConst(word):
     b = True
     while b:
-        f = word[:len(word) - 1]
-        l = word[len(word) - 5:len(word)]
-        if not (l in vowel):
-            word = l + f
+        first = word[:len(word) - 1]
+        last = word[len(word) - 1:len(word)]
+        if not (last in vowel):
+            word = last + first
         else:
-            b = True
+            b = False
     return word

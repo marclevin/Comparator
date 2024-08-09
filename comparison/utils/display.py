@@ -406,6 +406,7 @@ def formatContext(trace, verb):
                   "Keyword": ("right side of the keyword"),
                   "Starred": ("value of the starred expression"),
                   "Name Constant": ("constant value"),
+                  "Constant": "constant value",
                   },
         "values": {"Print": ("print statement"),
                    "Boolean Operation": ("boolean operation"),
@@ -533,13 +534,8 @@ def formatContext(trace, verb):
         context = trace_d[field][typ]
         return verb + "the " + context
     else:
-        # it might be the constant value path recurrance, pop the first val if it's a constant and try again
-        temp_trace = trace[1:]
-        if len(temp_trace) > 0 and type(temp_trace[0]) is tuple and temp_trace[0][0] == "value" and temp_trace[0][
-            1] == "Constant":
-            return formatContext(temp_trace, verb)
-        else:
-            return formatContext(temp_trace, verb)
+        log("formatContext\tMissing field: " + field + " " + typ, "bug")
+        return ""
 
 
 def formatList(node, field):

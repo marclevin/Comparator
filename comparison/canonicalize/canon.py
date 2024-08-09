@@ -42,7 +42,7 @@ def get_canonical_form(student_state, given_names=None, imports=None):
     give_ids(student_state.tree)
 
     transformation_list = [
-        constantFolding,
+        # constantFolding,
 
         cleanupEquals,
         cleanupBoolOps,
@@ -67,9 +67,9 @@ def get_canonical_form(student_state, given_names=None, imports=None):
     student_state.anonymized_code = ast.unparse(temp_tree)
     student_state.reverse_map = anonymizer_instance.reverse_name_map
     old_tree = None
-    while compare_trees(old_tree, student_state.tree, check_equality=True) != 0:
-        old_tree = deepcopy(student_state.tree)
-        for transformation in transformation_list:
-            student_state.tree = transformation(student_state.tree)  # modify in place
-    student_state.code = print_function(student_state.tree)
+    # while compare_trees(old_tree, student_state.tree, check_equality=True) != 0:
+    #     old_tree = deepcopy(student_state.tree)
+    #     for transformation in transformation_list:
+    #         student_state.tree = transformation(student_state.tree)  # modify in place
+    # student_state.code = print_function(student_state.tree)
     return student_state
