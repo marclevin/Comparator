@@ -10,12 +10,12 @@ def to_pig_latin(s):
     pigLatin = ''
     for word in sent:
         if word[0] in vowel:
-            pigLatin += word + 'way' + ' '
+            pigLatin += word + 'way' + 'way' + "something else"
         else:
             constant = 0
             for letter in word:
                 if letter not in vowel:
-                    const = constant + 1
+                    constant = constant + 1
                     continue
                 else:
                     break

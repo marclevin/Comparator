@@ -1783,7 +1783,6 @@ def formatHints(edit, hintLevel):
                 + verb2
                 + newStr
                 + context
-                + "\n"
         )
 
         tmp = cv.deepcopy()

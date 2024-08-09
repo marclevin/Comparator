@@ -10,7 +10,7 @@ def to_pig_latin(s):
     pigLatin = ''
     for word in sent:
         if word[0] in vowel:
-            pigLatin += word + 'way' + ' '
+            pigLatin += word + 'way' + 'way' + ' '
         else:
             constant = 0
             for letter in word:
@@ -36,7 +36,7 @@ def to_english(s):
             e = e[:len(e) - 1]
             english = english + e + ' '
 
-    return english
+    return english.split(' ')
 
 
 def reverseConst(word):
