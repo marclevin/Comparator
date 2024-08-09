@@ -8,6 +8,8 @@ from comparison.path_construction.state_creator import get_next_state, create_st
     create_canonical_intermediate_state
 from comparison.utils.generate_message import *
 
+ephemeral_goal = None
+
 
 def compare_solutions(student_code, solution_code, canonicalize) -> str:
     # Format the code to ensure consistent format
@@ -33,8 +35,15 @@ def compare_solutions(student_code, solution_code, canonicalize) -> str:
         deanonymizer = DeanonymizeNames(reverse_map=student_code_state.reverse_map)
         deanonymizer.visit(student_code_state.tree)
         deanonymizer.visit(student_code_state.next.tree)
+    global ephemeral_goal
+    ephemeral_goal = ast.dump(student_code_state.next.tree, indent=4)
 
     return formatHints(student_code_state.change_vectors, 2)
+
+
+def compare_and_return_new_goal(student_code, solution_code, canonicalize):
+    hint = compare_solutions(student_code, solution_code, canonicalize)
+    return hint, ephemeral_goal
 
 
 def test_compare():

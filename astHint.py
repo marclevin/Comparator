@@ -1,6 +1,6 @@
 import click
 
-from compare import compare_solutions
+from compare import compare_and_return_new_goal
 from generator import generate_ai_hint
 
 fg_ast_hint = 'blue'
@@ -55,17 +55,17 @@ def compare(student_solution, correct_solution):
     """
     content1 = student_solution.read()
     content2 = correct_solution.read()
-    edit = compare_internal(content1, content2)
+    edit, _ = compare_internal(content1, content2)
     click.echo((click.style(f'Your hint is::{edit}', fg='blue')))
 
 
-def compare_internal(student_solution, correct_solution) -> str:
+def compare_internal(student_solution, correct_solution):
     click.echo(click.style('Comparing the given files...', fg=fg_ast_hint))
     try:
-        hint = compare_solutions(student_solution, correct_solution, True)
+        hint, new_goal = compare_and_return_new_goal(student_solution, correct_solution, True)
     except FileNotFoundError as e:
         raise click.ClickException(f"Error: {e}")
-    return hint
+    return hint, new_goal
 
 
 @ast_hint.command()
@@ -87,9 +87,9 @@ def generative_ai_hint(student_solution, correct_solution, problem_description):
     student_solution = student_solution.read()
     correct_solution = correct_solution.read()
     problem_description = problem_description.read()
-    edit = compare_internal(student_solution, correct_solution)
+    edit, new_goal = compare_internal(student_solution, correct_solution)
     click.echo(click.style(text='Generating a hint from the AI...', fg=fg_ast_hint))
-    short_hint = generate_ai_hint(problem_description, student_solution, edit, correct_solution)
+    short_hint = generate_ai_hint(problem_description, student_solution, edit, new_goal)
     click.echo(click.style(text="Your hint is:", fg=fg_ast_hint))
     click.echo(click.style(short_hint, fg='green'))
 
@@ -105,7 +105,7 @@ def test_generative_ai_hint():
     student_solution = student_solution.read()
     correct_solution = correct_solution.read()
     problem_description = problem_description.read()
-    edit = compare_internal(student_solution, correct_solution)
+    edit, new_goal = compare_internal(student_solution, correct_solution)
     click.echo(click.style(text='Generating a hint from the AI...', fg=fg_ast_hint))
     short_hint = generate_ai_hint(problem_description, student_solution, edit, correct_solution)
     click.echo(click.style(text="Your hint is:", fg=fg_ast_hint))
