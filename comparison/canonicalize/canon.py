@@ -42,7 +42,7 @@ def get_canonical_form(student_state, given_names=None, imports=None):
     give_ids(student_state.tree)
 
     transformation_list = [
-        # constantFolding,
+        constantFolding,
 
         cleanupEquals,
         cleanupBoolOps,
@@ -61,7 +61,7 @@ def get_canonical_form(student_state, given_names=None, imports=None):
 
         deadCodeRemoval
     ]
-    # student_state.tree = simplify(student_state.tree)
+    student_state.tree = simplify(student_state.tree)
     anonymizer_instance = AnonymizeNames()
     temp_tree = anonymizer_instance.visit(student_state.tree)
     student_state.anonymized_code = ast.unparse(temp_tree)

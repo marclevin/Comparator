@@ -27,7 +27,7 @@ def to_english(s):
     sent = s.split(' ')
     english = ''
     for word in sent:
-        if word[len(word) - 3:len(word)] == 'way':
+        if word[len(word) - 3:len(english)] == 'way':
             english += word[:len(word) - 3] + ' '
 
         else:

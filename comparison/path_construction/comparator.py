@@ -235,9 +235,10 @@ def diff_asts(ast_x, ast_y):
         elif type(ast_x) is type(ast_y) is ast.Name:
             # TODO look into this
             if not built_in_name(ast_x.id) and not built_in_name(ast_y.id):
-                # Might be a variable mismatch, take the goal as a change
                 if ast_x.id != ast_y.id:
                     return [ChangeVector([], ast_x, ast_y)]
+                else:
+                    return []
 
         found_differences = []
         # For every field, like body, or value, etc.
@@ -257,17 +258,12 @@ def diff_asts(ast_x, ast_y):
         elif ast_x is not ast_y or type(ast_x) is not type(ast_y):
             # Check if they are both primitive types, if they are, and are the same value, return nothing
             if type(ast_x) in [int, float, str, bool] and type(ast_y) in [int, float, str, bool]:
-                if ast_x != ast_y:
-                    return [ChangeVector([], ast_x, ast_y)]
-            return []
+                if ast_x == ast_y:
+                    return []
+            return [ChangeVector([], ast_x, ast_y)]
         else:  # equal values
             return []
     else:  # Two mismatched types
-        # One might be a primitive type and the other a constant, so drill down to the constant value
-        if type(ast_x) in [int, float, str, bool] and type(ast_y) is ast.Constant:
-            return diff_asts(ast_x, ast_y.value)
-        elif type(ast_y) in [int, float, str, bool] and type(ast_x) is ast.Constant:
-            return diff_asts(ast_x.value, ast_y)
         return [ChangeVector([], ast_x, ast_y)]
 
 
