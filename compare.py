@@ -36,7 +36,7 @@ def compare_solutions(student_code, solution_code, canonicalize) -> str:
         deanonymizer.visit(student_code_state.tree)
         deanonymizer.visit(student_code_state.next.tree)
     global ephemeral_goal
-    ephemeral_goal = ast.dump(student_code_state.next.tree, indent=4)
+    ephemeral_goal = print_function(student_code_state.next.tree)
 
     return formatHints(student_code_state.change_vectors, 2)
 
@@ -47,8 +47,8 @@ def compare_and_return_new_goal(student_code, solution_code, canonicalize):
 
 
 def test_compare():
-    student_file = ".\\data\\isWeekendBroken.py"
-    solution_file = ".\\data\\isWeekend.py"
+    student_file = ".\\data\\twoSumBroken.py"
+    solution_file = ".\\data\\twoSum.py"
     student_code = open(student_file, "r").read()
     solution_code = open(solution_file, "r").read()
     print("\n", compare_solutions(student_code, solution_code, True))

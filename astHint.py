@@ -107,7 +107,7 @@ def test_generative_ai_hint():
     problem_description = problem_description.read()
     edit, new_goal = compare_internal(student_solution, correct_solution)
     click.echo(click.style(text='Generating a hint from the AI...', fg=fg_ast_hint))
-    short_hint = generate_ai_hint(problem_description, student_solution, edit, correct_solution)
+    short_hint = generate_ai_hint(problem_description, student_solution, edit, new_goal)
     click.echo(click.style(text="Your hint is:", fg=fg_ast_hint))
     click.echo(click.style(short_hint, fg='green'))
 

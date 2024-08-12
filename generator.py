@@ -30,7 +30,9 @@ def internal_generate_ai_hint(problem_description: str, student_code: str, edit:
 
     teacher_interaction = client.chat.completions.create(
         model="gpt-4o-mini",
+        temperature=0.1,
         messages=[
+            {"role": "system", "content": f"{teacher_fine_tune}"},
             {"role": "user", "content": f"{filled_template}"},
         ],
     )
@@ -47,7 +49,9 @@ def internal_generate_ai_hint(problem_description: str, student_code: str, edit:
     for _ in range(10):
         completion_student = client.chat.completions.create(
             model="gpt-3.5-turbo",
+            temperature=0.1,
             messages=[
+                {"role": "system", "content": f"{student_fine_tune}"},
                 {"role": "user", "content": f"{filled_student_template}"},
             ],
         )
@@ -96,21 +100,52 @@ def extract_hints(response: str) -> Tuple[str, str]:
     return long_form_hint, short_form_hint
 
 
-student_template = """You are a novice computer science student, and you are working on a programming assignment. You've written the following code:
+student_template = """
+Your code:
 {student_code}
-You are stuck on a part of the code, and you need help, your teacher has given you the following long-form hint:
+Hint:
 {long_form_hint}
-Your job is to apply the hint to your code and write the corrected code. You are not allowed to change the code in any way except to apply the hint, you must use the hint as is.
-You must output only the corrected code, even if it would not run as is, or is still incorrect. You must output the code exactly as it would be written by the student, with the hint applied.
-You are not allowed to add comments to the code.
 """
 
-teacher_template = """You are a programming teacher, and you are teaching a novice computer science student to program. You've given them the following assignment to complete:
+student_fine_tune = """
+You are a novice computer science student, and you are working on a Python programming assignment.
+Your teacher is going to give you your code, and a hint to help you fix it.
+You must listen to instructions from your teacher and apply them to your code.
+Once you have applied the hint to your code, you must output only the corrected code. You are not allowed to change the code in any way except to apply the hint. You must use the hint as is.
+Even if the new code will not run, or is still incorrect, you must only output the code.
+You are not allowed to add comments to the code.
+Your teacher will give you the code and hint like so:
+Only output the code. You are only allowed to output the Python code.
+Your code:
+STUDENT CODE HERE
+Hint:
+HINT HERE
+
+
+Example Input:
+Your code:
+def add(a, b):
+    return a - b
+Hint:
+Operators in Python are used to perform operations on variables and values. The `+` operator is used to add two values together, while the `-` operator is used to subtract one value from another. You should replace the `-` operator with the `+` operator to correctly add the two values together.
+
+Example Response:
+def add(a, b):
+    return a + b
+"""
+
+teacher_template = """
+Problem Description:
 {problem_description}
-The student has written the following code:
+Student Code:
 {student_code}
-A person helping the student has given them an edit that they believe will fix the code but does not know how to tell the student to use the edit. The edit is as follows:
+Edit:
 {edit}
+"""
+
+teacher_fine_tune = """
+You are a programming teacher, and you are teaching a novice computer science student to program.
+You will be given the problem description, student code and an edit to make to the code.
 You are tasked with writing a long-form hint, one paragraph at most, that will help the student understand the edit and how to use it in their code. The hint should be written in a way that is easy to understand for a novice programmer, but doesn't give away the answer, it is a hint after all. Do not fix the code for the student, only provide a hint.
 You should then write a short-form hint, one sentence at most, that will help the student understand the edit and how to use it in their code.
 Your output should be the long-form hint followed by the short-form hint like so:
@@ -118,4 +153,19 @@ Long-form hint:
 LONG HINT HERE
 Short-form hint:
 SHORT HINT HERE
+
+Example Input:
+Problem Description:
+Write a function called `add` that takes two arguments, `a` and `b`, and returns the sum of `a` and `b` to learn how to use operators.
+Student Code:
+def add(a, b):
+    return a - b
+Edit:
+At line 2, column 12 replace '-' with '+'
+
+Example Response:
+Long-form hint:
+Operators in Python are used to perform operations on variables and values. The `+` operator is used to add two values together, while the `-` operator is used to subtract one value from another. You should replace the `-` operator with the `+` operator to correctly add the two values together.
+Short-form hint:
+Make sure you are using the correct operator to add the two values together.
 """
