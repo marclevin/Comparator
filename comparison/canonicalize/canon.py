@@ -1,5 +1,7 @@
 import uuid
 
+from canonicalize.ConstantFoldingTransformer import ConstantFoldingTransformer
+from canonicalize.DeadCodeEliminationTransformer import DeadCodeEliminationTransformer
 from comparison.canonicalize.anonymizer import AnonymizeNames
 from comparison.canonicalize.transformations import *
 
@@ -63,6 +65,10 @@ def get_canonical_form(student_state, given_names=None, imports=None):
     ]
     student_state.tree = simplify(student_state.tree)
     anonymizer_instance = AnonymizeNames()
+    constant_folding_instance = ConstantFoldingTransformer()
+    dead_code_elimination_instance = DeadCodeEliminationTransformer()
+    student_state.tree = dead_code_elimination_instance.visit(student_state.tree)
+    student_state.tree = constant_folding_instance.visit(student_state.tree)
     temp_tree = anonymizer_instance.visit(student_state.tree)
     student_state.anonymized_code = ast.unparse(temp_tree)
     student_state.reverse_map = anonymizer_instance.reverse_name_map

@@ -20,8 +20,8 @@ def desirability(student_state: State, candidate_state: State, goal_state: State
     # score += 1 * c
 
     # Minimize the distance from the next state to the final state
-    if student_state is not goal_state:
-        d = 1 - distance(student_state, goal_state)[0]
+    if candidate_state is not goal_state:
+        d = 1 - distance(goal_state, candidate_state)[0]
     candidate_state.distance_to_goal = d
     score += 2 * d
 

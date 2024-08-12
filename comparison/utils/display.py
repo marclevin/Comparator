@@ -545,7 +545,7 @@ def formatContext(trace, verb, oldVal=None):
 
     field, typ = trace[i]
     if field in trace_d and typ in trace_d[field]:
-        if typ is "Constant" and oldVal is not None:
+        if typ == "Constant" and oldVal is not None:
             context = constant_d[type(oldVal)]
         else:
             context = trace_d[field][typ]
