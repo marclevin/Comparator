@@ -1,7 +1,9 @@
 """This is a file of useful functions used throughout the hint generation program"""
+import os
 import time
 
-LOG_PATH = "C:\\Users\\marcl\\OneDrive\\Desktop\\University\\AST-Hints\\Comparator\\comparison\\logs\\"
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+LOG_PATH = os.path.join(project_root, "logs")
 
 
 def log(msg, filename="main", newline=True):
@@ -12,7 +14,7 @@ def log(msg, filename="main", newline=True):
     txt += msg
     if newline:
         txt += "\n"
-    f = open(LOG_PATH + filename + ".log", "w")
+    f = open(os.path.join(LOG_PATH, filename + ".log"), "a")
     f.write(txt)
     f.close()
 

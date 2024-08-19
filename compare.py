@@ -43,7 +43,7 @@ def compare_solutions(student_code, solution_code, canonicalize) -> str:
     # We should check the change vectors next_tree here to ensure if something new is added, we use a reverse map to convert back to the original code in the goal_ast.
     global ephemeral_goal
     ephemeral_goal = print_function(student_code_state.next.tree)
-    log(f"Ephemeral goal generated:\n{ephemeral_goal}", "hint_generation")
+    log(f"Ephemeral goal generated:\n{ephemeral_goal}", "goals")
 
     return formatHints(student_code_state.change_vectors, 2)
 
@@ -51,6 +51,7 @@ def compare_solutions(student_code, solution_code, canonicalize) -> str:
 def compare_and_return_new_goal(student_code, solution_code, canonicalize) -> Tuple[str, str]:
     global ephemeral_goal
     hint = compare_solutions(student_code, solution_code, canonicalize)
+    log(f"Hint generated:\n{hint}", "hint_generation")
     return hint, ephemeral_goal
 
 
