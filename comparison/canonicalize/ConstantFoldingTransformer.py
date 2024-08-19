@@ -37,6 +37,8 @@ class ConstantFoldingTransformer(ast.NodeTransformer):
 
     def visit_Call(self, node):
         self.generic_visit(node)
+        if isinstance(node.func, ast.Name) and node.func.id == 'print' or node.func.id == 'input':
+            return node
         if all(isinstance(arg, ast.Constant) for arg in node.args):
             try:
                 return ast.Constant(eval(compile(ast.Expression(node), '', 'eval')))

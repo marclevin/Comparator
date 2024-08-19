@@ -74,16 +74,32 @@ if __name__ == "__main__":
     main()
 """
 
-broken_code = """
+broken_code = r"""
 def main():
     num = 0
+    total = 0
+    while num < 3:
+        total += int(input("Enter a value:\n"))
+        num += 1
+    
+    average = total / 5
+    average = int(round(average, 3))
+    print(f"The average, rounded to the nearest integer is {average}.")
+    if average % 2 == 2:
+        print("The average is an even number.")
+    else:
+        print("The average is an odd number.")
+
+if __name__ == "__main__":
+    main()
 """
 
 
 def test_string_compare():
     global broken_code
     global working_code
-    print(compare_solutions(broken_code, working_code, True))
+    result = compare_solutions(broken_code, working_code, True)
+    print(f"\n{result}")
 
 
 def test_compare():

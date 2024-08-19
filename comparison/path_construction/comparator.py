@@ -449,6 +449,11 @@ def get_weight(given_tree, count_tokens=True):
                                   ast.Load, ast.Store, ast.Del, ast.AugLoad,
                                   ast.AugStore, ast.Param]:
             weight = 1
+
+        elif type(given_tree) is ast.JoinedStr:
+            weight = get_weight(given_tree.values, count_tokens=count_tokens)
+        elif type(given_tree) is ast.FormattedValue:
+            weight = get_weight(given_tree.value, count_tokens=count_tokens)
         else:
             log("diffAsts\tgetWeight\tMissing type in diffAsts: " + str(type(given_tree)), "bug")
             return 1

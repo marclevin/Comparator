@@ -265,9 +265,26 @@ def print_function(unit, indent=0):
         if len(unit.args) + len(unit.keywords) >= 1:
             output_string = output_string[:-2]
         output_string += ")"
+
+    elif unit_type is ast.JoinedStr:
+        output_string += "f'"
+        for value in unit.values:
+            # We must remove any '' from returned values since the values make up a part of a string
+            output_string += print_function(value, indent).replace("'", "")
+        output_string += "'"
+    elif unit_type is ast.FormattedValue:
+        output_string += "{" + print_function(unit.value, indent)
+        if unit.conversion is not -1:
+            output_string += "!" + print_function(unit.conversion, indent)
+        if unit.format_spec is not None:
+            output_string += ":" + print_function(unit.format_spec, indent)
+        output_string += "}"
     elif unit_type is ast.Constant:
         # Check the type of the .value for all primitives and tuples & frozensets
         if type(unit.value) is str:
+            # Check if unit value contains a \n, if so replace it with \\n
+            if "\n" in unit.value:
+                unit.value = unit.value.replace("\n", "\\n")
             output_string += "'" + unit.value + "'"
         elif type(unit.value) is int:
             output_string += str(unit.value)
