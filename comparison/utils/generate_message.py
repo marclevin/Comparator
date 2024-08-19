@@ -1,5 +1,5 @@
-from comparison.structures.ChangeVector import *
 from comparison.structures.State import State
+from comparison.structures.transformation_operation import *
 from comparison.utils.astTools import *
 from comparison.utils.display import *
 
@@ -203,7 +203,7 @@ def getLineNumber(tree, path, value):
     firstStep = path[0]
     if type(firstStep) == tuple:
         # for all tuples, the line should stay the same
-        cv = ChangeVector(path, 0, 1)
+        cv = ChangeOperation(path, 0, 1)
         location = cv.traverse_tree(tree)
         childType = firstStep[0]
         if hasattr(location, childType):
@@ -363,14 +363,14 @@ def getLineNumber(tree, path, value):
         if firstStep == -1:
             # a move/swap vector; give the location of the first value
             # move up one, then put the value into the 'last' position
-            cv = ChangeVector([-1, value] + path[1:], 0, 1)
+            cv = ChangeOperation([-1, value] + path[1:], 0, 1)
             location = cv.traverse_tree(tree)
             if not hasattr(location, "lineno"):  # include the value in the path
                 return getLineNumber(tree, [value] + path[1:], None)
             return location.lineno
         # Otherwise it's an Add or Delete vector
         elif type(path[1]) == tuple:
-            cv = ChangeVector(path[1:], 0, 1)
+            cv = ChangeOperation(path[1:], 0, 1)
             location = cv.traverse_tree(tree)
             childType = path[1][0]
             if hasattr(location, childType):
@@ -539,7 +539,7 @@ def getColumnNumber(tree, path, value):
 
     firstStep = path[0]
     if type(firstStep) == tuple:
-        cv = ChangeVector(path, 0, 1)
+        cv = ChangeOperation(path, 0, 1)
         location = cv.traverse_tree(tree)
         childType = firstStep[0]
         if hasattr(location, childType):
@@ -772,11 +772,11 @@ def getColumnNumber(tree, path, value):
     elif type(firstStep) == int:
         if firstStep == -1:
             # a move/swap vector; give the location of the first value
-            cv = ChangeVector([0, value] + path[1:], 0, 1)
+            cv = ChangeOperation([0, value] + path[1:], 0, 1)
             location = cv.traverse_tree(tree)
             return location.col_offset
         elif type(path[1]) == tuple:
-            cv = ChangeVector(path[1:], 0, 1)
+            cv = ChangeOperation(path[1:], 0, 1)
             location = cv.traverse_tree(tree)
             childType = path[1][0]
             if hasattr(location, childType):
@@ -1716,29 +1716,29 @@ def formatHints(edit, hintLevel):
         cv = edit[i]
         (oldVal, newVal) = (cv.old_subtree, cv.new_subtree)
         # Different phrases for different change vectors
-        if isinstance(cv, AddVector):
+        if isinstance(cv, AddOperation):
             verb1, verb2, verb3 = "add ", "", " to "
             if hintLevel == 1:
                 newVal = reduceToOneToken(oldVal, newVal, "add")
             (cv.old_subtree, cv.new_subtree) = (oldVal, newVal)
             oldStr, newStr = "", formatButCatchNone(newVal)
-        elif isinstance(cv, DeleteVector):
+        elif isinstance(cv, DeleteOperation):
             verb1, verb2, verb3 = "remove ", "", " from "
             oldStr, newStr = formatButCatchNone(oldVal), ""
-        elif isinstance(cv, SwapVector):
+        elif isinstance(cv, SwapOperation):
             verb1, verb2, verb3 = "swap ", " with ", " in "
             oldVal, newVal = cv.get_swaps()
             oldStr, newStr = formatButCatchNone(oldVal), formatButCatchNone(newVal)
-        elif isinstance(cv, MoveVector):
+        elif isinstance(cv, MoveOperation):
             verb1, verb2, verb3 = "move ", " behind ", " in "
             oldVal, newVal = cv.getItems()
             oldStr, newStr = formatButCatchNone(oldVal), formatButCatchNone(newVal)
-        elif isinstance(cv, SuperVector):
+        elif isinstance(cv, SuperOperation):
             verb1, verb2, verb3 = "change ", " to ", " in "
             oldStr, newStr = formatButCatchNone(oldVal), formatButCatchNone(newVal)
         else:
             type = ""
-            if isinstance(cv, SubVector):
+            if isinstance(cv, SubOperation):
                 verb1, verb2, verb3 = "change ", " to ", " in "
                 type = "sub"
             else:

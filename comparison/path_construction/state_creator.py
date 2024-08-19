@@ -44,24 +44,24 @@ def quick_deep_copy(change_vector):
     # the old subtree and new subtree can be aliases because we never modify them
     path = change_vector.path[:]
     old, new = change_vector.old_subtree, change_vector.new_subtree
-    if isinstance(change_vector, AddVector):
-        return AddVector(path, old, new)
-    elif isinstance(change_vector, DeleteVector):
-        return DeleteVector(path, old, new)
-    elif isinstance(change_vector, SwapVector):
-        tmp = SwapVector(path, old, new)
+    if isinstance(change_vector, AddOperation):
+        return AddOperation(path, old, new)
+    elif isinstance(change_vector, DeleteOperation):
+        return DeleteOperation(path, old, new)
+    elif isinstance(change_vector, SwapOperation):
+        tmp = SwapOperation(path, old, new)
         if change_vector.old_path is not None:
             tmp.old_path = change_vector.old_path
             tmp.new_path = change_vector.new_path
         return tmp
-    elif isinstance(change_vector, MoveVector):
-        return MoveVector(path, old, new)
-    elif isinstance(change_vector, SubVector):
-        return SubVector(path, old, new)
-    elif isinstance(change_vector, SuperVector):
-        return SuperVector(path, old, new)
-    elif isinstance(change_vector, ChangeVector):
-        return ChangeVector(path, old, new)
+    elif isinstance(change_vector, MoveOperation):
+        return MoveOperation(path, old, new)
+    elif isinstance(change_vector, SubOperation):
+        return SubOperation(path, old, new)
+    elif isinstance(change_vector, SuperOperation):
+        return SuperOperation(path, old, new)
+    elif isinstance(change_vector, ChangeOperation):
+        return ChangeOperation(path, old, new)
     else:
         raise Exception("Unknown change vector type, can't copy")
 
@@ -79,7 +79,7 @@ def update_change_vectors(changes, old_start, new_start):
     return changes, new_state
 
 
-def apply_change_vectors(student_state: CodeState, changes: List[ChangeVector]) -> State:
+def apply_change_vectors(student_state: CodeState, changes: List[ChangeOperation]) -> State:
     """Attempt to apply all the changes listed to the solution state s"""
     if len(changes) == 0:
         return student_state
@@ -90,7 +90,7 @@ def apply_change_vectors(student_state: CodeState, changes: List[ChangeVector]) 
     return inter_state
 
 
-def optimize_goal(student_state: CodeState, changes: list[ChangeVector]):
+def optimize_goal(student_state: CodeState, changes: list[ChangeOperation]):
     current_goal, current_diff, current_edits = student_state.goal, student_state.distance_to_goal, changes
     all_changes = []
 
@@ -170,7 +170,8 @@ def is_valid_next_state(student_state, new_state, goal_state):
     return True
 
 
-def generate_states_in_path(student_state: CodeState, valid_combinations: list[tuple[list[ChangeVector], CodeState]]):
+def generate_states_in_path(student_state: CodeState,
+                            valid_combinations: list[tuple[list[ChangeOperation], CodeState]]):
     best_score, best_state = -1, None
     ideal_changes = None
 
@@ -189,7 +190,7 @@ def generate_states_in_path(student_state: CodeState, valid_combinations: list[t
     student_state.next = best_state
 
 
-def get_all_combinations(student_state: CodeState, changes: list[ChangeVector]):
+def get_all_combinations(student_state: CodeState, changes: list[ChangeOperation]):
     if len(changes) < 5:
         all_changes = power_set(changes)
     else:

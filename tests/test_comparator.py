@@ -7,9 +7,10 @@ import unittest
 
 from comparison.path_construction.comparator import get_weight, match_lists, generate_move_pairs, find_move_vectors, \
     diff_lists, diff_asts, distance, get_changes_weight
-from comparison.structures.ChangeVector import ChangeVector, SubVector, SuperVector, SwapVector, DeleteVector, \
-    MoveVector, AddVector
 from comparison.structures.State import CodeState, IntermediateState
+from comparison.structures.transformation_operation import ChangeOperation, SubOperation, SuperOperation, SwapOperation, \
+    DeleteOperation, \
+    MoveOperation, AddOperation
 from path_construction.state_creator import create_state
 
 
@@ -95,23 +96,23 @@ class TestComparator(unittest.TestCase):
     def test_fmv_should_return_moves_for_shifted_lists(self):
         map_set = match_lists([1, 2, 3], [3, 1, 2])
         result = find_move_vectors(map_set, [1, 2, 3], [3, 1, 2])
-        expected = [MoveVector([-1], 2, 0)]
+        expected = [MoveOperation([-1], 2, 0)]
         self.assertEqual(expected.__repr__(), result.__repr__())
 
     def test_fmv_should_return_swaps_for_reversed_lists(self):
         map_set = match_lists([1, 2, 3], [3, 2, 1])
         result = find_move_vectors(map_set, [1, 2, 3], [3, 2, 1])
-        expected = [SwapVector([-1], 0, 2)]
+        expected = [SwapOperation([-1], 0, 2)]
         self.assertEqual(expected.__repr__(), result.__repr__())
 
     def test_fmv_should_handle_added_and_deleted_lines(self):
         map_set = match_lists([1, 2, 3], [1, 2, 3, 5])
         result = find_move_vectors(map_set, [1, 2, 3], [1, 2, 3, 5])
-        expected = AddVector([3], None, 5)
+        expected = AddOperation([3], None, 5)
         self.assertEqual(expected.__repr__(), result[0].__repr__())
         map_set = match_lists([1, 2, 3, 5], [1, 2, 3])
         result = find_move_vectors(map_set, [1, 2, 3, 5], [1, 2, 3])
-        expected = DeleteVector([3], 5, None)
+        expected = DeleteOperation([3], 5, None)
         self.assertEqual(expected.__repr__(), result[0].__repr__())
 
     # diff_lists tests
@@ -126,22 +127,22 @@ class TestComparator(unittest.TestCase):
 
     def test_diff_lists_additions(self):
         result = diff_lists([1, 2], [1, 2, 3])
-        expected = AddVector([2], None, 3)
+        expected = AddOperation([2], None, 3)
         self.assertEqual(expected.__repr__(), result[0].__repr__())
 
     def test_diff_lists_deletions(self):
         result = diff_lists([1, 2, 3], [1, 2])
-        expected = DeleteVector([2], 3, None)
+        expected = DeleteOperation([2], 3, None)
         self.assertIn(expected.__repr__(), result.__repr__())
 
     def test_diff_lists_moves(self):
         result = diff_lists([1, 2, 3], [3, 1, 2])
-        expected = MoveVector([-1], 2, 0)
+        expected = MoveOperation([-1], 2, 0)
         self.assertEqual(expected.__repr__(), result[0].__repr__())
 
     def test_diff_lists_combination(self):
         result = diff_lists([1, 2, 3], [3, 4, 1])
-        expected = [SwapVector([-1], 0, 2), ChangeVector([1], 2, 4)]
+        expected = [SwapOperation([-1], 0, 2), ChangeOperation([1], 2, 4)]
         self.assertEqual(expected.__repr__(), result.__repr__())
 
     # ast_diff tests
@@ -155,13 +156,13 @@ class TestComparator(unittest.TestCase):
         ast_x = ast.parse("a = 1")
         ast_y = ast.parse("a = 'string'")
         result = diff_asts(ast_x, ast_y)
-        self.assertTrue(any(isinstance(change, ChangeVector) for change in result))
+        self.assertTrue(any(isinstance(change, ChangeOperation) for change in result))
 
     def test_diff_asts_different_field_values(self):
         ast_x = ast.parse("a = 1")
         ast_y = ast.parse("a = 2")
         result = diff_asts(ast_x, ast_y)
-        self.assertTrue(any(isinstance(change, ChangeVector) for change in result))
+        self.assertTrue(any(isinstance(change, ChangeOperation) for change in result))
 
     def test_diff_asts_lists_identical(self):
         list_x = [ast.parse("a = 1"), ast.parse("b = 2")]
@@ -173,7 +174,7 @@ class TestComparator(unittest.TestCase):
         list_x = [ast.parse("a = 1"), ast.parse("b = 2")]
         list_y = [ast.parse("a = 1"), ast.parse("c = 3")]
         result = diff_asts(list_x, list_y)
-        self.assertTrue(any(isinstance(change, ChangeVector) for change in result))
+        self.assertTrue(any(isinstance(change, ChangeOperation) for change in result))
 
     def test_diff_asts_primitive_identical(self):
         result = diff_asts(1, 1)
@@ -181,19 +182,19 @@ class TestComparator(unittest.TestCase):
 
     def test_diff_asts_primitive_different(self):
         result = diff_asts(1, 2)
-        self.assertTrue(any(isinstance(change, ChangeVector) for change in result))
+        self.assertTrue(any(isinstance(change, ChangeOperation) for change in result))
 
     def test_diff_asts_occurs_in(self):
         ast_x = ast.parse("b = 2")
         ast_y = ast.parse("if a == 1:\n    b = 2")
         result = diff_asts(ast_x, ast_y)
-        self.assertTrue(any(isinstance(change, SubVector) for change in result))
+        self.assertTrue(any(isinstance(change, SubOperation) for change in result))
 
     def test_diff_asts_occurs_in_reverse(self):
         ast_x = ast.parse("if a == 1:\n    b = 2")
         ast_y = ast.parse("b = 2")
         result = diff_asts(ast_x, ast_y)
-        self.assertTrue(any(isinstance(change, SuperVector) for change in result))
+        self.assertTrue(any(isinstance(change, SuperOperation) for change in result))
 
     # distance tests
 
@@ -216,7 +217,7 @@ class TestComparator(unittest.TestCase):
 
     def test_distance_given_changes(self):
         state = CodeState(tree=ast.parse("a = 1"), goal=IntermediateState(tree=ast.parse("b = 2")))
-        mock_change = ChangeVector([-1], 1, 2)
+        mock_change = ChangeOperation([-1], 1, 2)
         result = distance(state, state.goal, given_changes=[mock_change])
         self.assertIsNotNone(result)
         dist, _ = result
@@ -241,43 +242,43 @@ class TestComparator(unittest.TestCase):
         self.assertEqual(result, 0)
 
     def test_get_changes_weight_add_vector(self):
-        change = AddVector([-1], 0, 2)
+        change = AddOperation([-1], 0, 2)
         result = get_changes_weight([change])
         self.assertEqual(1, result)
 
     def test_get_changes_weight_delete_vector(self):
-        change = DeleteVector([-1], 0, 2)
+        change = DeleteOperation([-1], 0, 2)
         result = get_changes_weight([change])
         self.assertEqual(1, result)
 
     def test_get_changes_weight_swap_vector(self):
-        change = SwapVector([-1], 0, 2)
+        change = SwapOperation([-1], 0, 2)
         result = get_changes_weight([change])
         self.assertEqual(2, result)
 
     def test_get_changes_weight_move_vector(self):
-        change = MoveVector([-1], 0, 2)
+        change = MoveOperation([-1], 0, 2)
         result = get_changes_weight([change])
         self.assertEqual(1, result)
 
     def test_get_changes_weight_sub_vector(self):
-        change = SubVector([-1], 0, 2)
+        change = SubOperation([-1], 0, 2)
         result = get_changes_weight([change])
         self.assertEqual(0, result)
 
     def test_get_changes_weight_super_vector(self):
-        change = SuperVector([-1], 2, 0)
+        change = SuperOperation([-1], 2, 0)
         result = get_changes_weight([change])
         self.assertEqual(0, result)
 
     def test_get_changes_weight_mixed_changes(self):
         changes = [
-            AddVector([-1], 0, 1),
-            DeleteVector([-1], 2, 3),
-            SwapVector([-1], 4, 5),
-            MoveVector([-1], 6, 7),
-            SubVector([-1], 8, 9),
-            SuperVector([-1], 10, 11)
+            AddOperation([-1], 0, 1),
+            DeleteOperation([-1], 2, 3),
+            SwapOperation([-1], 4, 5),
+            MoveOperation([-1], 6, 7),
+            SubOperation([-1], 8, 9),
+            SuperOperation([-1], 10, 11)
         ]
         result = get_changes_weight(changes)
         self.assertEqual(5, result)

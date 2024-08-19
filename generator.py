@@ -9,6 +9,8 @@ from compare import validate_student_attempts
 
 teacher_attempt_count = 0
 max_teacher_attempts = 3
+best_scoring_hint = ""
+best_score = 0.0
 
 
 def generate_ai_hint(problem_description: str, student_code: str, edit: str, goal_code: str) -> str:
@@ -23,11 +25,12 @@ def internal_generate_ai_hint(problem_description: str, student_code: str, edit:
                               client: OpenAI) -> str:
     global teacher_attempt_count
     global max_teacher_attempts
+    global best_scoring_hint
+    global best_score
     if teacher_attempt_count > max_teacher_attempts:
-        raise Exception("Too many attempts to generate a hint, stopping.")
+        return best_scoring_hint
     teacher_attempt_count += 1
     filled_template = populate_teacher_template(problem_description, student_code, edit)
-
     teacher_interaction = client.chat.completions.create(
         model="gpt-4o-mini",
         temperature=0.1,
@@ -46,7 +49,7 @@ def internal_generate_ai_hint(problem_description: str, student_code: str, edit:
 
     filled_student_template = populate_student_template(long_form_hint, student_code)
     completions = []
-    for _ in range(10):
+    for _ in range(3):
         completion_student = client.chat.completions.create(
             model="gpt-3.5-turbo",
             temperature=0.1,
@@ -60,6 +63,9 @@ def internal_generate_ai_hint(problem_description: str, student_code: str, edit:
     # Now to compare the completions to the goal code.
     average_score = validate_student_attempts(completions, goal_code, student_code)
     # We want a solution that is at least 85% similar to the goal code.
+    if best_score < average_score:
+        best_score = average_score
+        best_scoring_hint = short_form_hint
     if average_score < 0.85:
         # We will handle the recursive attempt here.
         return internal_generate_ai_hint(problem_description, student_code, edit, goal_code, client)

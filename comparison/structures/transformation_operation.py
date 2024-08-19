@@ -12,8 +12,6 @@ def create_map_dict(map_dict, tree_spot):
 
     # Check for None to avoid AttributeError
     if tree_spot is None:
-        # Log error or handle the case where treeSpot is None
-        print("Error: treeSpot is None in createMapDict")
         return None, map_dict
 
     map_dict["len"] = len(tree_spot)
@@ -22,7 +20,7 @@ def create_map_dict(map_dict, tree_spot):
         map_dict[i] = {}
 
 
-class ChangeVector:
+class ChangeOperation:
     start = None
     path = None
     old_subtree = None
@@ -42,7 +40,7 @@ class ChangeVector:
         return old_str + " - " + new_str + " : " + str(self.path)
 
     def __cmp__(self, other):
-        if not isinstance(other, ChangeVector):
+        if not isinstance(other, ChangeOperation):
             return -1
         c1 = cmp(self.path, other.path)
         if c1 != 0:
@@ -60,7 +58,7 @@ class ChangeVector:
 
     def deepcopy(self):
         path = self.path[:] if self.path is not None else None
-        c = ChangeVector(path, deepcopy(self.old_subtree), deepcopy(self.new_subtree), start=deepcopy(self.start))
+        c = ChangeOperation(path, deepcopy(self.old_subtree), deepcopy(self.new_subtree), start=deepcopy(self.start))
         return c
 
     def update_tree(self, tree_spot, map_dict, path=None):
@@ -181,22 +179,22 @@ class ChangeVector:
         return tree
 
     def is_replace_vector(self):
-        return not (isinstance(self, SubVector) or isinstance(self, SuperVector) or isinstance(self,
-                                                                                               AddVector) or isinstance(
-            self, DeleteVector) or isinstance(self, SwapVector) or isinstance(self, MoveVector))
+        return not (isinstance(self, SubOperation) or isinstance(self, SuperOperation) or isinstance(self,
+                                                                                                     AddOperation) or isinstance(
+            self, DeleteOperation) or isinstance(self, SwapOperation) or isinstance(self, MoveOperation))
 
 
-class SubVector(ChangeVector):
+class SubOperation(ChangeOperation):
     # This class represents a vector where the value is a subexpression of the needed value
 
     def __cmp__(self, other):
-        if (not isinstance(other, ChangeVector)) or isinstance(other, SuperVector) or \
-                isinstance(other, AddVector) or isinstance(other, DeleteVector) or \
-                isinstance(other, SwapVector) or isinstance(other, MoveVector):
+        if (not isinstance(other, ChangeOperation)) or isinstance(other, SuperOperation) or \
+                isinstance(other, AddOperation) or isinstance(other, DeleteOperation) or \
+                isinstance(other, SwapOperation) or isinstance(other, MoveOperation):
             return -1
-        if not isinstance(other, SubVector):
+        if not isinstance(other, SubOperation):
             return 1
-        return ChangeVector.__cmp__(self, other)
+        return ChangeOperation.__cmp__(self, other)
 
     def __repr__(self):
         old_str = print_function(self.old_subtree, 0) if isinstance(self.old_subtree, ast.AST) else repr(
@@ -207,21 +205,21 @@ class SubVector(ChangeVector):
 
     def deepcopy(self):
         path = self.path[:] if self.path is not None else None
-        c = SubVector(path, deepcopy(self.old_subtree), deepcopy(self.new_subtree), start=deepcopy(self.start))
+        c = SubOperation(path, deepcopy(self.old_subtree), deepcopy(self.new_subtree), start=deepcopy(self.start))
         return c
 
 
-class SuperVector(ChangeVector):
+class SuperOperation(ChangeOperation):
     # This class represents a vector where the value contains the needed value as a subexpression
 
     def __cmp__(self, other):
-        if (not isinstance(other, ChangeVector)) or isinstance(other, AddVector) or \
-                isinstance(other, DeleteVector) or isinstance(other, SwapVector) or \
-                isinstance(other, MoveVector):
+        if (not isinstance(other, ChangeOperation)) or isinstance(other, AddOperation) or \
+                isinstance(other, DeleteOperation) or isinstance(other, SwapOperation) or \
+                isinstance(other, MoveOperation):
             return -1
-        if not isinstance(other, SuperVector):
+        if not isinstance(other, SuperOperation):
             return 1
-        return ChangeVector.__cmp__(self, other)
+        return ChangeOperation.__cmp__(self, other)
 
     def __repr__(self):
         old_str = print_function(self.old_subtree, 0) if isinstance(self.old_subtree, ast.AST) else repr(
@@ -232,20 +230,20 @@ class SuperVector(ChangeVector):
 
     def deepcopy(self):
         path = self.path[:] if self.path is not None else None
-        c = SuperVector(path, deepcopy(self.old_subtree), deepcopy(self.new_subtree), start=deepcopy(self.start))
+        c = SuperOperation(path, deepcopy(self.old_subtree), deepcopy(self.new_subtree), start=deepcopy(self.start))
         return c
 
 
-class AddVector(ChangeVector):
+class AddOperation(ChangeOperation):
     # This class represents where lines are added to a list
 
     def __cmp__(self, other):
-        if (not isinstance(other, ChangeVector)) or isinstance(other, DeleteVector) or \
-                isinstance(other, SwapVector) or isinstance(other, MoveVector):
+        if (not isinstance(other, ChangeOperation)) or isinstance(other, DeleteOperation) or \
+                isinstance(other, SwapOperation) or isinstance(other, MoveOperation):
             return -1
-        if not isinstance(other, AddVector):
+        if not isinstance(other, AddOperation):
             return 1
-        return ChangeVector.__cmp__(self, other)
+        return ChangeOperation.__cmp__(self, other)
 
     def __repr__(self):
         old_str = print_function(self.old_subtree, 0) if isinstance(self.old_subtree, ast.AST) else repr(
@@ -256,7 +254,7 @@ class AddVector(ChangeVector):
 
     def deepcopy(self):
         path = self.path[:] if self.path is not None else None
-        c = AddVector(path, deepcopy(self.old_subtree), deepcopy(self.new_subtree), start=deepcopy(self.start))
+        c = AddOperation(path, deepcopy(self.old_subtree), deepcopy(self.new_subtree), start=deepcopy(self.start))
         return c
 
     def apply_change(self, caller=None):
@@ -311,15 +309,15 @@ class AddVector(ChangeVector):
         map_dict["pos"].insert(location, -1)
 
 
-class DeleteVector(ChangeVector):
+class DeleteOperation(ChangeOperation):
     # This class represents a change where lines are removed from a list
     def __cmp__(self, other):
-        if (not isinstance(other, ChangeVector)) or isinstance(other, SwapVector) or \
-                isinstance(other, MoveVector):
+        if (not isinstance(other, ChangeOperation)) or isinstance(other, SwapOperation) or \
+                isinstance(other, MoveOperation):
             return -1
-        if not isinstance(other, DeleteVector):
+        if not isinstance(other, DeleteOperation):
             return 1
-        return ChangeVector.__cmp__(self, other)
+        return ChangeOperation.__cmp__(self, other)
 
     def __repr__(self):
         old_str = print_function(self.old_subtree, 0) if isinstance(self.old_subtree, ast.AST) else repr(
@@ -330,7 +328,7 @@ class DeleteVector(ChangeVector):
 
     def deepcopy(self):
         path = self.path[:] if self.path is not None else None
-        c = DeleteVector(path, deepcopy(self.old_subtree), deepcopy(self.new_subtree), start=deepcopy(self.start))
+        c = DeleteOperation(path, deepcopy(self.old_subtree), deepcopy(self.new_subtree), start=deepcopy(self.start))
         return c
 
     def apply_change(self, caller=None):
@@ -375,16 +373,16 @@ class DeleteVector(ChangeVector):
         map_dict["pos"].pop(location)
 
 
-class SwapVector(ChangeVector):
+class SwapOperation(ChangeOperation):
     # This class represents a change where two lines are swapped
     old_path = new_path = None
 
     def __cmp__(self, other):
-        if (not isinstance(other, ChangeVector)) or isinstance(other, MoveVector):
+        if (not isinstance(other, ChangeOperation)) or isinstance(other, MoveOperation):
             return -1
-        if not isinstance(other, SwapVector):
+        if not isinstance(other, SwapOperation):
             return 1
-        return ChangeVector.__cmp__(self, other)
+        return ChangeOperation.__cmp__(self, other)
 
     def __repr__(self):
         old_str = print_function(self.old_subtree, 0) if isinstance(self.old_subtree, ast.AST) else repr(
@@ -399,7 +397,7 @@ class SwapVector(ChangeVector):
 
     def deepcopy(self):
         path = self.path[:] if self.path is not None else None
-        c = SwapVector(path, deepcopy(self.old_subtree), deepcopy(self.new_subtree), start=deepcopy(self.start))
+        c = SwapOperation(path, deepcopy(self.old_subtree), deepcopy(self.new_subtree), start=deepcopy(self.start))
         c.old_path = self.old_path[:] if self.old_path is not None else None
         c.new_path = self.new_path[:] if self.new_path is not None else None
         return c
@@ -521,15 +519,15 @@ class SwapVector(ChangeVector):
             return self.old_path, self.new_path
 
 
-class MoveVector(ChangeVector):
+class MoveOperation(ChangeOperation):
     # This class represents a change where one line is moved somewhere else in the list
 
     def __cmp__(self, other):
-        if not isinstance(other, ChangeVector):
+        if not isinstance(other, ChangeOperation):
             return -1
-        if not isinstance(other, MoveVector):
+        if not isinstance(other, MoveOperation):
             return 1
-        return ChangeVector.__cmp__(self, other)
+        return ChangeOperation.__cmp__(self, other)
 
     def __repr__(self):
         old_str = print_function(self.old_subtree, 0) if isinstance(self.old_subtree, ast.AST) else repr(
@@ -540,7 +538,7 @@ class MoveVector(ChangeVector):
 
     def deepcopy(self):
         path = self.path[:] if self.path is not None else None
-        c = MoveVector(path, deepcopy(self.old_subtree), deepcopy(self.new_subtree), start=deepcopy(self.start))
+        c = MoveOperation(path, deepcopy(self.old_subtree), deepcopy(self.new_subtree), start=deepcopy(self.start))
         return c
 
     def apply_change(self, caller=None):

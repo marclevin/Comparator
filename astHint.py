@@ -55,12 +55,23 @@ def compare(student_solution, correct_solution):
     """
     content1 = student_solution.read()
     content2 = correct_solution.read()
-    edit, _ = compare_internal(content1, content2)
-    click.echo((click.style(f'Your hint is::{edit}', fg='blue')))
+    edit, ephemeral_goal = compare_internal(content1, content2)
+    click.echo((click.style(f'Your hint is:\n{edit}', fg='green')))
+
+
+@ast_hint.command()
+@click.argument('student_solution', type=str)
+@click.argument('correct_solution', type=str)
+def compare_using_strings(student_solution, correct_solution):
+    """
+    Compare the given strings.
+    """
+    edit, ephemeral_goal = compare_internal(student_solution, correct_solution)
+    # click.echo((click.style(f'Your hint is:\n{edit}', fg='green')))
+    click.echo(edit)
 
 
 def compare_internal(student_solution, correct_solution):
-    click.echo(click.style('Comparing the given files...', fg=fg_ast_hint))
     try:
         hint, new_goal = compare_and_return_new_goal(student_solution, correct_solution, True)
     except FileNotFoundError as e:
@@ -92,6 +103,27 @@ def generative_ai_hint(student_solution, correct_solution, problem_description):
     short_hint = generate_ai_hint(problem_description, student_solution, edit, new_goal)
     click.echo(click.style(text="Your hint is:", fg=fg_ast_hint))
     click.echo(click.style(short_hint, fg='green'))
+
+
+@ast_hint.command()
+@click.argument('student_solution', type=str)
+@click.argument('correct_solution', type=str)
+@click.argument('problem_description', type=str)
+def generative_using_strings_ai_hint(student_solution, correct_solution, problem_description):
+    """
+    Generate a hint using comparator & AI.
+    """
+    student_solution = student_solution
+    correct_solution = correct_solution
+    problem_description = problem_description
+    edit, new_goal = compare_internal(student_solution, correct_solution)
+    if (edit == "Your code has syntax errors. You need to fix them before we can provide hints.") or (
+            edit == "No hint available, student code is identical to the goal code.") or (
+            edit == "The solution code has syntax errors. Please contact your instructor."):
+        click.echo(edit)
+        return
+    short_hint = generate_ai_hint(problem_description, student_solution, edit, new_goal)
+    click.echo(short_hint)
 
 
 def test_generative_ai_hint():

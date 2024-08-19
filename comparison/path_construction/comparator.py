@@ -1,5 +1,5 @@
-from comparison.structures.ChangeVector import *
 from comparison.structures.State import *
+from comparison.structures.transformation_operation import *
 from comparison.utils.astTools import *
 
 
@@ -143,13 +143,13 @@ def find_move_vectors(map_set, list_x, list_y):
     # First, get all the added and deleted lines
     deleted_lines = map_set[-1] if -1 in map_set else []
     for line in sorted(deleted_lines):
-        change_vectors.append(DeleteVector([line], list_x[line], None))
+        change_vectors.append(DeleteOperation([line], list_x[line], None))
 
     added_lines = list(filter(lambda tmp: map_set[tmp] == -1, map_set.keys()))
     added_offset = 0  # Because added lines don't start in the list, we need
     # to offset their positions for each new one that's added
     for line in sorted(added_lines):
-        change_vectors.append(AddVector([line - added_offset], None, list_y[line]))
+        change_vectors.append(AddOperation([line - added_offset], None, list_y[line]))
         added_offset += 1
     """We'll find all the moved lines by recreating the mapSet from a tmpSet using actions"""
     start_list = list(range(len(list_x)))
@@ -172,15 +172,15 @@ def find_move_vectors(map_set, list_x, list_y):
         move_pairs = generate_move_pairs(start_list, end_list)
         for pair in move_pairs:
             if pair[0] == "move":
-                change_vectors.append(MoveVector([-1], pair[1], end_list.index(pair[1])))
+                change_vectors.append(MoveOperation([-1], pair[1], end_list.index(pair[1])))
             elif pair[0] == "swap":
-                change_vectors.append(SwapVector([-1], pair[1], pair[2]))
+                change_vectors.append(SwapOperation([-1], pair[1], pair[2]))
             else:
                 log("Missing movePair type: " + str(pair[0]), "bug")
     # We need to make sure the indices start at the appropriate numbers, since they're referring to the original tree
     if len(deleted_lines) > 0:
         for action in change_vectors:
-            if isinstance(action, MoveVector):
+            if isinstance(action, MoveOperation):
                 add_to_count = 0
                 for deleteAction in deleted_lines:
                     if deleteAction <= action.new_subtree:
@@ -188,7 +188,7 @@ def find_move_vectors(map_set, list_x, list_y):
                 action.new_subtree += add_to_count
     if len(added_lines) > 0:
         for action in change_vectors:
-            if isinstance(action, MoveVector):
+            if isinstance(action, MoveOperation):
                 add_to_count = 0
                 for addAction in added_lines:
                     if addAction <= action.new_subtree:
@@ -197,7 +197,7 @@ def find_move_vectors(map_set, list_x, list_y):
     return change_vectors
 
 
-def diff_lists(list_x: List, list_y: List) -> List[ChangeVector]:
+def diff_lists(list_x: List, list_y: List) -> List[ChangeOperation]:
     if len(list_x) == 0 and len(list_y) == 0:
         return []
     # Check identical lists
@@ -227,16 +227,16 @@ def diff_asts(ast_x, ast_y):
     if isinstance(ast_x, ast.AST) and isinstance(ast_y, ast.AST):
         if type(ast_x) is not type(ast_y):  # different node types
             if occurs_in(ast_x, ast_y):
-                return [SubVector([], ast_x, ast_y)]
+                return [SubOperation([], ast_x, ast_y)]
             elif occurs_in(ast_y, ast_x):
-                return [SuperVector([], ast_x, ast_y)]
+                return [SuperOperation([], ast_x, ast_y)]
             else:
-                return [ChangeVector([], ast_x, ast_y)]
+                return [ChangeOperation([], ast_x, ast_y)]
         elif type(ast_x) is type(ast_y) is ast.Name:
             # TODO look into this
             if not built_in_name(ast_x.id) and not built_in_name(ast_y.id):
                 if ast_x.id != ast_y.id:
-                    return [ChangeVector([], ast_x, ast_y)]
+                    return [ChangeOperation([], ast_x, ast_y)]
                 else:
                     return []
 
@@ -260,11 +260,11 @@ def diff_asts(ast_x, ast_y):
             if type(ast_x) in [int, float, str, bool] and type(ast_y) in [int, float, str, bool]:
                 if ast_x == ast_y:
                     return []
-            return [ChangeVector([], ast_x, ast_y)]
+            return [ChangeOperation([], ast_x, ast_y)]
         else:  # equal values
             return []
     else:  # Two mismatched types
-        return [ChangeVector([], ast_x, ast_y)]
+        return [ChangeOperation([], ast_x, ast_y)]
 
 
 def sum_weight(bases):
@@ -466,18 +466,18 @@ def get_changes(student_code_tree: ast.AST, candidate_code_tree: ast.AST):
 def get_changes_weight(changes, countTokens=True):
     weight = 0
     for change in changes:
-        if isinstance(change, AddVector):
+        if isinstance(change, AddOperation):
             weight += get_weight(change.new_subtree, count_tokens=countTokens)
-        elif isinstance(change, DeleteVector):
+        elif isinstance(change, DeleteOperation):
             weight += get_weight(change.old_subtree, count_tokens=countTokens)
-        elif isinstance(change, SwapVector):
+        elif isinstance(change, SwapOperation):
             weight += 2  # only changing the positions
-        elif isinstance(change, MoveVector):
+        elif isinstance(change, MoveOperation):
             weight += 1  # only moving one item
-        elif isinstance(change, SubVector):
+        elif isinstance(change, SubOperation):
             weight += abs(get_weight(change.new_subtree, count_tokens=countTokens) - \
                           get_weight(change.old_subtree, count_tokens=countTokens))
-        elif isinstance(change, SuperVector):
+        elif isinstance(change, SuperOperation):
             weight += abs(get_weight(change.old_subtree, count_tokens=countTokens) - \
                           get_weight(change.new_subtree, count_tokens=countTokens))
         else:

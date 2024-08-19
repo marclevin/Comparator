@@ -1,7 +1,7 @@
 import ast
 from typing import List
 
-from comparison.structures.ChangeVector import ChangeVector
+from comparison.structures.transformation_operation import ChangeOperation
 from comparison.utils.astTools import deepcopy, cmp
 from comparison.utils.display import print_function
 
@@ -79,7 +79,7 @@ class CodeState(State):
     original_ast: ast = None
     goal: State = None  # the eventual goal state for this student
     distance_to_goal: int = -1
-    edit: List[ChangeVector] = None  # the changes on the edge to the next state
+    edit: List[ChangeOperation] = None  # the changes on the edge to the next state
     reverse_map = None
 
     # Constructor

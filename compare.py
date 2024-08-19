@@ -1,4 +1,5 @@
 # Entry point
+from typing import Tuple
 
 import autopep8
 
@@ -8,7 +9,7 @@ from comparison.path_construction.state_creator import get_next_state, create_st
     create_canonical_intermediate_state
 from comparison.utils.generate_message import *
 
-ephemeral_goal = None
+ephemeral_goal: str = ""
 
 
 def compare_solutions(student_code, solution_code, canonicalize) -> str:
@@ -19,9 +20,13 @@ def compare_solutions(student_code, solution_code, canonicalize) -> str:
     # Check for syntax errors
     try:
         ast.parse(student_code)
+    except Exception as e:
+        return "Your code has syntax errors. You need to fix them before we can provide hints."
+
+    try:
         ast.parse(solution_code)
-    except SyntaxError:
-        return "Student code OR solution code has syntax errors."
+    except Exception as e:
+        return "The solution code has syntax errors. Please contact your instructor."
 
     # Create initial state and generate next state
     student_code_state = create_state(student_code, solution_code, canonicalize)
@@ -35,15 +40,50 @@ def compare_solutions(student_code, solution_code, canonicalize) -> str:
         deanonymizer = DeanonymizeNames(reverse_map=student_code_state.reverse_map)
         deanonymizer.visit(student_code_state.tree)
         deanonymizer.visit(student_code_state.next.tree)
+    # We should check the change vectors next_tree here to ensure if something new is added, we use a reverse map to convert back to the original code in the goal_ast.
     global ephemeral_goal
     ephemeral_goal = print_function(student_code_state.next.tree)
+    log(f"Ephemeral goal generated:\n{ephemeral_goal}", "hint_generation")
 
     return formatHints(student_code_state.change_vectors, 2)
 
 
-def compare_and_return_new_goal(student_code, solution_code, canonicalize):
+def compare_and_return_new_goal(student_code, solution_code, canonicalize) -> Tuple[str, str]:
+    global ephemeral_goal
     hint = compare_solutions(student_code, solution_code, canonicalize)
     return hint, ephemeral_goal
+
+
+working_code = r"""
+def main():
+    num = 0
+    total = 0
+    while num < 5:
+        total += int(input("Enter a value:\n"))
+        num += 1
+
+    average = total / 5
+    average = int(round(average, 2))
+    print(f"The average, rounded to the nearest integer is {average}.")
+    if average % 2 == 0:
+        print("The average is an even number.")
+    else:
+        print("The average is an odd number.")
+
+if __name__ == "__main__":
+    main()
+"""
+
+broken_code = """
+def main():
+    num = 0
+"""
+
+
+def test_string_compare():
+    global broken_code
+    global working_code
+    print(compare_solutions(broken_code, working_code, True))
 
 
 def test_compare():
@@ -81,4 +121,6 @@ def validate_student_attempts(student_attempts: List[str], goal_code: str, stude
             log("Syntax error in one of the student attempts.")
 
     # Now we have the distances, this will be used for now. Desirability would be useful here too.
+    if len(scores) == 0:
+        return 0
     return sum(scores.values()) / len(scores)

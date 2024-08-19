@@ -881,7 +881,7 @@ def compare_trees(node_a, node_b, check_equality=False):
                  ast.UAdd, ast.USub, ast.Eq, ast.NotEq, ast.Lt, ast.LtE,
                  ast.Gt, ast.GtE, ast.Is, ast.IsNot, ast.In, ast.NotIn,
                  ast.alias, ast.keyword, ast.arguments, ast.arg, ast.comprehension,
-                 ast.ExceptHandler, ast.withitem]
+                 ast.ExceptHandler, ast.withitem, ast.JoinedStr, ast.FormattedValue]
         if type(node_a) not in types or type(node_b) not in types:
             log("astTools\tcompareASTs\tmissing type:" + str(type(node_a)) + "," + str(type(node_b)), "bug")
             return 0
@@ -944,7 +944,7 @@ def compare_trees(node_a, node_b, check_equality=False):
         ast.comprehension: ["target", "iter", "ifs"], ast.ExceptHandler: ["type", "name", "body"],
         ast.arguments: ["posonlyargs", "args", "vararg", "kwonlyargs", "kw_defaults", "kwarg", "defaults"],
         ast.arg: ["arg", "annotation"], ast.keyword: ["arg", "value"], ast.alias: ["name", "asname"],
-        ast.withitem: ["context_expr", "optional_vars"]
+        ast.withitem: ["context_expr", "optional_vars"], ast.JoinedStr: ["values"], ast.FormattedValue: ["value"],
     }
 
     for attr in attr_map[type(node_a)]:
@@ -1117,6 +1117,10 @@ def deepcopy(node):
         cp = ast.withitem(deepcopy(node.context_expr), deepcopy(node.optional_vars))
     elif isinstance(node, ast.Constant):
         cp = ast.Constant(node.value, node.kind)
+    elif isinstance(node, ast.JoinedStr):
+        cp = ast.JoinedStr(deepcopy_list(node.values))
+    elif isinstance(node, ast.FormattedValue):
+        cp = ast.FormattedValue(deepcopy(node.value), node.conversion, deepcopy(node.format_spec))
     else:
         raise TypeError("Unknown type in deepcopy: " + str(type(node)))
 

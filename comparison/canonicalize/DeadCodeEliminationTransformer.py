@@ -37,7 +37,11 @@ class DeadCodeEliminationTransformer(ast.NodeTransformer):
         return node
 
     def visit_If(self, node):
-        self._live_vars_stack.append(set(self._live_vars_stack[-1]))
+        if not self._live_vars_stack:
+            self._live_vars_stack.append(set())
+        else:
+            self._live_vars_stack.append(set(self._live_vars_stack[-1]))
+
         self._reachable = True
         node.body = [self.visit(n) for n in node.body if self.visit(n) is not None]
         node.orelse = [self.visit(n) for n in node.orelse if self.visit(n) is not None]
