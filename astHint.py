@@ -124,6 +124,7 @@ def generative_using_strings_ai_hint(student_solution, correct_solution, problem
         return
     short_hint = generate_ai_hint(problem_description, student_solution, edit, new_goal)
     click.echo(short_hint)
+    click.echo(edit)
 
 
 def test_generative_ai_hint():

@@ -881,4 +881,6 @@ astNames = {
     ast.keyword: "Keyword",
     ast.alias: "Alias",
     ast.withitem: "With item",
+    ast.JoinedStr: "Joined String",
+    ast.FormattedValue: "Formatted Value",
 }

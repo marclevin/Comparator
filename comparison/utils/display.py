@@ -428,6 +428,8 @@ def formatContext(trace, verb, oldVal=None):
                   "Starred": ("value of the starred expression"),
                   "Name Constant": ("constant value"),
                   "Constant": "constant value",
+                  "Joined String": "joined string",
+                  "Formatted Value": "formatted value",
                   },
         "values": {"Print": ("print statement"),
                    "Boolean Operation": ("boolean operation"),
