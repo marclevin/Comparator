@@ -44,44 +44,21 @@ def get_canonical_form(student_state, given_names=None, imports=None):
     if imports is None:
         imports = []
     give_ids(student_state.tree)
+    transformations = [ConstantFoldingTransformer(), DeadCodeEliminationTransformer(), DeMorganizeTransformer(),
+                       ConditionalRedundancyTransformer()]
 
-    transformation_list = [
-        constantFolding,
-
-        cleanupEquals,
-        cleanupBoolOps,
-        cleanupRanges,
-        cleanupSlices,
-        cleanupTypes,
-        cleanupNegations,
-
-        conditionalRedundancy,
-        combineConditionals,
-        collapseConditionals,
-
-        copyPropagation,
-        orderCommutativeOperations,
-        deMorganize,
-
-        deadCodeRemoval
-    ]
     student_state.tree = simplify(student_state.tree)
     anonymizer_instance = AnonymizeNames()
-    constant_folding_instance = ConstantFoldingTransformer()
-    dead_code_elimination_instance = DeadCodeEliminationTransformer()
-    demorganize_instance = DeMorganizeTransformer()
-    conditional_redundancy_instance = ConditionalRedundancyTransformer()
-    student_state.tree = conditional_redundancy_instance.visit(student_state.tree)
-    student_state.tree = demorganize_instance.visit(student_state.tree)
-    student_state.tree = dead_code_elimination_instance.visit(student_state.tree)
-    student_state.tree = constant_folding_instance.visit(student_state.tree)
+
+    for transformation in transformations:
+        try:
+            copy_of_tree = copy.deepcopy(student_state.tree)
+            transformation.visit(copy_of_tree)
+            student_state.tree = copy_of_tree
+        except Exception as e:
+            log(f"Error in applying transformation {transformation.__class__.__name__}: {e}", "canonicalize")
+
     temp_tree = anonymizer_instance.visit(student_state.tree)
     student_state.anonymized_code = ast.unparse(temp_tree)
     student_state.reverse_map = anonymizer_instance.reverse_name_map
-    old_tree = None
-    # while compare_trees(old_tree, student_state.tree, check_equality=True) != 0:
-    #     old_tree = deepcopy(student_state.tree)
-    #     for transformation in transformation_list:
-    #         student_state.tree = transformation(student_state.tree)  # modify in place
-    # student_state.code = print_function(student_state.tree)
     return student_state

@@ -1,4 +1,6 @@
 import ast
+import contextlib
+import io
 
 
 class ConstantFoldingTransformer(ast.NodeTransformer):
@@ -24,7 +26,8 @@ class ConstantFoldingTransformer(ast.NodeTransformer):
         self.generic_visit(node)
         if isinstance(node.left, ast.Constant) and all(isinstance(comp, ast.Constant) for comp in node.comparators):
             try:
-                return ast.Constant(eval(compile(ast.Expression(node), '', 'eval')))
+                with io.StringIO() as buf, contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+                    return ast.Constant(eval(compile(ast.Expression(node), '', 'eval')))
             except:
                 pass
         return node
@@ -37,11 +40,10 @@ class ConstantFoldingTransformer(ast.NodeTransformer):
 
     def visit_Call(self, node):
         self.generic_visit(node)
-        if isinstance(node.func, ast.Name) and node.func.id == 'print' or node.func.id == 'input':
-            return node
         if all(isinstance(arg, ast.Constant) for arg in node.args):
             try:
-                return ast.Constant(eval(compile(ast.Expression(node), '', 'eval')))
+                with io.StringIO() as buf, contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+                    return ast.Constant(eval(compile(ast.Expression(node), '', 'eval')))
             except:
                 pass
         return node
