@@ -42,6 +42,8 @@ class ConstantFoldingTransformer(ast.NodeTransformer):
         self.generic_visit(node)
         if all(isinstance(arg, ast.Constant) for arg in node.args):
             try:
+                if node.func.id == 'print':
+                    return node
                 with io.StringIO() as buf, contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
                     return ast.Constant(eval(compile(ast.Expression(node), '', 'eval')))
             except:

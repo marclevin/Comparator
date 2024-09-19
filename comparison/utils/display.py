@@ -274,7 +274,7 @@ def print_function(unit, indent=0):
         output_string += "'"
     elif unit_type is ast.FormattedValue:
         output_string += "{" + print_function(unit.value, indent)
-        if unit.conversion is not -1:
+        if unit.conversion != -1:
             output_string += "!" + print_function(unit.conversion, indent)
         if unit.format_spec is not None:
             output_string += ":" + print_function(unit.format_spec, indent)
@@ -304,6 +304,8 @@ def print_function(unit, indent=0):
             output_string += str(unit.value)
         elif type(unit.value) is Ellipsis:
             output_string += "..."
+        else:
+            output_string += str(unit.value)
     elif unit_type is ast.Attribute:
         output_string += print_function(unit.value, indent) + "." + str(unit.attr)
     elif unit_type is ast.Subscript:
@@ -544,7 +546,8 @@ def formatContext(trace, verb, oldVal=None):
                   NoneType: "None statement",
                   Ellipsis: "ellipsis value",
                   tuple: "tuple value",
-                  frozenset: "frozenset value", }
+                  frozenset: "frozenset value",
+                  range: "range value", }
 
     # Find what type this is by trying to find the closest container in the path
     i = 0

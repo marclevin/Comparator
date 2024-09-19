@@ -72,6 +72,12 @@ def compare_using_strings(student_solution, correct_solution):
 
 
 def compare_internal(student_solution, correct_solution):
+    """
+    Compare the given strings, internal function.
+    :param student_solution: Student solution
+    :param correct_solution: Correct solution
+    :return: hint, new_goal (edit, ephemeral_goal)
+    """
     try:
         hint, new_goal = compare_and_return_new_goal(student_solution, correct_solution, True)
     except FileNotFoundError as e:
@@ -125,24 +131,6 @@ def generative_using_strings_ai_hint(student_solution, correct_solution, problem
     short_hint = generate_ai_hint(problem_description, student_solution, edit, new_goal)
     click.echo(short_hint)
     click.echo(edit)
-
-
-def test_generative_ai_hint():
-    student_solution = open(
-        'C:\\Users\\marcl\\OneDrive\\Desktop\\University\\AST-Hints\\Comparator\\problems/p1/student_code.py', 'r')
-    correct_solution = open(
-        'C:\\Users\\marcl\\OneDrive\\Desktop\\University\\AST-Hints\\Comparator\\problems/p1/goal_code.py', 'r')
-    problem_description = open(
-        'C:\\Users\\marcl\\OneDrive\\Desktop\\University\\AST-Hints\\Comparator\\problems/p1/description.txt', 'r')
-
-    student_solution = student_solution.read()
-    correct_solution = correct_solution.read()
-    problem_description = problem_description.read()
-    edit, new_goal = compare_internal(student_solution, correct_solution)
-    click.echo(click.style(text='Generating a hint from the AI...', fg=fg_ast_hint))
-    short_hint = generate_ai_hint(problem_description, student_solution, edit, new_goal)
-    click.echo(click.style(text="Your hint is:", fg=fg_ast_hint))
-    click.echo(click.style(short_hint, fg='green'))
 
 
 if __name__ == "__main__":

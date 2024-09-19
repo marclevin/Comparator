@@ -9,6 +9,10 @@ from comparison.utils.tools import *
 def cmp(a, b):
     if type(a) is type(b) is complex:
         return (a.real > b.real) - (a.real < b.real)
+    if type(a) is type(b) is range:
+        return (a.start > b.start) - (a.start < b.start) or \
+            (a.stop > b.stop) - (a.stop < b.stop) or \
+            (a.step > b.step) - (a.step < b.step)
     if type(a) is not type(b):
         return (str(type(a)) > str(type(b))) - (str(type(a)) < str(type(b)))
     return (a > b) - (a < b)

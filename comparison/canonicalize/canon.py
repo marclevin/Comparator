@@ -1,3 +1,5 @@
+import ast
+import copy
 import uuid
 
 from comparison.canonicalize.ConditionalRedundancyTransformer import ConditionalRedundancyTransformer
@@ -5,7 +7,7 @@ from comparison.canonicalize.ConstantFoldingTransformer import ConstantFoldingTr
 from comparison.canonicalize.DeadCodeEliminationTransformer import DeadCodeEliminationTransformer
 from comparison.canonicalize.anonymizer import AnonymizeNames
 from comparison.canonicalize.deMorganizeTransformer import DeMorganizeTransformer
-from comparison.canonicalize.transformations import *
+from comparison.utils.tools import log
 
 id_counter = 0
 
@@ -47,7 +49,6 @@ def get_canonical_form(student_state, given_names=None, imports=None):
     transformations = [ConstantFoldingTransformer(), DeadCodeEliminationTransformer(), DeMorganizeTransformer(),
                        ConditionalRedundancyTransformer()]
 
-    student_state.tree = simplify(student_state.tree)
     anonymizer_instance = AnonymizeNames()
 
     for transformation in transformations:

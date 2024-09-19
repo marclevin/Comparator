@@ -33,7 +33,7 @@ def internal_generate_ai_hint(problem_description: str, student_code: str, edit:
     filled_template = populate_teacher_template(problem_description, student_code, edit)
     teacher_interaction = client.chat.completions.create(
         model="gpt-4o-mini",
-        temperature=0.1,
+        temperature=0.2,
         messages=[
             {"role": "system", "content": f"{teacher_fine_tune}"},
             {"role": "user", "content": f"{filled_template}"},
@@ -49,17 +49,20 @@ def internal_generate_ai_hint(problem_description: str, student_code: str, edit:
 
     filled_student_template = populate_student_template(long_form_hint, student_code)
     completions = []
-    for _ in range(3):
+    for _ in range(10):
         completion_student = client.chat.completions.create(
             model="gpt-3.5-turbo",
-            temperature=0.1,
+            temperature=0.3,
             messages=[
                 {"role": "system", "content": f"{student_fine_tune}"},
                 {"role": "user", "content": f"{filled_student_template}"},
             ],
         )
         completions.append(completion_student.choices[0].message.content)
-    logging.log(logging.INFO, f"Student completions: {completions}")
+    # Write the completions to a file.
+    with open("completions.txt", "w") as f:
+        for completion in completions:
+            f.write(f"{completion}\n")
     # Now to compare the completions to the goal code.
     average_score = validate_student_attempts(completions, goal_code, student_code)
     # We want a solution that is at least 85% similar to the goal code.
@@ -107,9 +110,8 @@ def extract_hints(response: str) -> Tuple[str, str]:
 
 
 student_template = """
-Your code:
 {student_code}
-Hint:
+
 {long_form_hint}
 """
 
@@ -122,20 +124,20 @@ Even if the new code will not run, or is still incorrect, you must only output t
 You are not allowed to add comments to the code.
 Your teacher will give you the code and hint like so:
 Only output the code. You are only allowed to output the Python code.
-Your code:
+
 STUDENT CODE HERE
-Hint:
+
 HINT HERE
 
 
-Example Input:
-Your code:
+Example:
+
 def add(a, b):
     return a - b
-Hint:
+
 Operators in Python are used to perform operations on variables and values. The `+` operator is used to add two values together, while the `-` operator is used to subtract one value from another. You should replace the `-` operator with the `+` operator to correctly add the two values together.
 
-Example Response:
+Response:
 def add(a, b):
     return a + b
 """
